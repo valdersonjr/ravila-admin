@@ -4,7 +4,7 @@ export interface Aluno {
   pessoa_id: number;
   status: "ativo" | "inativo";
   nivel: { id: number; nome: string } | null;
-  responsavel: { id: number; nome: string } | null;
+  responsavel: { id: number; nome: string; cpf: string | null } | null;
   pessoa: { id: number; nome: string; cpf: string; email: string | null; telefone: string | null; data_nascimento: string | null; };
 }
 

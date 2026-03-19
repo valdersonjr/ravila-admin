@@ -57,8 +57,9 @@ export default function AlunosPage() {
           data={alunos}
           columns={[
             { header: "Nome", render: (a) => a.pessoa.nome },
-            { header: "CPF", render: (a) => a.pessoa.cpf },
+            { header: "CPF", render: (a) => a.pessoa.cpf ?? (a.responsavel?.cpf ?? "-") },
             { header: "Nível", render: (a) => a.nivel?.nome ?? "-" },
+            { header: "Responsável", render: (a) => a.responsavel?.nome ?? "-" },
             { header: "Status", render: (a) => <Badge variant={a.status === "ativo" ? "success" : "neutral"}>{a.status}</Badge> },
             {
               header: "Ações",

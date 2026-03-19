@@ -44,7 +44,7 @@ export default function NovoProfessorPage() {
     } finally { setLoading(false); }
   }
 
-  const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: `${p.nome} — ${p.cpf}` }));
+  const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: p.nome }));
 
   return (
     <div className="max-w-xl space-y-6">

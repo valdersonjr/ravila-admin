@@ -69,7 +69,7 @@ export default function PresencasPage() {
             aluno_id: m.aluno.pessoa_id,
             nome: m.aluno.pessoa.nome,
             tipo: "matriculado",
-            presente: salva ? salva.presente : true,
+            presente: salva ? salva.presente : false,
           });
           presencasSalvas.delete(m.aluno.pessoa_id);
         }
@@ -149,10 +149,10 @@ export default function PresencasPage() {
   const pessoaOptions = addTipo === "substituto"
     ? todosAlunos
         .filter((a) => !presencaIds.has(a.pessoa_id))
-        .map((a) => ({ value: a.pessoa_id, label: `${a.pessoa.nome} — ${a.pessoa.cpf}` }))
+        .map((a) => ({ value: a.pessoa_id, label: a.pessoa.nome }))
     : todasPessoas
         .filter((p) => !alunosPessoaIds.has(p.id) && !presencaIds.has(p.id))
-        .map((p) => ({ value: p.id, label: `${p.nome} — ${p.cpf}` }));
+        .map((p) => ({ value: p.id, label: p.nome }));
 
   if (loading) {
     return <div className="flex justify-center h-40 items-center"><span className="w-6 h-6 rounded-full border-2 border-primary-600 border-t-transparent animate-spin" /></div>;
@@ -194,7 +194,7 @@ export default function PresencasPage() {
       </div>
 
       {isAdmin && <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Adicionar aluno extra</h2>
+        <h2 className="text-sm font-semibold text-foreground">Adicionar participante</h2>
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-48">
             <Combobox options={pessoaOptions} value={addAlunoId} onChange={setAddAlunoId} placeholder="Buscar aluno..." />

@@ -34,7 +34,7 @@ export default function PessoasPage() {
           data={pessoas}
           columns={[
             { header: "Nome", render: (p) => p.nome },
-            { header: "CPF", render: (p) => p.cpf },
+            { header: "CPF", render: (p) => p.cpf ?? "-" },
             { header: "Email", render: (p) => p.email ?? "-" },
             { header: "Telefone", render: (p) => p.telefone ?? "-" },
             { header: "Ações", render: (p) => <Link href={`/admin/pessoas/${p.id}/editar`} className="text-primary-600 hover:underline text-sm">Editar</Link> },

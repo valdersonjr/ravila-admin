@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/context/ToastContext";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export default function NiveisPage() {
   const { showToast } = useToast();
@@ -100,7 +101,21 @@ export default function NiveisPage() {
           <Input value={newNome} onChange={(e) => setNewNome(e.target.value)} placeholder="Ex: Beginner" required />
         </div>
         <div className="w-28">
-          <label className="block text-sm font-medium text-foreground mb-1">Ordem *</label>
+          <label className="block text-sm font-medium text-foreground mb-1">
+            Ordem *{" "}
+            <Tooltip content={
+              <span>
+                Posição do nível na hierarquia de dificuldade. Exemplo:<br /><br />
+                1 → Beginner<br />
+                2 → Elementary<br />
+                3 → Pre-Intermediate<br />
+                4 → Intermediate<br />
+                5 → Advanced
+              </span>
+            }>
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-muted text-foreground text-xs font-bold">?</span>
+            </Tooltip>
+          </label>
           <Input type="number" value={newOrdem} onChange={(e) => setNewOrdem(e.target.value)} placeholder="1" required min="1" />
         </div>
         <Button type="submit" loading={creating}>+ Adicionar</Button>

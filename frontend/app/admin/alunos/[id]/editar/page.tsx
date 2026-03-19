@@ -22,6 +22,7 @@ export default function EditarAlunoPage() {
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [nivelId, setNivelId] = useState<number | string | null>(null);
   const [responsavelId, setResponsavelId] = useState<number | string | null>(null);
+  const [eMenor, setEMenor] = useState(false);
   const [status, setStatus] = useState("ativo");
   const [nomeAluno, setNomeAluno] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,7 @@ export default function EditarAlunoPage() {
     ]).then(([aluno, ns, ps]) => {
       setNivelId(aluno.nivel?.id ?? null);
       setResponsavelId(aluno.responsavel?.id ?? null);
+      setEMenor(aluno.pessoa?.menor_de_idade ?? false);
       setStatus(aluno.status);
       setNomeAluno(aluno.pessoa.nome);
       setNiveis(ns);
@@ -63,7 +65,7 @@ export default function EditarAlunoPage() {
   }
 
   const nivelOptions = niveis.map((n) => ({ value: n.id, label: n.nome }));
-  const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: `${p.nome} — ${p.cpf}` }));
+  const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: p.nome }));
 
   return (
     <div className="max-w-xl space-y-6">
@@ -72,9 +74,11 @@ export default function EditarAlunoPage() {
         <Field label="Nível">
           <Combobox options={nivelOptions} value={nivelId} onChange={setNivelId} placeholder="Selecionar nível..." />
         </Field>
-        <Field label="Responsável">
-          <Combobox options={pessoaOptions} value={responsavelId} onChange={setResponsavelId} placeholder="Selecionar responsável..." />
-        </Field>
+        {eMenor && (
+          <Field label="Responsável *">
+            <Combobox options={pessoaOptions} value={responsavelId} onChange={setResponsavelId} placeholder="Buscar responsável por nome ou CPF..." />
+          </Field>
+        )}
         <Field label="Status">
           <Select
             options={[

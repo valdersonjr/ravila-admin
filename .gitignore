@@ -36,3 +36,7 @@ Thumbs.db
 
 # Alembic
 backend/alembic/versions/__pycache__/
+
+# Seed / Reset
+backend/seed-temp.py
+backend/reset-db.py

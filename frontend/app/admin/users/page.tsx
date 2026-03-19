@@ -97,7 +97,7 @@ export default function UsersPage() {
     secretaria: "neutral",
   };
 
-  const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: `${p.nome} — ${p.cpf}` }));
+  const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: p.nome }));
 
   return (
     <div className="space-y-6">

@@ -31,9 +31,18 @@ export default function NovoAlunoPage() {
     });
   }, []);
 
+  const pessoaSelecionada = pessoas.find((p) => p.id === Number(pessoaId)) ?? null;
+  const eMenor = pessoaSelecionada?.menor_de_idade ?? false;
+
+  function handlePessoaChange(val: number | string | null) {
+    setPessoaId(val);
+    setResponsavelId(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!pessoaId) { showToast("Selecione uma pessoa.", "error"); return; }
+if (eMenor && !responsavelId) { showToast("Responsável obrigatório para menor de idade.", "error"); return; }
     setLoading(true);
     try {
       await alunosService.criar({
@@ -48,7 +57,7 @@ export default function NovoAlunoPage() {
     } finally { setLoading(false); }
   }
 
-  const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: `${p.nome} — ${p.cpf}` }));
+  const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: p.nome }));
   const nivelOptions = niveis.map((n) => ({ value: n.id, label: n.nome }));
 
   return (
@@ -56,14 +65,21 @@ export default function NovoAlunoPage() {
       <h1 className="text-2xl font-bold text-foreground">Novo Aluno</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Pessoa *">
-          <Combobox options={pessoaOptions} value={pessoaId} onChange={setPessoaId} placeholder="Buscar pessoa por nome ou CPF..." />
+          <Combobox options={pessoaOptions} value={pessoaId} onChange={handlePessoaChange} placeholder="Buscar pessoa por nome ou CPF..." />
         </Field>
         <Field label="Nível">
           <Combobox options={nivelOptions} value={nivelId} onChange={setNivelId} placeholder="Selecionar nível..." />
         </Field>
-        <Field label="Responsável (opcional)">
-          <Combobox options={pessoaOptions} value={responsavelId} onChange={setResponsavelId} placeholder="Buscar responsável..." />
-        </Field>
+        {eMenor && (
+          <Field label="Responsável *">
+            <Combobox
+              options={pessoaOptions}
+              value={responsavelId}
+              onChange={setResponsavelId}
+              placeholder="Buscar responsável por nome ou CPF..."
+            />
+          </Field>
+        )}
         <div className="flex gap-3">
           <Button type="submit" loading={loading}>Salvar</Button>
           <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>

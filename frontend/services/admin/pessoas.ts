@@ -7,6 +7,7 @@ export interface Pessoa {
   email: string | null;
   telefone: string | null;
   data_nascimento: string | null;
+  menor_de_idade: boolean;
 }
 
 export interface PessoaCreate {
@@ -15,6 +16,7 @@ export interface PessoaCreate {
   email?: string;
   telefone?: string;
   data_nascimento?: string;
+  menor_de_idade?: boolean;
 }
 
 export const pessoasService = {

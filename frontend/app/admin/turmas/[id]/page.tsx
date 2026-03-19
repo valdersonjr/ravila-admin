@@ -191,7 +191,7 @@ export default function TurmaDetailPage() {
             },
             {
               header: "Presenças",
-              render: (a) => <Link href={`/admin/aulas/${a.id}/presencas`} className="text-primary-600 hover:underline text-sm">Registrar</Link>,
+              render: (a) => <Link href={`/admin/aulas/${a.id}/presencas`} className="text-primary-600 hover:underline text-sm">Ver detalhes</Link>,
             },
           ]}
         />
@@ -200,7 +200,7 @@ export default function TurmaDetailPage() {
       {/* Matrículas */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Matrículas ({matriculas.length})</h2>
+          <h2 className="text-lg font-semibold text-foreground">Alunos matriculados ({matriculas.length})</h2>
           <Link href={`/admin/matriculas`} className="text-sm text-primary-500 hover:underline">Ver todas</Link>
         </div>
         <Table<Matricula>
