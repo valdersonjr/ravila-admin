@@ -52,7 +52,7 @@ export default function PresencasPage() {
         if (alunos) setTodosAlunos(alunos);
 
         if (presencasData.length > 0) {
-          setPresencas(presencasData.map((p) => ({
+          setPresencas((presencasData as Presenca[]).map((p) => ({
             aluno_id: p.aluno_id,
             nome: p.aluno?.pessoa.nome ?? p.pessoa?.nome ?? `Pessoa ${p.aluno_id}`,
             tipo: p.tipo,

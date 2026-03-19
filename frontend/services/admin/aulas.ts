@@ -9,7 +9,7 @@ export interface Aula {
   professor_id: number;
   professor_nome_snapshot: string;
   tipo: "regular" | "substitutiva";
-  status: "agendada" | "realizada" | "cancelada";
+  status: "agendada" | "realizada" | "cancelada" | "pendente_aprovacao";
   aula_origem_id: number | null;
   turma: { id: number; nome: string; professor_id: number } | null;
 }

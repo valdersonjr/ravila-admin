@@ -79,7 +79,7 @@ function HistoricoChart({ data }: { data: ProfessorDashboard["historico_mensal"]
             <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--color-muted, #6b7280)" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 11, fill: "var(--color-muted, #6b7280)" }} axisLine={false} tickLine={false} unit={unit} />
             <Tooltip
-              formatter={(v: number) => [`${v}${unit}`, label]}
+              formatter={(v) => [`${v ?? ""}${unit}`, label]}
               contentStyle={{
                 background: "var(--color-surface, #fff)",
                 border: "1px solid var(--color-border, #e5e7eb)",
