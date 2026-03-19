@@ -27,21 +27,22 @@ def buscar(db: Session, id: int) -> Pessoa:
 
 
 def criar(db: Session, dados: PessoaCreate) -> Pessoa:
-    cpf = _clean_cpf(dados.cpf)
-    if pessoa_repo.buscar_por_cpf(db, cpf):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"CPF {cpf} já cadastrado",
-        )
     payload = dados.model_dump()
-    payload["cpf"] = cpf
+    if dados.cpf:
+        cpf = _clean_cpf(dados.cpf)
+        if pessoa_repo.buscar_por_cpf(db, cpf):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"CPF {cpf} já cadastrado",
+            )
+        payload["cpf"] = cpf
     return pessoa_repo.criar(db, payload)
 
 
 def atualizar(db: Session, id: int, dados: PessoaUpdate) -> Pessoa:
     pessoa = buscar(db, id)
     data = dados.model_dump(exclude_unset=True)
-    if "cpf" in data:
+    if "cpf" in data and data["cpf"]:
         cpf = _clean_cpf(data["cpf"])
         if cpf != pessoa.cpf and pessoa_repo.buscar_por_cpf(db, cpf):
             raise HTTPException(

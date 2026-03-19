@@ -45,6 +45,11 @@ def criar(db: Session, dados: AlunoCreate) -> Aluno:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Nível não encontrado",
             )
+    if pessoa.menor_de_idade and not dados.responsavel_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Aluno menor de idade requer responsável",
+        )
     if dados.responsavel_id:
         responsavel = pessoa_repo.buscar_por_id(db, dados.responsavel_id)
         if not responsavel:

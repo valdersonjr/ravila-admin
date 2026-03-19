@@ -25,5 +25,6 @@ class AlunoOut(BaseModel):
     status: str
     pessoa: PessoaOut
     nivel: Optional[NivelOut] = None
+    responsavel: Optional[PessoaOut] = None
 
     model_config = ConfigDict(from_attributes=True)
