@@ -1,0 +1,39 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.dependencies import require_admin_or_professor
+from app.models.user import User
+from app.schemas.presenca import PresencaBatchRequest, PresencaItem, PresencaOut
+from app.services import presenca as presenca_service
+
+router = APIRouter(tags=["presencas"])
+
+
+@router.get("/aulas/{aula_id}/presencas", response_model=list[PresencaOut])
+def listar_presencas(
+    aula_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_professor),
+):
+    return presenca_service.listar_por_aula(db, aula_id)
+
+
+@router.post("/aulas/{aula_id}/presencas", response_model=PresencaOut, status_code=201)
+def adicionar_presenca(
+    aula_id: int,
+    body: PresencaItem,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_professor),
+):
+    return presenca_service.adicionar(db, aula_id, body)
+
+
+@router.post("/aulas/{aula_id}/presencas/batch", response_model=list[PresencaOut])
+def registrar_batch(
+    aula_id: int,
+    body: PresencaBatchRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin_or_professor),
+):
+    return presenca_service.registrar_batch(db, aula_id, body.presencas)

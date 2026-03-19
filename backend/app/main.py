@@ -1,0 +1,59 @@
+import os
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from app.core.config import settings
+from app.routers import (
+    auth,
+    pessoas,
+    users,
+    niveis,
+    professores,
+    alunos,
+    turmas,
+    aulas,
+    matriculas,
+    presencas,
+    pagamentos,
+)
+
+app = FastAPI(
+    title="Ravilas English — API",
+    description="Sistema de gestão para a escola de inglês Ravilas English",
+    version="1.0.0",
+)
+
+# CORS
+origins = settings.get_cors_origins()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Static files for uploaded comprovantes
+uploads_dir = "/app/uploads"
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
+# Routers
+app.include_router(auth.router)
+app.include_router(pessoas.router)
+app.include_router(users.router)
+app.include_router(niveis.router)
+app.include_router(professores.router)
+app.include_router(alunos.router)
+app.include_router(turmas.router)
+app.include_router(aulas.router)
+app.include_router(matriculas.router)
+app.include_router(presencas.router)
+app.include_router(pagamentos.router)
+
+
+@app.get("/", tags=["health"])
+def health_check():
+    return {"status": "ok", "app": "Ravilas English API"}
