@@ -12,7 +12,7 @@ export interface Pessoa {
 
 export interface PessoaCreate {
   nome: string;
-  cpf: string;
+  cpf?: string;
   email?: string;
   telefone?: string;
   data_nascimento?: string;
