@@ -65,7 +65,7 @@ export default function AlunosPage() {
             { header: "Nível", render: (a) => a.nivel?.nome ?? "-" },
             { header: "Responsável", render: (a) => a.responsavel?.nome ?? "-" },
             {
-              header: "Reposições",
+              header: "Reposições a fazer",
               render: (a) => {
                 const count = reposicoes.filter((r) => r.aluno_id === a.pessoa_id).length;
                 return count > 0 ? <Badge variant="warning">{count} pendente{count > 1 ? "s" : ""}</Badge> : "-";

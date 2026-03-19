@@ -53,6 +53,12 @@ export default function ProfessoresPage() {
               render: (p) => <Badge variant={p.ativo ? "success" : "neutral"}>{p.ativo ? "Ativo" : "Inativo"}</Badge>,
             },
             {
+              header: "Agenda",
+              render: (p) => (
+                <Link href={`/admin/professores/${p.pessoa_id}/agenda`} className="text-primary-600 hover:underline text-sm">Ver agenda</Link>
+              ),
+            },
+            {
               header: "Ações",
               render: (p) => (
                 <Link href={`/admin/professores/${p.pessoa_id}/editar`} className="text-primary-600 hover:underline text-sm">Editar</Link>

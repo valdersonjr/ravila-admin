@@ -109,7 +109,7 @@ export default function MatriculasPage() {
   };
 
   const turmaOptions = turmas.map((t) => ({ value: t.id, label: t.nome }));
-  const alunoOptions = alunos.map((a) => ({ value: a.pessoa_id, label: `${a.pessoa.nome} — ${a.pessoa.cpf}` }));
+  const alunoOptions = alunos.map((a) => ({ value: a.pessoa_id, label: a.pessoa.nome }));
 
   return (
     <div className="space-y-6">
