@@ -51,28 +51,40 @@ export default function PresencasPage() {
         if (pessoas) setTodasPessoas(pessoas);
         if (alunos) setTodosAlunos(alunos);
 
-        if (presencasData.length > 0) {
-          setPresencas((presencasData as Presenca[]).map((p: Presenca) => ({
+        // Sempre busca matrículas ativas da turma como base
+        const matriculasTurma = await matriculasService.listar({ turma_id: aulaData.turma_id, status: "ativa" });
+
+        // Mapa de presenças já salvas para lookup rápido
+        const presencasSalvas = new Map<number, Presenca>(
+          (presencasData as Presenca[]).map((p: Presenca) => [p.aluno_id, p])
+        );
+
+        const items: PresencaItem[] = [];
+
+        // Alunos matriculados — usa presença salva se existir, senão padrão presente=true
+        for (const m of matriculasTurma) {
+          if (!m.aluno) continue;
+          const salva = presencasSalvas.get(m.aluno.pessoa_id);
+          items.push({
+            aluno_id: m.aluno.pessoa_id,
+            nome: m.aluno.pessoa.nome,
+            tipo: "matriculado",
+            presente: salva ? salva.presente : true,
+          });
+          presencasSalvas.delete(m.aluno.pessoa_id);
+        }
+
+        // Presenças extras (experimental/substituto) que não são matriculados
+        for (const p of presencasSalvas.values()) {
+          items.push({
             aluno_id: p.aluno_id,
             nome: p.aluno?.pessoa.nome ?? p.pessoa?.nome ?? `Pessoa ${p.aluno_id}`,
-            tipo: p.tipo,
+            tipo: p.tipo as PresencaItem["tipo"],
             presente: p.presente,
-          })));
-        } else {
-          const matriculasTurma = await matriculasService.listar({ turma_id: aulaData.turma_id, status: "ativa" });
-          const items: PresencaItem[] = [];
-          for (const m of matriculasTurma) {
-            if (m.aluno) {
-              items.push({
-                aluno_id: m.aluno.pessoa_id,
-                nome: m.aluno.pessoa.nome,
-                tipo: "matriculado",
-                presente: true,
-              });
-            }
-          }
-          setPresencas(items);
+          });
         }
+
+        setPresencas(items);
       } finally { setLoading(false); }
     }
     load();
