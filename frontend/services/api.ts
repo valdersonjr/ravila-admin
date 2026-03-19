@@ -17,8 +17,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error("Sessão expirada");
   }
   if (!response.ok) {
-    const detail = await response.json().catch(() => ({}));
-    throw new Error(detail?.detail ?? `Erro ${response.status}`);
+    const body = await response.json().catch(() => ({}));
+    const detail = body?.detail;
+    let message: string;
+    if (typeof detail === "string") {
+      message = detail;
+    } else if (Array.isArray(detail)) {
+      message = detail.map((e: any) => e?.msg ?? JSON.stringify(e)).join(", ");
+    } else {
+      message = `Erro ${response.status}`;
+    }
+    throw new Error(message);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;

@@ -28,7 +28,8 @@ def get_password_hash(password: str) -> str:
     return _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
 
 from app.database import SessionLocal
-from app.models import Pessoa, User
+from app.models import Pessoa, User, Professor
+from decimal import Decimal
 
 db = SessionLocal()
 
@@ -44,13 +45,7 @@ print("👤 Criando usuários padrão...")
 
 criar_usuario("Ravila",   "05101170151", "ravilaravani1@gmail.com", "India2016",  "admin")
 criar_usuario("Valderson", "70168845113", "valdersonpontes@gmail.com", "V@lderson123", "admin")
-criar_usuario("Professor", "11111111111", "professor@ravilas.com.br", "professor",   "professor")
+p_prof = criar_usuario("Professor", "11111111111", "professor@ravilas.com.br", "professor", "professor")
+add(Professor(pessoa_id=p_prof.id, tipo_contrato="pj", valor_por_aula=Decimal("85.00"), ativo=True))
 
 db.commit()
-print()
-print("✅ Seed concluído!")
-print()
-print("  LOGINS")
-print("  Admin 1:     05101170151 / India2016")
-print("  Admin 2:     70168845113 / V@lderson123")
-print("  Professor:   11111111111 / professor")

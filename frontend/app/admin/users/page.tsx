@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Combobox } from "@/components/ui/Combobox";
+import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/context/ToastContext";
 
 const ROLE_OPTIONS = [
@@ -41,6 +42,7 @@ export default function UsersPage() {
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState("");
+  const [search, setSearch] = useState("");
 
   // Create modal
   const [showCreate, setShowCreate] = useState(false);
@@ -51,6 +53,7 @@ export default function UsersPage() {
 
   // Toggle ativo
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [toggleTarget, setToggleTarget] = useState<User | null>(null);
 
   async function load() {
     setLoading(true);
@@ -80,11 +83,13 @@ export default function UsersPage() {
     } finally { setCreating(false); }
   }
 
-  async function handleToggleAtivo(user: User) {
-    setTogglingId(user.pessoa_id);
+  async function handleToggleAtivo() {
+    if (!toggleTarget) return;
+    setTogglingId(toggleTarget.pessoa_id);
     try {
-      await usersService.atualizar(user.pessoa_id, { ativo: !user.ativo });
-      showToast(`Usuário ${user.ativo ? "desativado" : "ativado"}!`);
+      await usersService.atualizar(toggleTarget.pessoa_id, { ativo: !toggleTarget.ativo });
+      showToast(`Usuário ${toggleTarget.ativo ? "desativado" : "ativado"}!`);
+      setToggleTarget(null);
       await load();
     } catch (err: any) {
       showToast(err.message ?? "Erro ao atualizar.", "error");
@@ -98,6 +103,9 @@ export default function UsersPage() {
   };
 
   const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: p.nome }));
+  const filteredUsers = search
+    ? users.filter((u) => u.pessoa?.nome.toLowerCase().includes(search.toLowerCase()))
+    : users;
 
   return (
     <div className="space-y-6">
@@ -106,19 +114,17 @@ export default function UsersPage() {
         <Button onClick={() => setShowCreate(true)}>+ Novo Usuário</Button>
       </div>
 
-      <Select
-        options={ROLE_OPTIONS}
-        value={filterRole}
-        onChange={(e) => setFilterRole(e.target.value)}
-        className="w-48"
-      />
+      <div className="flex flex-wrap gap-3">
+        <Input placeholder="Buscar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
+        <Select options={ROLE_OPTIONS} value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-48" />
+      </div>
 
       {loading ? (
         <div className="flex justify-center h-20 items-center"><span className="w-6 h-6 rounded-full border-2 border-primary-600 border-t-transparent animate-spin" /></div>
       ) : (
         <Table<User>
           keyExtractor={(u) => u.pessoa_id}
-          data={users}
+          data={filteredUsers}
           columns={[
             { header: "Nome", render: (u) => u.pessoa?.nome ?? `Pessoa ${u.pessoa_id}` },
             { header: "CPF", render: (u) => u.pessoa?.cpf ?? "-" },
@@ -131,7 +137,7 @@ export default function UsersPage() {
                   size="sm"
                   variant="outline"
                   loading={togglingId === u.pessoa_id}
-                  onClick={() => handleToggleAtivo(u)}
+                  onClick={() => setToggleTarget(u)}
                 >
                   {u.ativo ? "Desativar" : "Ativar"}
                 </Button>
@@ -164,6 +170,16 @@ export default function UsersPage() {
             </form>
           </div>
         </div>
+      )}
+      {toggleTarget && (
+        <Modal
+          title={toggleTarget.ativo ? "Desativar usuário" : "Ativar usuário"}
+          message={`Tem certeza que deseja ${toggleTarget.ativo ? "desativar" : "ativar"} o usuário ${toggleTarget.pessoa?.nome}?`}
+          confirmLabel={toggleTarget.ativo ? "Desativar" : "Ativar"}
+          onConfirm={handleToggleAtivo}
+          onClose={() => setToggleTarget(null)}
+          loading={togglingId === toggleTarget.pessoa_id}
+        />
       )}
     </div>
   );

@@ -9,6 +9,7 @@ from app.models.aula import Aula
 from app.models.matricula import Matricula
 from app.models.presenca import Presenca
 from app.models.pagamento import PagamentoAluno, PagamentoProfessor
+from app.models.reposicao import ReposicaoPendente
 
 __all__ = [
     "Base",
@@ -24,4 +25,5 @@ __all__ = [
     "Presenca",
     "PagamentoAluno",
     "PagamentoProfessor",
+    "ReposicaoPendente",
 ]

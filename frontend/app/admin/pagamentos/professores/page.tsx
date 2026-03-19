@@ -216,12 +216,10 @@ export default function PagamentosProfessoresPage() {
               </Field>
               {selectedProfessor?.tipo_contrato === "pj" && (
                 <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Field label="Aulas realizadas">
-                      <Input type="number" min="0" value={createAulas} onChange={(e) => setCreateAulas(e.target.value)} placeholder="0" />
-                    </Field>
-                  </div>
                   <Button type="button" variant="outline" size="sm" onClick={handleCalcular} loading={calculando}>Calcular</Button>
+                  {createAulas && (
+                    <p className="text-sm text-muted pb-2">{createAulas} aulas realizadas no mês</p>
+                  )}
                 </div>
               )}
               <Field label="Valor total (R$) *">

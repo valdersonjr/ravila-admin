@@ -6,6 +6,7 @@ import { presencasService, type Presenca } from "@/services/admin/presencas";
 import { matriculasService } from "@/services/admin/matriculas";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
+import { reposicoesService, type ReposicaoPendente } from "@/services/admin/reposicoes";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Combobox } from "@/components/ui/Combobox";
@@ -31,8 +32,10 @@ export default function PresencasPage() {
   const isAdmin = authService.getRole() === "admin";
   const [todasPessoas, setTodasPessoas] = useState<Pessoa[]>([]);
   const [todosAlunos, setTodosAlunos] = useState<Aluno[]>([]);
+  const [reposicoesPendentes, setReposicoesPendentes] = useState<ReposicaoPendente[]>([]);
   const [addAlunoId, setAddAlunoId] = useState<number | string | null>(null);
   const [addTipo, setAddTipo] = useState<"experimental" | "substituto">("experimental");
+  const [gerandoReposicao, setGerandoReposicao] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -45,23 +48,22 @@ export default function PresencasPage() {
         if (isAdmin) {
           promises.push(pessoasService.listar());
           promises.push(alunosService.listar());
+          promises.push(reposicoesService.listar());
         }
-        const [aulaData, presencasData, pessoas, alunos] = await Promise.all(promises);
+        const [aulaData, presencasData, pessoas, alunos, reposicoes] = await Promise.all(promises);
         setAula(aulaData);
         if (pessoas) setTodasPessoas(pessoas);
         if (alunos) setTodosAlunos(alunos);
+        if (reposicoes) setReposicoesPendentes(reposicoes);
 
-        // Sempre busca matrículas ativas da turma como base
         const matriculasTurma = await matriculasService.listar({ turma_id: aulaData.turma_id, status: "ativa" });
 
-        // Mapa de presenças já salvas para lookup rápido
         const presencasSalvas = new Map<number, Presenca>(
           (presencasData as Presenca[]).map((p: Presenca) => [p.aluno_id, p])
         );
 
         const items: PresencaItem[] = [];
 
-        // Alunos matriculados — usa presença salva se existir, senão padrão presente=true
         for (const m of matriculasTurma) {
           if (!m.aluno) continue;
           const salva = presencasSalvas.get(m.aluno.pessoa_id);
@@ -74,7 +76,6 @@ export default function PresencasPage() {
           presencasSalvas.delete(m.aluno.pessoa_id);
         }
 
-        // Presenças extras (experimental/substituto) que não são matriculados
         for (const p of presencasSalvas.values()) {
           items.push({
             aluno_id: p.aluno_id,
@@ -112,6 +113,16 @@ export default function PresencasPage() {
     setAddingAluno(true);
     try {
       await presencasService.adicionar(Number(id), { aluno_id: pessoaId, tipo: addTipo, presente: false });
+
+      // Se for reposição, marca a reposição pendente como usada
+      if (addTipo === "substituto") {
+        const repPendente = reposicoesPendentes.find((r) => r.aluno_id === pessoaId);
+        if (repPendente) {
+          await reposicoesService.usar(repPendente.id, Number(id));
+          setReposicoesPendentes((prev) => prev.filter((r) => r.id !== repPendente.id));
+        }
+      }
+
       setPresencas((prev) => [...prev, { aluno_id: pessoaId, nome: nome!, tipo: addTipo, presente: false }]);
       setAddAlunoId(null);
       showToast(`${nome} adicionado à lista.`);
@@ -119,6 +130,19 @@ export default function PresencasPage() {
       showToast(err.message ?? "Erro ao adicionar.", "error");
     } finally {
       setAddingAluno(false);
+    }
+  }
+
+  async function handleGerarReposicao(alunoId: number) {
+    setGerandoReposicao(alunoId);
+    try {
+      const nova = await reposicoesService.gerar(alunoId, Number(id));
+      setReposicoesPendentes((prev) => [...prev, nova]);
+      showToast("Reposição gerada!");
+    } catch (err: any) {
+      showToast(err.message ?? "Erro ao gerar reposição.", "error");
+    } finally {
+      setGerandoReposicao(null);
     }
   }
 
@@ -143,13 +167,19 @@ export default function PresencasPage() {
     return new Date() >= new Date(year, month - 1, day, hours, minutes);
   })();
 
-  const alunosPessoaIds = new Set(todosAlunos.map((a) => a.pessoa_id));
   const presencaIds = new Set(presencas.map((p) => p.aluno_id));
+  const alunosPessoaIds = new Set(todosAlunos.map((a) => a.pessoa_id));
+
+  // Para reposição: mostra apenas alunos com reposição pendente que ainda não estão na lista
+  const reposicaoOptions = reposicoesPendentes
+    .filter((r) => !presencaIds.has(r.aluno_id))
+    .map((r) => ({
+      value: r.aluno_id,
+      label: r.aluno?.pessoa.nome ?? `Aluno ${r.aluno_id}`,
+    }));
 
   const pessoaOptions = addTipo === "substituto"
-    ? todosAlunos
-        .filter((a) => !presencaIds.has(a.pessoa_id))
-        .map((a) => ({ value: a.pessoa_id, label: a.pessoa.nome }))
+    ? reposicaoOptions
     : todasPessoas
         .filter((p) => !alunosPessoaIds.has(p.id) && !presencaIds.has(p.id))
         .map((p) => ({ value: p.id, label: p.nome }));
@@ -171,33 +201,55 @@ export default function PresencasPage() {
 
       <div className="space-y-2">
         {presencas.length === 0 && <p className="text-sm text-muted">Nenhum aluno matriculado nesta turma.</p>}
-        {presencas.map((p) => (
-          <div key={p.aluno_id} className="flex items-center justify-between bg-surface border border-border rounded-lg px-4 py-3">
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={p.presente}
-                onChange={() => aulaIniciou && togglePresente(p.aluno_id)}
-                disabled={!aulaIniciou}
-                className="accent-primary-600 w-4 h-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              />
-              <span className="text-sm font-medium text-foreground">{p.nome}</span>
+        {presencas.map((p) => {
+          const temReposicaoPendente = reposicoesPendentes.some((r) => r.aluno_id === p.aluno_id && r.aula_origem_id === Number(id));
+          return (
+            <div key={p.aluno_id} className="flex items-center justify-between bg-surface border border-border rounded-lg px-4 py-3">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={p.presente}
+                  onChange={() => aulaIniciou && togglePresente(p.aluno_id)}
+                  disabled={!aulaIniciou}
+                  className="accent-primary-600 w-4 h-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                />
+                <span className="text-sm font-medium text-foreground">{p.nome}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={p.tipo === "matriculado" ? "primary" : p.tipo === "experimental" ? "warning" : "neutral"}>
+                  {p.tipo}
+                </Badge>
+                <Badge variant={p.presente ? "success" : "error"}>{p.presente ? "Presente" : "Ausente"}</Badge>
+                {isAdmin && aulaIniciou && p.tipo === "matriculado" && !p.presente && !temReposicaoPendente && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={gerandoReposicao === p.aluno_id}
+                    onClick={() => handleGerarReposicao(p.aluno_id)}
+                    className="text-xs text-amber-600 hover:text-amber-700"
+                  >
+                    Gerar reposição
+                  </Button>
+                )}
+                {temReposicaoPendente && (
+                  <Badge variant="warning">Reposição pendente</Badge>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={p.tipo === "matriculado" ? "primary" : p.tipo === "experimental" ? "warning" : "neutral"}>
-                {p.tipo}
-              </Badge>
-              <Badge variant={p.presente ? "success" : "error"}>{p.presente ? "Presente" : "Ausente"}</Badge>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {isAdmin && <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Adicionar participante</h2>
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-48">
-            <Combobox options={pessoaOptions} value={addAlunoId} onChange={setAddAlunoId} placeholder="Buscar aluno..." />
+            <Combobox
+              options={pessoaOptions}
+              value={addAlunoId}
+              onChange={setAddAlunoId}
+              placeholder={addTipo === "substituto" ? "Buscar aluno com reposição pendente..." : "Buscar aluno..."}
+            />
           </div>
           <div className="flex gap-2">
             <button
@@ -212,7 +264,7 @@ export default function PresencasPage() {
               onClick={() => { setAddTipo("substituto"); setAddAlunoId(null); }}
               className={["px-3 py-2 rounded-md text-sm border transition-colors", addTipo === "substituto" ? "bg-primary-600 text-on-primary border-primary-600" : "border-border text-foreground hover:bg-surface"].join(" ")}
             >
-              Reposição
+              Reposição {reposicaoOptions.length > 0 && <span className="ml-1 bg-amber-500 text-white text-xs rounded-full px-1">{reposicaoOptions.length}</span>}
             </button>
           </div>
           <Button type="button" variant="outline" onClick={handleAddAluno} loading={addingAluno}>Adicionar</Button>

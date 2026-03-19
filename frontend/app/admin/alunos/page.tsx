@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
+import { reposicoesService, type ReposicaoPendente } from "@/services/admin/reposicoes";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -9,6 +10,7 @@ import Link from "next/link";
 
 export default function AlunosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [reposicoes, setReposicoes] = useState<ReposicaoPendente[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
   const [inadimplente, setInadimplente] = useState(false);
@@ -19,7 +21,9 @@ export default function AlunosPage() {
       const params: { status?: string; inadimplente?: boolean } = {};
       if (status) params.status = status;
       if (inadimplente) params.inadimplente = true;
-      setAlunos(await alunosService.listar(params));
+      const [a, r] = await Promise.all([alunosService.listar(params), reposicoesService.listar()]);
+      setAlunos(a);
+      setReposicoes(r);
     } finally { setLoading(false); }
   }
 
@@ -60,6 +64,13 @@ export default function AlunosPage() {
             { header: "CPF", render: (a) => a.pessoa.cpf ?? (a.responsavel?.cpf ?? "-") },
             { header: "Nível", render: (a) => a.nivel?.nome ?? "-" },
             { header: "Responsável", render: (a) => a.responsavel?.nome ?? "-" },
+            {
+              header: "Reposições",
+              render: (a) => {
+                const count = reposicoes.filter((r) => r.aluno_id === a.pessoa_id).length;
+                return count > 0 ? <Badge variant="warning">{count} pendente{count > 1 ? "s" : ""}</Badge> : "-";
+              },
+            },
             { header: "Status", render: (a) => <Badge variant={a.status === "ativo" ? "success" : "neutral"}>{a.status}</Badge> },
             {
               header: "Ações",
