@@ -162,7 +162,7 @@ export default function AgendaProfessorPage() {
                             >
                               <p className="text-xs font-semibold text-foreground truncate">{aula.turma?.nome ?? `Turma ${aula.turma_id}`}</p>
                               <p className="text-[11px] text-muted">{aula.hora_inicio.slice(0, 5)} – {aula.hora_fim.slice(0, 5)}</p>
-                              <Badge variant={statusVariant[aula.status] ?? "neutral"} className="mt-1 text-[10px] px-1 py-0">
+                              <Badge variant={statusVariant[aula.status] ?? "neutral"}>
                                 {statusLabel[aula.status] ?? aula.status}
                               </Badge>
                             </Link>
