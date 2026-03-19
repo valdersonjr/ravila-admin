@@ -5,7 +5,7 @@ export interface Aluno {
   status: "ativo" | "inativo";
   nivel: { id: number; nome: string } | null;
   responsavel: { id: number; nome: string; cpf: string | null } | null;
-  pessoa: { id: number; nome: string; cpf: string; email: string | null; telefone: string | null; data_nascimento: string | null; };
+  pessoa: { id: number; nome: string; cpf: string | null; email: string | null; telefone: string | null; data_nascimento: string | null; menor_de_idade: boolean; };
 }
 
 export interface AlunoCreate {
