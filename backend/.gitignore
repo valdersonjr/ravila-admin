@@ -1,6 +1,11 @@
 .env
+seed-temp.py
+reset-db.py
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
 alembic/versions/*.py
+
+backend/reset-db.py
+backend/seed-temp.py
