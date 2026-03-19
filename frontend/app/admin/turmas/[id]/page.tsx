@@ -116,7 +116,7 @@ export default function TurmaDetailPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{turma.nome}</h1>
           <p className="text-sm text-muted mt-1">
@@ -199,7 +199,7 @@ export default function TurmaDetailPage() {
 
       {/* Matrículas */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Alunos matriculados ({matriculas.length})</h2>
           <Link href={`/admin/matriculas`} className="text-sm text-primary-500 hover:underline">Ver todas</Link>
         </div>

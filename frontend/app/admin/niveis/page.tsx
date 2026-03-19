@@ -87,7 +87,7 @@ export default function NiveisPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Níveis</h1>
         <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
           <input type="checkbox" checked={includeInactive} onChange={(e) => setIncludeInactive(e.target.checked)} className="accent-primary-600" />
@@ -95,7 +95,7 @@ export default function NiveisPage() {
         </label>
       </div>
 
-      <form onSubmit={handleCreate} className="flex gap-3 items-end bg-surface border border-border rounded-xl p-4">
+      <form onSubmit={handleCreate} className="flex flex-wrap gap-3 items-end bg-surface border border-border rounded-xl p-4">
         <div className="flex-1">
           <label className="block text-sm font-medium text-foreground mb-1">Nome *</label>
           <Input value={newNome} onChange={(e) => setNewNome(e.target.value)} placeholder="Ex: Beginner" required />

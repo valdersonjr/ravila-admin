@@ -23,7 +23,7 @@ export default function TurmasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Turmas</h1>
         {isAdmin && <Link href="/admin/turmas/nova"><Button>+ Nova Turma</Button></Link>}
       </div>

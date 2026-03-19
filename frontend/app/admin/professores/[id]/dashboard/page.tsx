@@ -245,7 +245,7 @@ export default function ProfessorDashboardPage() {
                 href={`/admin/turmas/${t.id}`}
                 className="block bg-surface border border-border rounded-xl p-4 hover:border-primary-400 transition-colors"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium text-foreground">{t.nome}</span>
                   <Badge variant={t.status === "ativa" ? "success" : "neutral"}>{t.status}</Badge>
                 </div>
