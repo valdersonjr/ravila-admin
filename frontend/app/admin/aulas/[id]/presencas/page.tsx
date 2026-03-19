@@ -29,6 +29,10 @@ export default function PresencasPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [descricao, setDescricao] = useState("");
+  const [editandoDescricao, setEditandoDescricao] = useState(false);
+  const [savingDescricao, setSavingDescricao] = useState(false);
+
   const isAdmin = authService.getRole() === "admin";
   const [todasPessoas, setTodasPessoas] = useState<Pessoa[]>([]);
   const [todosAlunos, setTodosAlunos] = useState<Aluno[]>([]);
@@ -52,6 +56,7 @@ export default function PresencasPage() {
         }
         const [aulaData, presencasData, pessoas, alunos, reposicoes] = await Promise.all(promises);
         setAula(aulaData);
+        setDescricao(aulaData.descricao ?? "");
         if (pessoas) setTodasPessoas(pessoas);
         if (alunos) setTodosAlunos(alunos);
         if (reposicoes) setReposicoesPendentes(reposicoes);
@@ -133,6 +138,20 @@ export default function PresencasPage() {
     }
   }
 
+  async function handleSaveDescricao() {
+    setSavingDescricao(true);
+    try {
+      const updated = await aulasService.atualizarDescricao(Number(id), descricao || null);
+      setAula(updated);
+      setEditandoDescricao(false);
+      showToast("Descrição salva!");
+    } catch (err: any) {
+      showToast(err.message ?? "Erro ao salvar descrição.", "error");
+    } finally {
+      setSavingDescricao(false);
+    }
+  }
+
   async function handleGerarReposicao(alunoId: number) {
     setGerandoReposicao(alunoId);
     try {
@@ -196,6 +215,49 @@ export default function PresencasPage() {
           <p className="text-sm text-muted mt-1">
             {aula.turma?.nome ?? `Turma ${aula.turma_id}`} · {new Date(aula.data + "T00:00:00").toLocaleDateString("pt-BR")} · {aula.hora_inicio.slice(0,5)} – {aula.hora_fim.slice(0,5)}
           </p>
+        )}
+      </div>
+
+      {/* Descrição / Observações */}
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Observações</h2>
+          {!editandoDescricao && (
+            <button
+              type="button"
+              onClick={() => setEditandoDescricao(true)}
+              className="text-xs text-primary-600 hover:underline"
+            >
+              {descricao ? "Editar" : "Adicionar"}
+            </button>
+          )}
+        </div>
+        {editandoDescricao ? (
+          <div className="space-y-2">
+            <textarea
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              rows={3}
+              placeholder="Escreva observações sobre a aula..."
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => { setDescricao(aula?.descricao ?? ""); setEditandoDescricao(false); }}
+                disabled={savingDescricao}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" size="sm" loading={savingDescricao} onClick={handleSaveDescricao}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted whitespace-pre-wrap">{descricao || "Nenhuma observação registrada."}</p>
         )}
       </div>
 

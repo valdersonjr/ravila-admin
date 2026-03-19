@@ -26,6 +26,10 @@ class AulaSubstituirProfessorRequest(BaseModel):
     professor_id: int
 
 
+class AulaDescricaoUpdate(BaseModel):
+    descricao: Optional[str] = None
+
+
 class TurmaSimples(BaseModel):
     id: int
     nome: str
@@ -45,6 +49,7 @@ class AulaOut(BaseModel):
     tipo: str
     status: str
     aula_origem_id: Optional[int] = None
+    descricao: Optional[str] = None
     created_at: datetime
     turma: Optional[TurmaSimples] = None
 

@@ -97,6 +97,11 @@ def substituir_professor(db: Session, aula_id: int, professor_id: int) -> Aula:
     })
 
 
+def atualizar_descricao(db: Session, aula_id: int, descricao: str | None) -> Aula:
+    aula = buscar(db, aula_id)
+    return aula_repo.atualizar(db, aula, {"descricao": descricao})
+
+
 def remarcar(
     db: Session,
     aula_id: int,
