@@ -33,7 +33,7 @@ export default function NovaPessoaPage() {
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Nova Pessoa</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Nome *"><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} required /></Field>
+        <Field label="Nome *"><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} required placeholder="Nome completo" /></Field>
         <Field label="CPF">
           <Input inputMode="numeric" value={form.cpf} onChange={(e) => set("cpf", mascaraCpf(e.target.value))} placeholder="000.000.000-00" />
         </Field>
