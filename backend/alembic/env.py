@@ -16,7 +16,6 @@ from app.models import (  # noqa: F401
     Matricula,
     Aula,
     Presenca,
-    PagamentoAluno,
     PagamentoProfessor,
 )
 

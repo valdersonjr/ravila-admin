@@ -15,6 +15,8 @@ from app.schemas.turma import (
     HorarioTurmaOut,
     GerarAulasRequest,
     GerarAulasResponse,
+    GerarSemanaRequest,
+    GerarSemanaRelatorio,
 )
 from app.services import turma as turma_service
 
@@ -104,3 +106,12 @@ def gerar_aulas(
         )
     aulas_criadas = turma_service.gerar_aulas(db, turma_id, data_inicio, data_fim)
     return GerarAulasResponse(aulas_criadas=aulas_criadas)
+
+
+@router.post("/gerar-semana", response_model=GerarSemanaRelatorio)
+def gerar_semana(
+    body: GerarSemanaRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    return turma_service.gerar_semana(db, dry_run=body.dry_run)

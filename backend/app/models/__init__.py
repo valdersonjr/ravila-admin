@@ -2,13 +2,14 @@ from app.models.base import Base
 from app.models.pessoa import Pessoa
 from app.models.user import User
 from app.models.nivel import Nivel
+from app.models.livro import Livro
 from app.models.professor import Professor
 from app.models.aluno import Aluno
 from app.models.turma import Turma, HorarioTurma
 from app.models.aula import Aula
 from app.models.matricula import Matricula
 from app.models.presenca import Presenca
-from app.models.pagamento import PagamentoAluno, PagamentoProfessor
+from app.models.pagamento import PagamentoProfessor
 from app.models.reposicao import ReposicaoPendente
 
 __all__ = [
@@ -16,6 +17,7 @@ __all__ = [
     "Pessoa",
     "User",
     "Nivel",
+    "Livro",
     "Professor",
     "Aluno",
     "Turma",
@@ -23,7 +25,6 @@ __all__ = [
     "Aula",
     "Matricula",
     "Presenca",
-    "PagamentoAluno",
     "PagamentoProfessor",
     "ReposicaoPendente",
 ]

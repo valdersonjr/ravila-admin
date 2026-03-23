@@ -6,19 +6,21 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import require_admin
 from app.models.user import User
-from app.schemas.pessoa import PessoaCreate, PessoaUpdate, PessoaOut
+from app.schemas.pessoa import PessoaCreate, PessoaUpdate, PessoaOut, PessoaListOut
 from app.services import pessoa as pessoa_service
 
 router = APIRouter(prefix="/pessoas", tags=["pessoas"])
 
 
-@router.get("/", response_model=list[PessoaOut])
+@router.get("/", response_model=PessoaListOut)
 def listar(
-    search: Optional[str] = Query(None, description="Search by nome or cpf"),
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=500),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    return pessoa_service.listar(db, search)
+    return pessoa_service.listar(db, search, page, page_size)
 
 
 @router.post("/", response_model=PessoaOut, status_code=status.HTTP_201_CREATED)

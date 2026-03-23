@@ -1,6 +1,7 @@
+from datetime import date
 from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import String, Boolean, ForeignKey
+from sqlalchemy import String, Date, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -10,7 +11,6 @@ if TYPE_CHECKING:
     from app.models.nivel import Nivel
     from app.models.matricula import Matricula
     from app.models.presenca import Presenca
-    from app.models.pagamento import PagamentoAluno
 
 
 class Aluno(Base):
@@ -20,6 +20,8 @@ class Aluno(Base):
     nivel_id: Mapped[Optional[int]] = mapped_column(ForeignKey("niveis.id"), nullable=True)
     responsavel_id: Mapped[Optional[int]] = mapped_column(ForeignKey("pessoas.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(10), nullable=False, default="ativo")  # ativo|inativo
+    aniversario: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    data_nascimento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
 
     pessoa: Mapped["Pessoa"] = relationship(
         "Pessoa", back_populates="aluno", foreign_keys=[pessoa_id]
@@ -34,4 +36,3 @@ class Aluno(Base):
         primaryjoin="foreign(Presenca.aluno_id) == Aluno.pessoa_id",
         viewonly=True,
     )
-    pagamentos: Mapped[list["PagamentoAluno"]] = relationship("PagamentoAluno", back_populates="aluno")

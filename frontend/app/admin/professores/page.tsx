@@ -5,6 +5,7 @@ import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import { formatCpf } from "@/lib/masks";
 import Link from "next/link";
 
 export default function ProfessoresPage() {
@@ -33,7 +34,7 @@ export default function ProfessoresPage() {
           data={search ? professores.filter((p) => p.pessoa.nome.toLowerCase().includes(search.toLowerCase())) : professores}
           columns={[
             { header: "Nome", render: (p) => <Link href={`/admin/professores/${p.pessoa_id}/dashboard`} className="text-primary-600 hover:underline">{p.pessoa.nome}</Link> },
-            { header: "CPF", render: (p) => p.pessoa.cpf },
+            { header: "CPF", render: (p) => formatCpf(p.pessoa.cpf) },
             {
               header: "Contrato",
               render: (p) => <Badge variant={p.tipo_contrato === "clt" ? "primary" : "warning"}>{p.tipo_contrato.toUpperCase()}</Badge>,

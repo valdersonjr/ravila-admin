@@ -6,3 +6,8 @@ export function mascaraCpf(valor: string) {
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
+
+export function formatCpf(cpf: string | null | undefined): string {
+  if (!cpf) return "-";
+  return mascaraCpf(cpf);
+}

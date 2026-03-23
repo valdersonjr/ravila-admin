@@ -4,35 +4,6 @@ from typing import Optional, Literal
 from pydantic import BaseModel, ConfigDict
 
 
-class PagamentoAlunoCreate(BaseModel):
-    aluno_id: int
-    referencia: str  # MM/YYYY
-    valor: Decimal
-    status: Literal["pendente", "pago", "atrasado"] = "pendente"
-    forma: Optional[Literal["boleto", "pix"]] = None
-    data_pagamento: Optional[date] = None
-
-
-class PagamentoAlunoUpdate(BaseModel):
-    status: Optional[Literal["pendente", "pago", "atrasado"]] = None
-    forma: Optional[Literal["boleto", "pix"]] = None
-    data_pagamento: Optional[date] = None
-
-
-class PagamentoAlunoOut(BaseModel):
-    id: int
-    aluno_id: int
-    aluno_nome_snapshot: str
-    referencia: str
-    valor: Decimal
-    status: str
-    forma: Optional[str] = None
-    data_pagamento: Optional[date] = None
-    comprovante_url: Optional[str] = None
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
 
 class PagamentoProfessorCreate(BaseModel):
     professor_id: int

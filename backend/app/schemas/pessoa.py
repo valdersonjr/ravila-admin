@@ -1,8 +1,8 @@
 import re
-from datetime import datetime, date
+from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 def clean_cpf(cpf: str) -> str:
@@ -12,9 +12,10 @@ def clean_cpf(cpf: str) -> str:
 class PessoaBase(BaseModel):
     nome: str
     cpf: Optional[str] = None
+    rg: Optional[str] = None
     email: Optional[str] = None
     telefone: Optional[str] = None
-    data_nascimento: Optional[date] = None
+    endereco: Optional[str] = None
     menor_de_idade: bool = False
 
     @field_validator("cpf", mode="before")
@@ -24,11 +25,6 @@ class PessoaBase(BaseModel):
             return None
         return clean_cpf(v)
 
-    @model_validator(mode="after")
-    def cpf_obrigatorio_para_maiores(self) -> "PessoaBase":
-        if not self.menor_de_idade and not self.cpf:
-            raise ValueError("CPF é obrigatório para pessoas maiores de idade")
-        return self
 
 
 class PessoaCreate(PessoaBase):
@@ -38,9 +34,10 @@ class PessoaCreate(PessoaBase):
 class PessoaUpdate(BaseModel):
     nome: Optional[str] = None
     cpf: Optional[str] = None
+    rg: Optional[str] = None
     email: Optional[str] = None
     telefone: Optional[str] = None
-    data_nascimento: Optional[date] = None
+    endereco: Optional[str] = None
     menor_de_idade: Optional[bool] = None
 
     @field_validator("cpf", mode="before")
@@ -51,9 +48,17 @@ class PessoaUpdate(BaseModel):
         return clean_cpf(v)
 
 
+
 class PessoaOut(PessoaBase):
     id: int
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PessoaListOut(BaseModel):
+    items: list[PessoaOut]
+    total: int
+    page: int
+    page_size: int

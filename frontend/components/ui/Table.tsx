@@ -22,8 +22,8 @@ export function Table<T>({ columns, data, keyExtractor, emptyMessage = "Nenhum r
           {data.length === 0 ? (
             <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-muted">{emptyMessage}</td></tr>
           ) : (
-            data.map((row) => (
-              <tr key={keyExtractor(row)} className="bg-background hover:bg-surface transition-colors">
+            data.map((row, idx) => (
+              <tr key={keyExtractor(row)} className={[idx % 2 === 0 ? "bg-background" : "bg-surface", "hover:bg-border transition-colors"].join(" ")}>
                 {columns.map((col, i) => <td key={i} className={["px-4 py-3", col.className].join(" ")}>{col.render(row)}</td>)}
               </tr>
             ))

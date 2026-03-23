@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { professoresService, type ProfessorDashboard } from "@/services/admin/professores";
+import type { GerarSemanaRelatorio } from "@/services/admin/turmas";
+import { formatCpf } from "@/lib/masks";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -95,17 +97,45 @@ function HistoricoChart({ data }: { data: ProfessorDashboard["historico_mensal"]
   );
 }
 
+type ModalState = "idle" | "checking" | "report" | "generating" | "done";
+
 export default function ProfessorDashboardPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [data, setData] = useState<ProfessorDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [modalState, setModalState] = useState<ModalState>("idle");
+  const [relatorio, setRelatorio] = useState<GerarSemanaRelatorio | null>(null);
 
   useEffect(() => {
     professoresService.dashboard(Number(id))
       .then(setData)
       .finally(() => setLoading(false));
   }, [id]);
+
+  const semanaLabel = relatorio
+    ? `${new Date(relatorio.data_inicio + "T00:00:00").toLocaleDateString("pt-BR")} – ${new Date(relatorio.data_fim + "T00:00:00").toLocaleDateString("pt-BR")}`
+    : "";
+
+  async function handleAbrirModal() {
+    setModalState("checking");
+    setRelatorio(null);
+    const rel = await professoresService.gerarSemana(Number(id), true);
+    setRelatorio(rel);
+    setModalState("report");
+  }
+
+  async function handleConfirmar() {
+    setModalState("generating");
+    const rel = await professoresService.gerarSemana(Number(id), false);
+    setRelatorio(rel);
+    setModalState("done");
+  }
+
+  function handleFecharModal() {
+    setModalState("idle");
+    setRelatorio(null);
+  }
 
   if (loading) {
     return (
@@ -132,7 +162,7 @@ export default function ProfessorDashboardPage() {
             <Badge variant={data.ativo ? "success" : "neutral"}>{data.ativo ? "Ativo" : "Inativo"}</Badge>
             <Badge variant={data.tipo_contrato === "clt" ? "primary" : "warning"}>{data.tipo_contrato.toUpperCase()}</Badge>
           </div>
-          <p className="text-sm text-muted">CPF: {data.cpf}</p>
+          <p className="text-sm text-muted">CPF: {formatCpf(data.cpf)}</p>
           {data.tipo_contrato === "clt" && data.salario != null && (
             <p className="text-sm text-muted">Salário: {fmt(data.salario)}/mês</p>
           )}
@@ -140,7 +170,8 @@ export default function ProfessorDashboardPage() {
             <p className="text-sm text-muted">Valor/aula: {fmt(data.valor_por_aula)}</p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={handleAbrirModal}>Gerar semana</Button>
           <Link href={`/admin/aulas?professor_id=${data.professor_id}`}>
             <Button variant="outline">Ver aulas</Button>
           </Link>
@@ -180,58 +211,6 @@ export default function ProfessorDashboardPage() {
       {/* Gráfico histórico */}
       <HistoricoChart data={data.historico_mensal} />
 
-      {/* Custo */}
-      <div className="space-y-3">
-        <SectionTitle>Custo</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <StatCard
-            label={`Custo estimado — ${mesAtual}`}
-            value={data.custo_mes_atual != null ? fmt(data.custo_mes_atual) : "—"}
-            sub={
-              data.tipo_contrato === "pj"
-                ? `${data.aulas.mes_atual.realizadas} aulas × ${data.valor_por_aula != null ? fmt(data.valor_por_aula) : "—"}`
-                : "salário fixo CLT"
-            }
-          />
-          <StatCard
-            label="Total já pago (histórico)"
-            value={fmt(data.custo_total_pago)}
-            sub={`${data.historico_pagamentos.length} pagamento(s) registrado(s)`}
-          />
-        </div>
-
-        {data.historico_pagamentos.length > 0 && (
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted">Referência</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted">Valor</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted">Aulas</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted">Forma</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted">Data pag.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.historico_pagamentos.map((p) => (
-                  <tr key={p.id} className="border-b border-border last:border-0 hover:bg-primary-50/30 transition-colors">
-                    <td className="px-4 py-3 font-medium text-foreground">{p.referencia}</td>
-                    <td className="px-4 py-3 text-foreground">{fmt(p.valor_total)}</td>
-                    <td className="px-4 py-3 text-muted">{p.aulas_realizadas_snapshot ?? "—"}</td>
-                    <td className="px-4 py-3 text-muted capitalize">{p.forma ?? "—"}</td>
-                    <td className="px-4 py-3 text-muted">
-                      {p.data_pagamento
-                        ? new Date(p.data_pagamento + "T00:00:00").toLocaleDateString("pt-BR")
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
       {/* Turmas */}
       <div className="space-y-3">
         <SectionTitle>Turmas</SectionTitle>
@@ -255,6 +234,90 @@ export default function ProfessorDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Modal gerar semana */}
+      {modalState !== "idle" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-foreground/40" onClick={modalState === "report" ? handleFecharModal : undefined} />
+          <div className="relative z-10 w-full max-w-lg mx-4 rounded-xl bg-background border border-border p-6 shadow-xl space-y-4 max-h-[80vh] flex flex-col">
+
+            {(modalState === "checking" || modalState === "generating") && (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <span className="w-8 h-8 rounded-full border-2 border-primary-600 border-t-transparent animate-spin" />
+                <p className="text-sm text-muted">
+                  {modalState === "checking" ? "Verificando semana..." : "Gerando aulas..."}
+                </p>
+              </div>
+            )}
+
+            {(modalState === "report" || modalState === "done") && relatorio && (() => {
+              const totalConflitos = relatorio.itens.reduce((acc, i) => acc + i.conflitos.length, 0);
+              const temConflito = totalConflitos > 0;
+              const podeCriar = !temConflito && relatorio.total_aulas > 0;
+              return (
+                <>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {modalState === "done" ? "Aulas geradas" : "Pré-visualização"}
+                    </h2>
+                    <p className="text-sm text-muted mt-0.5">{semanaLabel}</p>
+                  </div>
+
+                  {relatorio.itens.length === 0 && (
+                    <p className="text-sm text-muted">Nenhuma turma ativa encontrada para este professor.</p>
+                  )}
+
+                  {relatorio.itens.length > 0 && relatorio.itens.every(i => i.sem_horario) && (
+                    <p className="text-sm text-amber-600">Nenhuma turma possui horário cadastrado. Adicione horários às turmas para gerar aulas.</p>
+                  )}
+
+                  {temConflito && modalState === "report" && (
+                    <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+                      <p className="text-sm font-medium text-red-700">Não é possível gerar a agenda da semana</p>
+                      <p className="text-xs text-red-600 mt-1">
+                        O professor possui {totalConflitos} conflito(s) de horário. Resolva os conflitos abaixo antes de gerar as aulas.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="overflow-y-auto flex-1 space-y-2 pr-1">
+                    {relatorio.itens.map((item) => (
+                      <div key={item.turma_id} className="border border-border rounded-lg px-3 py-2.5 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium text-foreground">{item.turma_nome}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {item.sem_horario && <Badge variant="warning">sem horário</Badge>}
+                            {!item.sem_horario && item.aulas_a_criar > 0 && (
+                              <Badge variant="success">{item.aulas_a_criar} aula(s)</Badge>
+                            )}
+                            {item.conflitos.length > 0 && (
+                              <Badge variant="error">{item.conflitos.length} conflito(s)</Badge>
+                            )}
+                          </div>
+                        </div>
+                        {item.conflitos.map((c, i) => (
+                          <p key={i} className="text-xs text-red-600">⚠ {c}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3 justify-end pt-2 border-t border-border">
+                    <Button variant="ghost" onClick={handleFecharModal}>
+                      {modalState === "done" ? "Fechar" : "Cancelar"}
+                    </Button>
+                    {modalState === "report" && podeCriar && (
+                      <Button onClick={handleConfirmar}>
+                        Confirmar e gerar {relatorio.total_aulas} aula(s)
+                      </Button>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

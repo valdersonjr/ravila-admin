@@ -2,14 +2,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { professoresService } from "@/services/admin/professores";
+import { getErrorMessage } from "@/lib/utils";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
+import { Field } from "@/components/ui/Field";
 
 export default function EditarProfessorPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,8 +43,8 @@ export default function EditarProfessorPage() {
       });
       showToast("Professor atualizado!");
       router.push("/admin/professores");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao atualizar.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao atualizar."), "error");
     } finally { setLoading(false); }
   }
 

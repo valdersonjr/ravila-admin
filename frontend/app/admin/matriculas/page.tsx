@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { matriculasService, type Matricula } from "@/services/admin/matriculas";
+import { getErrorMessage } from "@/lib/utils";
 import { turmasService, type Turma } from "@/services/admin/turmas";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { Table } from "@/components/ui/Table";
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Combobox } from "@/components/ui/Combobox";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/context/ToastContext";
+import { Field } from "@/components/ui/Field";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Todos os status" },
@@ -18,10 +20,6 @@ const STATUS_OPTIONS = [
   { value: "cancelada", label: "Cancelada" },
   { value: "concluida", label: "Concluída" },
 ];
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
 
 export default function MatriculasPage() {
   const { showToast } = useToast();
@@ -80,8 +78,8 @@ export default function MatriculasPage() {
       setCreateAlunoId(null);
       setCreateTurmaId(null);
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao criar matrícula.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao criar matrícula."), "error");
     } finally { setCreating(false); }
   }
 
@@ -97,8 +95,8 @@ export default function MatriculasPage() {
       showToast("Status atualizado!");
       setStatusTarget(null);
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao atualizar status.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao atualizar status."), "error");
     } finally { setUpdatingStatus(false); }
   }
 

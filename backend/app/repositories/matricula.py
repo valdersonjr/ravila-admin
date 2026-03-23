@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
+from app.models.aluno import Aluno
 from app.models.matricula import Matricula
 
 
@@ -9,7 +10,13 @@ def listar(
     turma_id: int | None = None,
     status: str | None = None,
 ) -> list[Matricula]:
-    query = db.query(Matricula)
+    query = (
+        db.query(Matricula)
+        .options(
+            selectinload(Matricula.aluno).selectinload(Aluno.pessoa),
+            selectinload(Matricula.turma),
+        )
+    )
     if aluno_id:
         query = query.filter(Matricula.aluno_id == aluno_id)
     if turma_id:

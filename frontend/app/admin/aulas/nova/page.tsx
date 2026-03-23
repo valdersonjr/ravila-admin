@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { aulasService, type Aula } from "@/services/admin/aulas";
+import { getErrorMessage } from "@/lib/utils";
 import { turmasService, type Turma, type HorarioTurma } from "@/services/admin/turmas";
 import { professoresService, type Professor } from "@/services/admin/professores";
 import { Input } from "@/components/ui/Input";
@@ -9,12 +10,9 @@ import { Combobox } from "@/components/ui/Combobox";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
+import { Field } from "@/components/ui/Field";
 
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
 
 interface Slot { data: string; hora_inicio: string; hora_fim: string; label: string; }
 
@@ -118,8 +116,8 @@ export default function NovaAulaPage() {
       });
       showToast("Aula criada!");
       router.push("/admin/aulas");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao criar aula.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao criar aula."), "error");
     } finally { setLoading(false); }
   }
 

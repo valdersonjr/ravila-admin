@@ -7,19 +7,31 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user, require_admin, require_admin_or_professor
 from app.models.user import User
-from app.schemas.aula import AulaCreate, AulaStatusUpdate, AulaRemarcarRequest, AulaSubstituirProfessorRequest, AulaDescricaoUpdate, AulaOut
+from app.schemas.aula import (
+    AulaAvulsaCreate,
+    AulaCreate,
+    AulaDescricaoUpdate,
+    AulaListOut,
+    AulaOut,
+    AulaRemarcarRequest,
+    AulaStatusUpdate,
+    AulaSubstituirProfessorRequest,
+)
 from app.services import aula as aula_service
 
 router = APIRouter(prefix="/aulas", tags=["aulas"])
 
 
-@router.get("/", response_model=list[AulaOut])
+@router.get("/", response_model=AulaListOut)
 def listar(
     turma_id: Optional[int] = Query(None),
     professor_id: Optional[int] = Query(None),
+    aluno_id: Optional[int] = Query(None),
     data_inicio: Optional[date] = Query(None),
     data_fim: Optional[date] = Query(None),
     status_filter: Optional[str] = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=500),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -28,7 +40,9 @@ def listar(
         effective_professor_id = current_user.pessoa_id
     elif professor_id:
         effective_professor_id = professor_id
-    return aula_service.listar(db, turma_id, effective_professor_id, data_inicio, data_fim, status_filter)
+    return aula_service.listar(
+        db, turma_id, effective_professor_id, data_inicio, data_fim, status_filter, aluno_id, page, page_size
+    )
 
 
 @router.get("/{aula_id}", response_model=AulaOut)
@@ -51,6 +65,24 @@ def criar(
 ):
     pendente = current_user.role == "professor"
     return aula_service.criar(db, body, pendente_aprovacao=pendente)
+
+
+@router.post("/avulsa", response_model=AulaOut, status_code=status.HTTP_201_CREATED)
+def criar_avulsa(
+    body: AulaAvulsaCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    return aula_service.criar_avulsa(db, body)
+
+
+@router.delete("/{aula_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar(
+    aula_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    aula_service.deletar(db, aula_id)
 
 
 @router.patch("/{aula_id}/status", response_model=AulaOut)

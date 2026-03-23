@@ -57,7 +57,8 @@ export default function AgendaProfessorPage() {
       professor_id: Number(id),
       data_inicio: toISO(weekStart),
       data_fim: toISO(weekEnd),
-    }).then(setAulas).finally(() => setLoading(false));
+      page_size: 500,
+    }).then((res) => setAulas(res.items)).finally(() => setLoading(false));
   }, [id, weekStart]);
 
   function prevWeek() {

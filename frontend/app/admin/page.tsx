@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { alunosService } from "@/services/admin/alunos";
+import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { turmasService } from "@/services/admin/turmas";
 import { aulasService } from "@/services/admin/aulas";
 import { authService } from "@/services/auth";
@@ -11,32 +11,57 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   const isAdmin = authService.getRole() === "admin";
-  const [stats, setStats] = useState({ alunos: 0, turmas: 0, aulasHoje: 0, inadimplentes: 0 });
+  const [stats, setStats] = useState({ alunos: 0, turmas: 0, aulasHoje: 0 });
   const [aulasRecentes, setAulasRecentes] = useState<Aula[]>([]);
+  const [aniversarios, setAniversarios] = useState<Aluno[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const hojeStr = (() => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${dd}/${mm}`;
+  })();
+
+  // Detecta se os aniversários retornados são do fallback (próximos 5 em geral)
+  // ou da semana atual/próxima — verificando se algum está nas próximas 2 semanas
+  const isFallback = (() => {
+    if (aniversarios.length === 0) return false;
+    const hoje = new Date();
+    const fim = new Date(hoje);
+    fim.setDate(fim.getDate() - hoje.getDay() + (hoje.getDay() === 0 ? 0 : 7) + 7); // fim da próxima semana
+    return !aniversarios.some((a) => {
+      if (!a.aniversario) return false;
+      const [dd, mm] = a.aniversario.split("/").map(Number);
+      const candidato = new Date(hoje.getFullYear(), mm - 1, dd);
+      if (candidato < hoje) candidato.setFullYear(hoje.getFullYear() + 1);
+      return candidato <= fim;
+    });
+  })();
 
   useEffect(() => {
     async function load() {
       try {
         const hoje = new Date().toISOString().split("T")[0];
         if (isAdmin) {
-          const [alunos, inadimplentes, turmas, aulasHoje, proximas] = await Promise.all([
-            alunosService.listar({ status: "ativo" }),
-            alunosService.listar({ inadimplente: true }),
+          const [alunos, turmas, aulasHoje, proximas, aniv] = await Promise.all([
+            alunosService.listar({ status: "ativo", page_size: 1 }),
             turmasService.listar({ status: "ativa" }),
-            aulasService.listar({ data_inicio: hoje, data_fim: hoje }),
-            aulasService.listar({ status: "agendada" }),
+            aulasService.listar({ data_inicio: hoje, data_fim: hoje, page_size: 100 }),
+            aulasService.listar({ status: "agendada", page_size: 5 }),
+            alunosService.aniversarios(),
           ]);
-          setStats({ alunos: alunos.length, turmas: turmas.length, aulasHoje: aulasHoje.length, inadimplentes: inadimplentes.length });
-          setAulasRecentes(proximas.slice(0, 5));
+          setStats({ alunos: alunos.total, turmas: turmas.length, aulasHoje: aulasHoje.total });
+          setAulasRecentes(proximas.items);
+          setAniversarios(aniv);
         } else {
           const [turmas, aulasHoje, proximas] = await Promise.all([
             turmasService.listar({ status: "ativa" }),
-            aulasService.listar({ data_inicio: hoje, data_fim: hoje }),
-            aulasService.listar({ status: "agendada" }),
+            aulasService.listar({ data_inicio: hoje, data_fim: hoje, page_size: 100 }),
+            aulasService.listar({ status: "agendada", page_size: 5 }),
           ]);
-          setStats({ alunos: 0, turmas: turmas.length, aulasHoje: aulasHoje.length, inadimplentes: 0 });
-          setAulasRecentes(proximas.slice(0, 5));
+          setStats({ alunos: 0, turmas: turmas.length, aulasHoje: aulasHoje.total });
+          setAulasRecentes(proximas.items);
         }
       } finally {
         setLoading(false);
@@ -52,12 +77,49 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${isAdmin ? "lg:grid-cols-4" : "lg:grid-cols-2"}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${isAdmin ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
         {isAdmin && <StatCard label="Alunos ativos" value={stats.alunos} />}
         <StatCard label="Turmas ativas" value={stats.turmas} />
         <StatCard label="Aulas hoje" value={stats.aulasHoje} />
-        {isAdmin && <StatCard label="Inadimplentes" value={stats.inadimplentes} warning={stats.inadimplentes > 0} />}
       </div>
+
+      {isAdmin && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-3">
+            {isFallback ? "Próximos aniversários" : "Aniversários — semana atual e próxima"}
+            {aniversarios.length === 0 && <span className="text-sm font-normal text-muted ml-2">Nenhum</span>}
+          </h2>
+          {aniversarios.length > 0 && (
+            <Table<Aluno>
+              keyExtractor={(a) => a.pessoa_id}
+              data={aniversarios}
+              columns={[
+                {
+                  header: "Aluno",
+                  render: (a) => (
+                    <span className={a.aniversario === hojeStr ? "font-bold text-primary-600" : ""}>
+                      {a.pessoa.nome}
+                      {a.aniversario === hojeStr && (
+                        <span className="ml-2 text-xs bg-primary-100 text-primary-700 rounded-full px-2 py-0.5">🎂 Hoje!</span>
+                      )}
+                    </span>
+                  ),
+                },
+                {
+                  header: "Data",
+                  render: (a) => {
+                    if (!a.aniversario) return "-";
+                    const [dd, mm] = a.aniversario.split("/").map(Number);
+                    const mes = new Date(2000, mm - 1, dd).toLocaleDateString("pt-BR", { month: "long" });
+                    return `${String(dd).padStart(2, "0")} de ${mes}`;
+                  },
+                },
+              ]}
+            />
+          )}
+        </div>
+      )}
+
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-3">Próximas aulas</h2>
         <Table<Aula>

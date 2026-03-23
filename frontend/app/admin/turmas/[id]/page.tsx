@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { turmasService, type Turma, type HorarioTurma } from "@/services/admin/turmas";
+import { formatCpf } from "@/lib/masks";
+import { getErrorMessage } from "@/lib/utils";
 import { aulasService, type Aula } from "@/services/admin/aulas";
 import { matriculasService, type Matricula } from "@/services/admin/matriculas";
 import { Table } from "@/components/ui/Table";
@@ -66,8 +68,8 @@ export default function TurmaDetailPage() {
       });
       showToast("Horário adicionado!");
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao adicionar horário.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao adicionar horário."), "error");
     } finally { setAddingHorario(false); }
   }
 
@@ -79,8 +81,8 @@ export default function TurmaDetailPage() {
       showToast("Horário removido!");
       setDeleteHorario(null);
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao remover horário.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao remover horário."), "error");
     } finally { setDeletingHorario(false); }
   }
 
@@ -90,8 +92,8 @@ export default function TurmaDetailPage() {
       const updated = await aulasService.aprovar(aulaId);
       setAulas((prev) => prev.map((a) => a.id === updated.id ? updated : a));
       showToast("Aula aprovada!");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao aprovar aula.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao aprovar aula."), "error");
     } finally { setAprovando(null); }
   }
 
@@ -120,7 +122,7 @@ export default function TurmaDetailPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">{turma.nome}</h1>
           <p className="text-sm text-muted mt-1">
-            {turma.nivel?.nome ?? "Sem nível"} · {turma.professor?.pessoa.nome ?? "Sem professor"}
+            {turma.nivel?.nome ?? "Sem nível"} · {turma.livro ? (turma.livro.serie ? `${turma.livro.serie} — ${turma.livro.titulo}` : turma.livro.titulo) : "Sem livro"} · {turma.professor?.pessoa.nome ?? "Sem professor"}
           </p>
         </div>
         <Badge variant={turma.status === "ativa" ? "success" : "neutral"}>{turma.status}</Badge>
@@ -209,7 +211,7 @@ export default function TurmaDetailPage() {
           emptyMessage="Nenhuma matrícula nesta turma."
           columns={[
             { header: "Aluno", render: (m) => m.aluno?.pessoa.nome ?? "-" },
-            { header: "CPF", render: (m) => m.aluno?.pessoa.cpf ?? "-" },
+            { header: "CPF", render: (m) => formatCpf(m.aluno?.pessoa.cpf) },
             { header: "Início", render: (m) => new Date(m.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") },
             { header: "Fim", render: (m) => m.data_fim ? new Date(m.data_fim + "T00:00:00").toLocaleDateString("pt-BR") : "-" },
             {

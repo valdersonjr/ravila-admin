@@ -5,81 +5,15 @@ from decimal import Decimal
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.models.pagamento import PagamentoAluno, PagamentoProfessor
+from app.models.pagamento import PagamentoProfessor
 from app.repositories import pagamento as pagamento_repo
-from app.repositories import aluno as aluno_repo
 from app.repositories import professor as professor_repo
 from app.schemas.pagamento import (
-    PagamentoAlunoCreate,
-    PagamentoAlunoUpdate,
     PagamentoProfessorCreate,
     PagamentoProfessorUpdate,
 )
 
 UPLOADS_BASE = "/app/uploads"
-
-
-def listar_alunos(
-    db: Session,
-    aluno_id: int | None = None,
-    referencia: str | None = None,
-    status_filter: str | None = None,
-) -> list[PagamentoAluno]:
-    return pagamento_repo.listar_alunos(db, aluno_id, referencia, status_filter)
-
-
-def criar_aluno(db: Session, dados: PagamentoAlunoCreate) -> PagamentoAluno:
-    aluno = aluno_repo.buscar_por_pessoa_id(db, dados.aluno_id)
-    if not aluno:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Aluno não encontrado",
-        )
-    nome_snapshot = aluno.pessoa.nome if aluno.pessoa else ""
-    payload = {
-        "aluno_id": dados.aluno_id,
-        "aluno_nome_snapshot": nome_snapshot,
-        "referencia": dados.referencia,
-        "valor": dados.valor,
-        "status": dados.status,
-        "forma": dados.forma,
-        "data_pagamento": dados.data_pagamento,
-    }
-    return pagamento_repo.criar_aluno(db, payload)
-
-
-def atualizar_aluno(
-    db: Session, pagamento_id: int, dados: PagamentoAlunoUpdate
-) -> PagamentoAluno:
-    pagamento = pagamento_repo.buscar_aluno(db, pagamento_id)
-    if not pagamento:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Pagamento não encontrado",
-        )
-    return pagamento_repo.atualizar_aluno(db, pagamento, dados.model_dump(exclude_unset=True))
-
-
-def upload_comprovante_aluno(
-    db: Session,
-    pagamento_id: int,
-    file: UploadFile,
-    filename: str,
-) -> PagamentoAluno:
-    pagamento = pagamento_repo.buscar_aluno(db, pagamento_id)
-    if not pagamento:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Pagamento não encontrado",
-        )
-    ext = os.path.splitext(filename)[1] if filename else ".bin"
-    folder = os.path.join(UPLOADS_BASE, "pagamentos_aluno", str(pagamento_id))
-    os.makedirs(folder, exist_ok=True)
-    file_path = os.path.join(folder, f"comprovante{ext}")
-    with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    url = f"/uploads/pagamentos_aluno/{pagamento_id}/comprovante{ext}"
-    return pagamento_repo.atualizar_aluno(db, pagamento, {"comprovante_url": url})
 
 
 def listar_professores(

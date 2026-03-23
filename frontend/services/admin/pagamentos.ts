@@ -1,17 +1,5 @@
 import { apiAuth } from "../api";
 
-export interface PagamentoAluno {
-  id: number;
-  aluno_id: number;
-  aluno_nome_snapshot: string;
-  referencia: string;
-  valor: number;
-  status: "pendente" | "pago" | "atrasado";
-  forma: "boleto" | "pix" | null;
-  data_pagamento: string | null;
-  comprovante_url: string | null;
-}
-
 export interface PagamentoProfessor {
   id: number;
   professor_id: number;
@@ -24,23 +12,6 @@ export interface PagamentoProfessor {
   data_pagamento: string | null;
   comprovante_url: string | null;
 }
-
-export const pagamentosAlunosService = {
-  listar: (params?: { aluno_id?: number; referencia?: string; status?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.aluno_id) qs.set("aluno_id", String(params.aluno_id));
-    if (params?.referencia) qs.set("referencia", params.referencia);
-    if (params?.status) qs.set("status", params.status);
-    return apiAuth.get<PagamentoAluno[]>(`/pagamentos/alunos/${qs.toString() ? `?${qs}` : ""}`);
-  },
-  criar: (data: { aluno_id: number; referencia: string; valor: number }) => apiAuth.post<PagamentoAluno>("/pagamentos/alunos/", data),
-  atualizar: (id: number, data: { status?: string; forma?: string; data_pagamento?: string }) => apiAuth.patch<PagamentoAluno>(`/pagamentos/alunos/${id}`, data),
-  uploadComprovante: (id: number, file: File) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return apiAuth.upload<PagamentoAluno>(`/pagamentos/alunos/${id}/comprovante`, fd);
-  },
-};
 
 export const pagamentosProfessoresService = {
   listar: (params?: { professor_id?: number; referencia?: string }) => {

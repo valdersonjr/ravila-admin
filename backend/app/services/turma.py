@@ -3,12 +3,13 @@ from datetime import date, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.constants import AulaStatus, AulaTipo
 from app.models.turma import Turma, HorarioTurma
 from app.repositories import turma as turma_repo
 from app.repositories import nivel as nivel_repo
 from app.repositories import professor as professor_repo
 from app.repositories import aula as aula_repo
-from app.schemas.turma import TurmaCreate, TurmaUpdate, HorarioTurmaCreate
+from app.schemas.turma import TurmaCreate, TurmaUpdate, HorarioTurmaCreate, GerarSemanaItem, GerarSemanaRelatorio
 
 
 def listar(
@@ -107,20 +108,12 @@ def gerar_aulas(
             detail="Turma não possui horários configurados",
         )
 
-    professor_nome = ""
-    if turma.professor and turma.professor.pessoa:
-        professor_nome = turma.professor.pessoa.nome
+    professor_nome = turma.professor.pessoa.nome if turma.professor and turma.professor.pessoa else ""
 
-    # Build a set of existing aula dates for this turma to skip duplicates
-    existing_dates: set[date] = set()
-    current_check = data_inicio
-    while current_check <= data_fim:
-        aula_existente = aula_repo.buscar_por_turma_e_data(db, turma_id, current_check)
-        if aula_existente:
-            existing_dates.add(current_check)
-        current_check += timedelta(days=1)
+    # Uma única query retorna todas as datas já ocupadas no período
+    existing_dates = aula_repo.buscar_datas_existentes(db, turma_id, data_inicio, data_fim)
 
-    # Map dia_semana to horarios
+    # Indexa horários por dia da semana para lookup O(1)
     dia_map: dict[int, list] = {}
     for h in horarios:
         dia_map.setdefault(h.dia_semana, []).append(h)
@@ -129,21 +122,125 @@ def gerar_aulas(
     current = data_inicio
     while current <= data_fim:
         dia = current.weekday()
-        if dia in dia_map:
+        if dia in dia_map and current not in existing_dates:
             for h in dia_map[dia]:
-                if current not in existing_dates:
-                    aula_repo.criar(db, {
-                        "turma_id": turma_id,
-                        "data": current,
-                        "hora_inicio": h.hora_inicio,
-                        "hora_fim": h.hora_fim,
-                        "professor_id": turma.professor_id,
-                        "professor_nome_snapshot": professor_nome,
-                        "tipo": "regular",
-                        "status": "agendada",
-                    })
-                    existing_dates.add(current)
-                    aulas_criadas += 1
+                aula_repo.criar(db, {
+                    "turma_id": turma_id,
+                    "data": current,
+                    "hora_inicio": h.hora_inicio,
+                    "hora_fim": h.hora_fim,
+                    "professor_id": turma.professor_id,
+                    "professor_nome_snapshot": professor_nome,
+                    "tipo": AulaTipo.REGULAR,
+                    "status": AulaStatus.AGENDADA,
+                })
+                aulas_criadas += 1
+            existing_dates.add(current)
         current += timedelta(days=1)
 
     return aulas_criadas
+
+
+def gerar_semana(db: Session, dry_run: bool = True, professor_id: int | None = None) -> GerarSemanaRelatorio:
+    today = date.today()
+    weekday = today.weekday()  # 0=segunda, 6=domingo
+    if weekday < 5:
+        # Dia útil → semana atual
+        data_inicio = today - timedelta(days=weekday)
+    else:
+        # Fim de semana → semana seguinte
+        data_inicio = today + timedelta(days=7 - weekday)
+    data_fim = data_inicio + timedelta(days=6)
+
+    turmas = turma_repo.listar(db, professor_id=professor_id, status="ativa")
+
+    itens: list[GerarSemanaItem] = []
+    total_aulas = 0
+
+    # Fase 1: sempre calcular o relatório completo (sem criar nada)
+    for turma in turmas:
+        professor_nome = turma.professor.pessoa.nome if turma.professor and turma.professor.pessoa else ""
+
+        if not turma.horarios:
+            itens.append(GerarSemanaItem(
+                turma_id=turma.id,
+                turma_nome=turma.nome,
+                professor_nome=professor_nome,
+                aulas_a_criar=0,
+                sem_horario=True,
+                conflitos=[],
+            ))
+            continue
+
+        existing_dates = aula_repo.buscar_datas_existentes(db, turma.id, data_inicio, data_fim)
+
+        dia_map: dict[int, list] = {}
+        for h in turma.horarios:
+            dia_map.setdefault(h.dia_semana, []).append(h)
+
+        aulas_a_criar = 0
+        conflitos: list[str] = []
+
+        current = data_inicio
+        while current <= data_fim:
+            dia = current.weekday()
+            if dia in dia_map and current not in existing_dates:
+                for h in dia_map[dia]:
+                    conflito = aula_repo.buscar_conflito_horario(
+                        db, turma.professor_id, current, h.hora_inicio, h.hora_fim
+                    )
+                    if conflito:
+                        conflito_turma = f"turma {conflito.turma_id}" if conflito.turma_id else "aula particular"
+                        conflitos.append(
+                            f"{current.strftime('%d/%m')} {h.hora_inicio[:5]}–{h.hora_fim[:5]} (conflito com {conflito_turma})"
+                        )
+                    else:
+                        aulas_a_criar += 1
+            current += timedelta(days=1)
+
+        total_aulas += aulas_a_criar
+        itens.append(GerarSemanaItem(
+            turma_id=turma.id,
+            turma_nome=turma.nome,
+            professor_nome=professor_nome,
+            aulas_a_criar=aulas_a_criar,
+            sem_horario=False,
+            conflitos=conflitos,
+        ))
+
+    # Fase 2: só criar aulas se não houver nenhum conflito e não for dry_run
+    total_conflitos = sum(len(i.conflitos) for i in itens)
+    if not dry_run and total_conflitos == 0:
+        for turma in turmas:
+            professor_nome = turma.professor.pessoa.nome if turma.professor and turma.professor.pessoa else ""
+            if not turma.horarios:
+                continue
+
+            existing_dates = aula_repo.buscar_datas_existentes(db, turma.id, data_inicio, data_fim)
+            dia_map: dict[int, list] = {}
+            for h in turma.horarios:
+                dia_map.setdefault(h.dia_semana, []).append(h)
+
+            current = data_inicio
+            while current <= data_fim:
+                dia = current.weekday()
+                if dia in dia_map and current not in existing_dates:
+                    for h in dia_map[dia]:
+                        aula_repo.criar(db, {
+                            "turma_id": turma.id,
+                            "data": current,
+                            "hora_inicio": h.hora_inicio,
+                            "hora_fim": h.hora_fim,
+                            "professor_id": turma.professor_id,
+                            "professor_nome_snapshot": professor_nome,
+                            "tipo": AulaTipo.REGULAR,
+                            "status": AulaStatus.AGENDADA,
+                        })
+                current += timedelta(days=1)
+
+    return GerarSemanaRelatorio(
+        data_inicio=data_inicio.isoformat(),
+        data_fim=data_fim.isoformat(),
+        itens=itens,
+        total_aulas=total_aulas,
+    )

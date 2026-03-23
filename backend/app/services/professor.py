@@ -5,6 +5,7 @@ from decimal import Decimal
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.constants import AulaStatus, MatriculaStatus, TipoContrato
 from app.models.aula import Aula
 from app.models.matricula import Matricula
 from app.models.presenca import Presenca
@@ -50,125 +51,129 @@ def atualizar(db: Session, pessoa_id: int, dados: ProfessorUpdate) -> Professor:
     return professor_repo.atualizar(db, professor, dados.model_dump(exclude_unset=True))
 
 
-def dashboard(db: Session, pessoa_id: int) -> ProfessorDashboardOut:
-    professor = buscar(db, pessoa_id)
-    hoje = date.today()
+# ── Dashboard helpers ────────────────────────────────────────────────────────
 
-    # Turmas com contagem de alunos ativos
-    turmas = db.query(Turma).filter(Turma.professor_id == pessoa_id).all()
-    turmas_data = []
-    for t in turmas:
-        num_alunos = (
-            db.query(Matricula)
-            .filter(Matricula.turma_id == t.id, Matricula.status == "ativa")
-            .count()
-        )
-        turmas_data.append({"id": t.id, "nome": t.nome, "status": t.status, "num_alunos": num_alunos})
+def _turmas_com_contagem(db: Session, professor_id: int) -> list[dict]:
+    """Retorna turmas do professor com total de alunos ativos em cada uma."""
+    turmas = db.query(Turma).filter(Turma.professor_id == professor_id).all()
+    return [
+        {
+            "id": t.id,
+            "nome": t.nome,
+            "status": t.status,
+            "num_alunos": db.query(Matricula)
+                .filter(Matricula.turma_id == t.id, Matricula.status == MatriculaStatus.ATIVA)
+                .count(),
+        }
+        for t in turmas
+    ]
 
-    # Aulas — totais
-    base = db.query(Aula).filter(Aula.professor_id == pessoa_id)
+
+def _contagem_aulas(db: Session, professor_id: int) -> dict:
+    """Retorna totais gerais de aulas por status para o professor."""
+    base = db.query(Aula).filter(Aula.professor_id == professor_id)
+    return {
+        "total": base.count(),
+        "realizadas": base.filter(Aula.status == AulaStatus.REALIZADA).count(),
+        "canceladas": base.filter(Aula.status == AulaStatus.CANCELADA).count(),
+        "agendadas": base.filter(Aula.status == AulaStatus.AGENDADA).count(),
+    }
+
+
+def _contagem_aulas_mes(db: Session, professor_id: int, primeiro_dia: date) -> dict:
+    """Retorna totais de aulas por status no mês indicado."""
+    base_mes = db.query(Aula).filter(
+        Aula.professor_id == professor_id,
+        Aula.data >= primeiro_dia,
+    )
+    return {
+        "realizadas": base_mes.filter(Aula.status == AulaStatus.REALIZADA).count(),
+        "agendadas": base_mes.filter(Aula.status == AulaStatus.AGENDADA).count(),
+        "canceladas": base_mes.filter(Aula.status == AulaStatus.CANCELADA).count(),
+    }
+
+
+def _presenca_media(
+    db: Session,
+    professor_id: int,
+    data_inicio: date | None = None,
+    data_fim: date | None = None,
+) -> float | None:
+    """Calcula taxa de presença (presentes / total) para aulas realizadas no período."""
+    filtros = [
+        Aula.professor_id == professor_id,
+        Aula.status == AulaStatus.REALIZADA,
+    ]
+    if data_inicio:
+        filtros.append(Aula.data >= data_inicio)
+    if data_fim:
+        filtros.append(Aula.data <= data_fim)
+
+    base = db.query(Presenca).join(Aula, Presenca.aula_id == Aula.id).filter(*filtros)
     total = base.count()
-    realizadas = base.filter(Aula.status == "realizada").count()
-    canceladas = base.filter(Aula.status == "cancelada").count()
-    agendadas = base.filter(Aula.status == "agendada").count()
+    if total == 0:
+        return None
+    presentes = base.filter(Presenca.presente == True).count()
+    return presentes / total
 
-    # Aulas — mês atual
-    primeiro_dia = date(hoje.year, hoje.month, 1)
-    base_mes = db.query(Aula).filter(Aula.professor_id == pessoa_id, Aula.data >= primeiro_dia)
-    realizadas_mes = base_mes.filter(Aula.status == "realizada").count()
-    agendadas_mes = base_mes.filter(Aula.status == "agendada").count()
-    canceladas_mes = base_mes.filter(Aula.status == "cancelada").count()
 
-    # Presença média — mês atual
-    total_presencas_mes = (
-        db.query(Presenca)
-        .join(Aula, Presenca.aula_id == Aula.id)
-        .filter(Aula.professor_id == pessoa_id, Aula.status == "realizada", Aula.data >= primeiro_dia)
-        .count()
-    )
-    presentes_mes = (
-        db.query(Presenca)
-        .join(Aula, Presenca.aula_id == Aula.id)
-        .filter(Aula.professor_id == pessoa_id, Aula.status == "realizada",
-                Aula.data >= primeiro_dia, Presenca.presente == True)
-        .count()
-    )
-    presenca_media_mes = (presentes_mes / total_presencas_mes) if total_presencas_mes > 0 else None
+def _custo_mes_atual(professor: Professor, realizadas_mes: int) -> Decimal | None:
+    """Calcula o custo estimado do mês atual com base no tipo de contrato."""
+    if professor.tipo_contrato == TipoContrato.CLT:
+        return professor.salario
+    if professor.valor_por_aula:
+        return Decimal(str(realizadas_mes)) * professor.valor_por_aula
+    return None
 
-    # Taxa de presença (aulas realizadas pelo professor)
-    total_presencas = (
-        db.query(Presenca)
-        .join(Aula, Presenca.aula_id == Aula.id)
-        .filter(Aula.professor_id == pessoa_id, Aula.status == "realizada")
-        .count()
-    )
-    presentes = (
-        db.query(Presenca)
-        .join(Aula, Presenca.aula_id == Aula.id)
-        .filter(Aula.professor_id == pessoa_id, Aula.status == "realizada", Presenca.presente == True)
-        .count()
-    )
-    presenca_media = (presentes / total_presencas) if total_presencas > 0 else None
 
-    # Pagamentos
-    pagamentos = pagamento_repo.listar_professores(db, professor_id=pessoa_id)
-    custo_total_pago = sum(p.valor_total for p in pagamentos)
-
-    # Custo estimado mês atual
-    if professor.tipo_contrato == "clt":
-        custo_mes_atual = professor.salario
-    else:
-        custo_mes_atual = (
-            Decimal(str(realizadas_mes)) * professor.valor_por_aula
-            if professor.valor_por_aula else None
-        )
-
-    # Histórico mensal — últimos 6 meses completos (exclui mês atual)
-    historico_mensal = []
-    for i in range(6, 0, -1):
-        # mês i atrás
+def _historico_mensal(db: Session, professor_id: int, hoje: date) -> list[MesHistorico]:
+    """Monta histórico dos últimos 6 meses completos (exclui o mês atual)."""
+    historico = []
+    for meses_atras in range(6, 0, -1):
         ano = hoje.year
-        mes = hoje.month - i
+        mes = hoje.month - meses_atras
         while mes <= 0:
             mes += 12
             ano -= 1
         primeiro = date(ano, mes, 1)
         ultimo = date(ano, mes, monthrange(ano, mes)[1])
-        label = f"{mes:02d}/{ano}"
 
-        real = (
-            db.query(Aula)
-            .filter(Aula.professor_id == pessoa_id, Aula.status == "realizada",
-                    Aula.data >= primeiro, Aula.data <= ultimo)
-            .count()
-        )
-        canc = (
-            db.query(Aula)
-            .filter(Aula.professor_id == pessoa_id, Aula.status == "cancelada",
-                    Aula.data >= primeiro, Aula.data <= ultimo)
-            .count()
-        )
-        total_p = (
-            db.query(Presenca)
-            .join(Aula, Presenca.aula_id == Aula.id)
-            .filter(Aula.professor_id == pessoa_id, Aula.status == "realizada",
-                    Aula.data >= primeiro, Aula.data <= ultimo)
-            .count()
-        )
-        pres_p = (
-            db.query(Presenca)
-            .join(Aula, Presenca.aula_id == Aula.id)
-            .filter(Aula.professor_id == pessoa_id, Aula.status == "realizada",
-                    Aula.data >= primeiro, Aula.data <= ultimo,
-                    Presenca.presente == True)
-            .count()
-        )
-        historico_mensal.append(MesHistorico(
-            mes=label,
-            realizadas=real,
-            canceladas=canc,
-            presenca_media=(pres_p / total_p) if total_p > 0 else None,
+        realizadas = db.query(Aula).filter(
+            Aula.professor_id == professor_id,
+            Aula.status == AulaStatus.REALIZADA,
+            Aula.data >= primeiro,
+            Aula.data <= ultimo,
+        ).count()
+
+        canceladas = db.query(Aula).filter(
+            Aula.professor_id == professor_id,
+            Aula.status == AulaStatus.CANCELADA,
+            Aula.data >= primeiro,
+            Aula.data <= ultimo,
+        ).count()
+
+        historico.append(MesHistorico(
+            mes=f"{mes:02d}/{ano}",
+            realizadas=realizadas,
+            canceladas=canceladas,
+            presenca_media=_presenca_media(db, professor_id, primeiro, ultimo),
         ))
+    return historico
+
+
+# ── Dashboard principal ──────────────────────────────────────────────────────
+
+def dashboard(db: Session, pessoa_id: int) -> ProfessorDashboardOut:
+    professor = buscar(db, pessoa_id)
+    hoje = date.today()
+    primeiro_dia_mes = date(hoje.year, hoje.month, 1)
+
+    turmas = _turmas_com_contagem(db, pessoa_id)
+    contagem = _contagem_aulas(db, pessoa_id)
+    contagem_mes = _contagem_aulas_mes(db, pessoa_id, primeiro_dia_mes)
+
+    pagamentos = pagamento_repo.listar_professores(db, professor_id=pessoa_id)
+    custo_total_pago = sum(p.valor_total for p in pagamentos) or Decimal("0")
 
     return ProfessorDashboardOut(
         professor_id=professor.pessoa_id,
@@ -178,22 +183,17 @@ def dashboard(db: Session, pessoa_id: int) -> ProfessorDashboardOut:
         salario=professor.salario,
         valor_por_aula=professor.valor_por_aula,
         ativo=professor.ativo,
-        turmas=turmas_data,
+        turmas=turmas,
         aulas={
-            "total": total,
-            "realizadas": realizadas,
-            "canceladas": canceladas,
-            "agendadas": agendadas,
+            **contagem,
             "mes_atual": {
-                "realizadas": realizadas_mes,
-                "agendadas": agendadas_mes,
-                "canceladas": canceladas_mes,
-                "presenca_media": presenca_media_mes,
+                **contagem_mes,
+                "presenca_media": _presenca_media(db, pessoa_id, primeiro_dia_mes),
             },
         },
-        presenca_media=presenca_media,
-        custo_total_pago=custo_total_pago if custo_total_pago else Decimal("0"),
-        custo_mes_atual=custo_mes_atual,
+        presenca_media=_presenca_media(db, pessoa_id),
+        custo_total_pago=custo_total_pago,
+        custo_mes_atual=_custo_mes_atual(professor, contagem_mes["realizadas"]),
         historico_pagamentos=pagamentos[:6],
-        historico_mensal=historico_mensal,
+        historico_mensal=_historico_mensal(db, pessoa_id, hoje),
     )

@@ -2,16 +2,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { professoresService } from "@/services/admin/professores";
+import { getErrorMessage } from "@/lib/utils";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
 import { Combobox } from "@/components/ui/Combobox";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
+import { Field } from "@/components/ui/Field";
 
 export default function NovoProfessorPage() {
   const router = useRouter();
@@ -24,7 +22,7 @@ export default function NovoProfessorPage() {
   const [valorPorAula, setValorPorAula] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { pessoasService.listar().then(setPessoas); }, []);
+  useEffect(() => { pessoasService.listar({ page_size: 500 }).then((r) => setPessoas(r.items)); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,8 +37,8 @@ export default function NovoProfessorPage() {
       });
       showToast("Professor criado com sucesso!");
       router.push("/admin/professores");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao criar professor.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao criar professor."), "error");
     } finally { setLoading(false); }
   }
 

@@ -2,15 +2,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { alunosService } from "@/services/admin/alunos";
+import { getErrorMessage } from "@/lib/utils";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
 import { niveisService, type Nivel } from "@/services/admin/niveis";
 import { Combobox } from "@/components/ui/Combobox";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
+import { Field } from "@/components/ui/Field";
 
 export default function NovoAlunoPage() {
   const router = useRouter();
@@ -25,8 +23,8 @@ export default function NovoAlunoPage() {
   const [responsavelId, setResponsavelId] = useState<number | string | null>(null);
 
   useEffect(() => {
-    Promise.all([pessoasService.listar(), niveisService.listar()]).then(([p, n]) => {
-      setPessoas(p);
+    Promise.all([pessoasService.listar({ page_size: 500 }), niveisService.listar()]).then(([p, n]) => {
+      setPessoas(p.items);
       setNiveis(n);
     });
   }, []);
@@ -52,8 +50,8 @@ if (eMenor && !responsavelId) { showToast("Responsável obrigatório para menor 
       });
       showToast("Aluno criado com sucesso!");
       router.push("/admin/alunos");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao criar aluno.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao criar aluno."), "error");
     } finally { setLoading(false); }
   }
 

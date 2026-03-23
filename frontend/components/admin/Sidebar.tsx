@@ -6,18 +6,19 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { authService } from "@/services/auth";
 
-const links = [
-  { href: "/admin", label: "Dashboard", exact: true },
-  { href: "/admin/alunos", label: "Alunos", exact: false },
-  { href: "/admin/professores", label: "Professores", exact: false },
-  { href: "/admin/turmas", label: "Turmas", exact: false },
-  { href: "/admin/aulas", label: "Aulas", exact: false },
-  { href: "/admin/matriculas", label: "Matrículas", exact: false },
-  { href: "/admin/pessoas", label: "Pessoas", exact: false },
-  { href: "/admin/niveis", label: "Níveis", exact: false },
-  { href: "/admin/users", label: "Usuários", exact: false },
-  { href: "/admin/pagamentos/alunos", label: "Pagamentos Alunos", exact: false },
-  { href: "/admin/pagamentos/professores", label: "Pagamentos Professores", exact: false },
+type NavLink = { href: string; label: string; exact: boolean; roles: string[] };
+
+const links: NavLink[] = [
+  { href: "/admin",                        label: "Dashboard",              exact: true,  roles: ["admin", "professor"] },
+  { href: "/admin/alunos",                 label: "Alunos",                 exact: false, roles: ["admin"] },
+  { href: "/admin/professores",            label: "Professores",            exact: false, roles: ["admin"] },
+  { href: "/admin/turmas",                 label: "Turmas",                 exact: false, roles: ["admin", "professor"] },
+  { href: "/admin/aulas",                  label: "Aulas",                  exact: false, roles: ["admin", "professor"] },
+  { href: "/admin/matriculas",             label: "Matrículas",             exact: false, roles: ["admin"] },
+  { href: "/admin/pessoas",                label: "Pessoas",                exact: false, roles: ["admin"] },
+  { href: "/admin/livros",                 label: "Livros",                 exact: false, roles: ["admin"] },
+  { href: "/admin/users",                  label: "Usuários",               exact: false, roles: ["admin"] },
+  { href: "/admin/pagamentos/professores", label: "Pagamentos Professores", exact: false, roles: ["admin"] },
 ];
 
 interface SidebarProps {
@@ -42,7 +43,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   // Fecha sidebar ao navegar no mobile
   useEffect(() => { onClose(); }, [pathname]);
 
-  const visibleLinks = role === "admin" ? links : links.filter(l => ["/admin", "/admin/turmas", "/admin/aulas"].includes(l.href));
+  const visibleLinks = role ? links.filter((l) => l.roles.includes(role)) : [];
 
   function isActive(href: string, exact: boolean) {
     return exact ? pathname === href : pathname.startsWith(href);

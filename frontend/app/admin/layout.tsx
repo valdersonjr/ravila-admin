@@ -14,9 +14,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (isLoginPage) return;
-    const authenticated = authService.isAuthenticated();
-    setIsAuthenticated(authenticated);
-    if (!authenticated) router.replace("/admin/login");
+    async function checkAuth() {
+      // isAuthenticated checks sessionStorage for the refresh token.
+      // If found, hydrate the in-memory access token via /auth/refresh.
+      if (!authService.isAuthenticated()) {
+        router.replace("/admin/login");
+        return;
+      }
+      const ok = await authService.tryRefresh();
+      if (!ok) {
+        router.replace("/admin/login");
+        return;
+      }
+      setIsAuthenticated(true);
+    }
+    checkAuth();
   }, [isLoginPage, router]);
 
   if (isLoginPage) return <>{children}</>;

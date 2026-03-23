@@ -1,4 +1,5 @@
 import { apiAuth } from "../api";
+import type { GerarSemanaRelatorio } from "./turmas";
 
 export interface Professor {
   pessoa_id: number;
@@ -57,4 +58,5 @@ export const professoresService = {
   criar: (data: ProfessorCreate) => apiAuth.post<Professor>("/professores/", data),
   atualizar: (pessoaId: number, data: Partial<ProfessorCreate>) => apiAuth.put<Professor>(`/professores/${pessoaId}`, data),
   dashboard: (pessoaId: number) => apiAuth.get<ProfessorDashboard>(`/professores/${pessoaId}/dashboard`),
+  gerarSemana: (pessoaId: number, dry_run: boolean) => apiAuth.post<GerarSemanaRelatorio>(`/professores/${pessoaId}/gerar-semana`, { dry_run }),
 };

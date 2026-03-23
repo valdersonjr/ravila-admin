@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { aulasService, type Aula } from "@/services/admin/aulas";
+import { getErrorMessage } from "@/lib/utils";
 import { turmasService, type Turma } from "@/services/admin/turmas";
 import { professoresService, type Professor } from "@/services/admin/professores";
 import { Table } from "@/components/ui/Table";
@@ -27,12 +28,16 @@ const STATUS_NEXT: Record<string, string> = {
   cancelada: "agendada",
 };
 
+const PAGE_SIZE = 10;
+
 export default function AulasPage() {
   const { showToast } = useToast();
   const searchParams = useSearchParams();
   const isAdmin = authService.getRole() === "admin";
 
   const [aulas, setAulas] = useState<Aula[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +48,9 @@ export default function AulasPage() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [changingStatus, setChangingStatus] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Modal substituir professor
   const [modalAula, setModalAula] = useState<Aula | null>(null);
@@ -50,17 +58,19 @@ export default function AulasPage() {
   const [savingProf, setSavingProf] = useState(false);
 
 
-  async function load(overrideProfId?: number | string | null) {
+  async function load(overrideProfId?: number | string | null, overridePage?: number) {
     setLoading(true);
     try {
-      const params: Parameters<typeof aulasService.listar>[0] = {};
+      const params: Parameters<typeof aulasService.listar>[0] = { page: overridePage ?? page, page_size: PAGE_SIZE };
       if (turmaId) params.turma_id = Number(turmaId);
       const pid = overrideProfId !== undefined ? overrideProfId : professorId;
       if (pid) params.professor_id = Number(pid);
       if (status) params.status = status;
       if (dataInicio) params.data_inicio = dataInicio;
       if (dataFim) params.data_fim = dataFim;
-      setAulas(await aulasService.listar(params));
+      const result = await aulasService.listar(params);
+      setAulas(result.items);
+      setTotal(result.total);
     } finally { setLoading(false); }
   }
 
@@ -84,8 +94,8 @@ export default function AulasPage() {
       const updated = await aulasService.atualizarStatus(aula.id, next);
       setAulas((prev) => prev.map((a) => a.id === updated.id ? updated : a));
       showToast(`Status atualizado para "${next}".`);
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao atualizar status.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao atualizar status."), "error");
     } finally { setChangingStatus(null); }
   }
 
@@ -99,6 +109,20 @@ export default function AulasPage() {
     setNovoProfId(null);
   }
 
+  async function handleDeletar(aula: Aula) {
+    if (!confirm(`Excluir aula de ${new Date(aula.data + "T00:00:00").toLocaleDateString("pt-BR")}? Esta ação não pode ser desfeita.`)) return;
+    setDeletingId(aula.id);
+    try {
+      await aulasService.deletar(aula.id);
+      setAulas((prev) => prev.filter((a) => a.id !== aula.id));
+      showToast("Aula excluída.");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao excluir aula."), "error");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   async function handleSubstituir() {
     if (!modalAula || !novoProfId) return;
     setSavingProf(true);
@@ -107,8 +131,8 @@ export default function AulasPage() {
       setAulas((prev) => prev.map((a) => a.id === updated.id ? updated : a));
       showToast("Professor atualizado!");
       closeModal();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao substituir professor.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao substituir professor."), "error");
     } finally { setSavingProf(false); }
   }
 
@@ -125,7 +149,12 @@ export default function AulasPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Aulas</h1>
-        {isAdmin && <Link href="/admin/aulas/nova"><Button>+ Nova aula</Button></Link>}
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Link href="/admin/aulas/nova"><Button variant="outline">+ Aula de turma</Button></Link>
+            <Link href="/admin/aulas/avulsa/nova"><Button>+ Aula particular</Button></Link>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3 items-end bg-surface border border-border rounded-xl p-4">
@@ -151,18 +180,24 @@ export default function AulasPage() {
           <label className="block text-xs text-muted mb-1">Até</label>
           <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={() => load()}>Filtrar</Button>
+        <Button variant="outline" onClick={() => { setPage(1); load(undefined, 1); }}>Filtrar</Button>
       </div>
 
       {loading ? (
         <div className="flex justify-center h-20 items-center"><span className="w-6 h-6 rounded-full border-2 border-primary-600 border-t-transparent animate-spin" /></div>
       ) : (
+        <>
         <Table<Aula>
           keyExtractor={(a) => a.id}
           data={aulas}
           columns={[
             { header: "Data", render: (a) => new Date(a.data + "T00:00:00").toLocaleDateString("pt-BR") },
-            { header: "Turma", render: (a) => a.turma?.nome ?? "-" },
+            {
+              header: "Turma / Aluno",
+              render: (a) => a.turma
+                ? a.turma.nome
+                : <span className="inline-flex items-center gap-1"><Badge variant="neutral">particular</Badge>{a.aluno_nome_snapshot ?? "-"}</span>,
+            },
             {
               header: "Professor",
               render: (a) => {
@@ -205,8 +240,34 @@ export default function AulasPage() {
               header: "Presenças",
               render: (a) => <Link href={`/admin/aulas/${a.id}/presencas`} className="text-primary-600 hover:underline text-sm">Ver detalhes</Link>,
             },
+            ...(isAdmin ? [{
+              header: "",
+              render: (a: Aula) => a.status === "agendada" ? (
+                <button
+                  onClick={() => handleDeletar(a)}
+                  disabled={deletingId === a.id}
+                  className="text-xs text-red-600 hover:text-red-700 disabled:opacity-40"
+                >
+                  {deletingId === a.id ? "..." : "Excluir"}
+                </button>
+              ) : null,
+            }] : []),
           ]}
         />
+
+        <div className="flex items-center justify-between text-sm text-muted">
+          <span>{total} aula{total !== 1 ? "s" : ""} encontrada{total !== 1 ? "s" : ""}</span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => { const p = page - 1; setPage(p); load(undefined, p); }} disabled={page <= 1}>
+              ← Anterior
+            </Button>
+            <span className="text-foreground">Página {page} de {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => { const p = page + 1; setPage(p); load(undefined, p); }} disabled={page >= totalPages}>
+              Próxima →
+            </Button>
+          </div>
+        </div>
+        </>
       )}
 
       {isAdmin && modalAula && (
@@ -215,7 +276,7 @@ export default function AulasPage() {
           <div className="relative z-10 w-full max-w-sm mx-4 rounded-xl bg-background border border-border p-6 shadow-xl space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Trocar professor</h2>
             <p className="text-sm text-muted">
-              Aula de {new Date(modalAula.data + "T00:00:00").toLocaleDateString("pt-BR")} — {modalAula.turma?.nome ?? `turma ${modalAula.turma_id}`}
+              Aula de {new Date(modalAula.data + "T00:00:00").toLocaleDateString("pt-BR")} — {modalAula.turma?.nome ?? `particular · ${modalAula.aluno_nome_snapshot}`}
             </p>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Professor</label>

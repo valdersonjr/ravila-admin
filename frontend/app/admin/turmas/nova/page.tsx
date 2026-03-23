@@ -2,16 +2,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { turmasService } from "@/services/admin/turmas";
+import { getErrorMessage } from "@/lib/utils";
 import { niveisService, type Nivel } from "@/services/admin/niveis";
+import { livrosService, type Livro } from "@/services/admin/livros";
 import { professoresService, type Professor } from "@/services/admin/professores";
 import { Input } from "@/components/ui/Input";
 import { Combobox } from "@/components/ui/Combobox";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
+import { Field } from "@/components/ui/Field";
 
 export default function NovaTurmaPage() {
   const router = useRouter();
@@ -19,14 +18,17 @@ export default function NovaTurmaPage() {
 
   const [nome, setNome] = useState("");
   const [niveis, setNiveis] = useState<Nivel[]>([]);
+  const [livros, setLivros] = useState<Livro[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [nivelId, setNivelId] = useState<number | string | null>(null);
+  const [livroId, setLivroId] = useState<number | string | null>(null);
   const [professorId, setProfessorId] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    Promise.all([niveisService.listar(), professoresService.listar()]).then(([ns, ps]) => {
+    Promise.all([niveisService.listar(), livrosService.listar(), professoresService.listar()]).then(([ns, ls, ps]) => {
       setNiveis(ns);
+      setLivros(ls);
       setProfessores(ps.filter((p) => p.ativo));
     });
   }, []);
@@ -39,16 +41,18 @@ export default function NovaTurmaPage() {
       const turma = await turmasService.criar({
         nome: nome.trim(),
         nivel_id: nivelId ? Number(nivelId) : undefined,
+        livro_id: livroId ? Number(livroId) : undefined,
         professor_id: Number(professorId),
       });
       showToast("Turma criada! Adicione horários e gere aulas.");
       router.push(`/admin/turmas/${turma.id}`);
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao criar turma.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao criar turma."), "error");
     } finally { setLoading(false); }
   }
 
   const nivelOptions = niveis.map((n) => ({ value: n.id, label: n.nome }));
+  const livroOptions = livros.map((l) => ({ value: l.id, label: l.serie ? `${l.serie} — ${l.titulo}` : l.titulo }));
   const professorOptions = professores.map((p) => ({ value: p.pessoa_id, label: p.pessoa.nome }));
 
   return (
@@ -60,6 +64,9 @@ export default function NovaTurmaPage() {
         </Field>
         <Field label="Nível">
           <Combobox options={nivelOptions} value={nivelId} onChange={setNivelId} placeholder="Selecionar nível..." />
+        </Field>
+        <Field label="Livro">
+          <Combobox options={livroOptions} value={livroId} onChange={setLivroId} placeholder="Selecionar livro..." />
         </Field>
         <Field label="Professor *">
           <Combobox options={professorOptions} value={professorId} onChange={setProfessorId} placeholder="Selecionar professor..." />

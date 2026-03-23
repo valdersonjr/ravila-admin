@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
@@ -7,61 +8,16 @@ from app.database import get_db
 from app.dependencies import require_admin
 from app.models.user import User
 from app.schemas.pagamento import (
-    PagamentoAlunoCreate,
-    PagamentoAlunoOut,
-    PagamentoAlunoUpdate,
+    CalculoProfessorOut,
     PagamentoProfessorCreate,
     PagamentoProfessorOut,
     PagamentoProfessorUpdate,
-    CalculoProfessorOut,
 )
 from app.services import pagamento as pagamento_service
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/pagamentos", tags=["pagamentos"])
-
-
-# ─── Pagamentos Alunos ────────────────────────────────────────────────────────
-
-@router.get("/alunos/", response_model=list[PagamentoAlunoOut])
-def listar_alunos(
-    aluno_id: Optional[int] = Query(None),
-    referencia: Optional[str] = Query(None),
-    status_filter: Optional[str] = Query(None, alias="status"),
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    return pagamento_service.listar_alunos(db, aluno_id, referencia, status_filter)
-
-
-@router.post("/alunos/", response_model=PagamentoAlunoOut, status_code=status.HTTP_201_CREATED)
-def criar_aluno(
-    body: PagamentoAlunoCreate,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    return pagamento_service.criar_aluno(db, body)
-
-
-@router.patch("/alunos/{pagamento_id}", response_model=PagamentoAlunoOut)
-def atualizar_aluno(
-    pagamento_id: int,
-    body: PagamentoAlunoUpdate,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    return pagamento_service.atualizar_aluno(db, pagamento_id, body)
-
-
-@router.post("/alunos/{pagamento_id}/comprovante", response_model=PagamentoAlunoOut)
-def upload_comprovante_aluno(
-    pagamento_id: int,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    return pagamento_service.upload_comprovante_aluno(
-        db, pagamento_id, file, file.filename or ""
-    )
 
 
 # ─── Pagamentos Professores ──────────────────────────────────────────────────
@@ -92,6 +48,7 @@ def criar_professor(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
+    logger.info("pagamento.professor.criar professor_id=%s referencia=%s", body.professor_id, body.referencia)
     return pagamento_service.criar_professor(db, body)
 
 

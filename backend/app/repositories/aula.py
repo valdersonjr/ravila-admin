@@ -12,7 +12,10 @@ def listar(
     data_inicio: date | None = None,
     data_fim: date | None = None,
     status: str | None = None,
-) -> list[Aula]:
+    aluno_id: int | None = None,
+    page: int = 1,
+    page_size: int = 10,
+) -> tuple[list[Aula], int]:
     query = db.query(Aula)
     if turma_id:
         query = query.filter(Aula.turma_id == turma_id)
@@ -24,7 +27,11 @@ def listar(
         query = query.filter(Aula.data <= data_fim)
     if status:
         query = query.filter(Aula.status == status)
-    return query.order_by(Aula.data, Aula.hora_inicio).all()
+    if aluno_id:
+        query = query.filter(Aula.aluno_id == aluno_id)
+    total = query.count()
+    items = query.order_by(Aula.data.desc(), Aula.hora_inicio).offset((page - 1) * page_size).limit(page_size).all()
+    return items, total
 
 
 def buscar_por_id(db: Session, id: int) -> Aula | None:
@@ -45,6 +52,34 @@ def professor_tem_aula_no_dia(db: Session, professor_id: int, data: date, exclud
     return query.first() is not None
 
 
+def buscar_conflito_horario(
+    db: Session,
+    professor_id: int,
+    data: date,
+    hora_inicio: str,
+    hora_fim: str,
+    exclude_id: int | None = None,
+) -> Aula | None:
+    """Retorna a primeira aula que conflita com o horário informado para o professor.
+
+    Dois horários conflitam quando se sobrepõem:
+        hora_inicio_existente < hora_fim_nova  AND  hora_fim_existente > hora_inicio_nova
+    """
+    query = (
+        db.query(Aula)
+        .filter(
+            Aula.professor_id == professor_id,
+            Aula.data == data,
+            Aula.status.in_(["agendada", "pendente_aprovacao"]),
+            Aula.hora_inicio < hora_fim,
+            Aula.hora_fim > hora_inicio,
+        )
+    )
+    if exclude_id:
+        query = query.filter(Aula.id != exclude_id)
+    return query.first()
+
+
 def buscar_por_turma_e_data(db: Session, turma_id: int, data: date) -> Aula | None:
     return (
         db.query(Aula)
@@ -53,12 +88,27 @@ def buscar_por_turma_e_data(db: Session, turma_id: int, data: date) -> Aula | No
     )
 
 
+def buscar_datas_existentes(db: Session, turma_id: int, data_inicio: date, data_fim: date) -> set[date]:
+    """Retorna o conjunto de datas que já possuem aula para a turma no período."""
+    rows = (
+        db.query(Aula.data)
+        .filter(Aula.turma_id == turma_id, Aula.data >= data_inicio, Aula.data <= data_fim)
+        .all()
+    )
+    return {row.data for row in rows}
+
+
 def criar(db: Session, dados: dict) -> Aula:
     aula = Aula(**dados)
     db.add(aula)
     db.commit()
     db.refresh(aula)
     return aula
+
+
+def deletar(db: Session, aula: Aula) -> None:
+    db.delete(aula)
+    db.commit()
 
 
 def atualizar(db: Session, aula: Aula, dados: dict) -> Aula:

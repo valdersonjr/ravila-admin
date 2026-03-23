@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { pagamentosProfessoresService, type PagamentoProfessor } from "@/services/admin/pagamentos";
+import { getErrorMessage } from "@/lib/utils";
 import { professoresService, type Professor } from "@/services/admin/professores";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
@@ -9,16 +10,13 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Combobox } from "@/components/ui/Combobox";
 import { useToast } from "@/context/ToastContext";
+import { Field } from "@/components/ui/Field";
 
 const FORMA_OPTIONS = [
   { value: "pix", label: "PIX" },
   { value: "ted", label: "TED" },
   { value: "dinheiro", label: "Dinheiro" },
 ];
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
 
 export default function PagamentosProfessoresPage() {
   const { showToast } = useToast();
@@ -73,8 +71,8 @@ export default function PagamentosProfessoresPage() {
       setCreateValor(String(result.valor_calculado));
       setCreateAulas(String(result.aulas_realizadas));
       showToast(`${result.aulas_realizadas} aulas × R$ ${result.valor_por_aula} = R$ ${result.valor_calculado}`);
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao calcular.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao calcular."), "error");
     } finally { setCalculando(false); }
   }
 
@@ -96,8 +94,8 @@ export default function PagamentosProfessoresPage() {
       setCreateValor("");
       setCreateAulas("");
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao registrar.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao registrar."), "error");
     } finally { setCreating(false); }
   }
 
@@ -113,8 +111,8 @@ export default function PagamentosProfessoresPage() {
       showToast("Pagamento confirmado!");
       setPagarTarget(null);
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao confirmar.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao confirmar."), "error");
     } finally { setPagando(false); }
   }
 
@@ -127,8 +125,8 @@ export default function PagamentosProfessoresPage() {
       showToast("Comprovante enviado!");
       setUploadTarget(null);
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao enviar.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao enviar."), "error");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

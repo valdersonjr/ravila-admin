@@ -1,7 +1,7 @@
-from datetime import datetime, date
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import String, Date, DateTime, Boolean, func
+from sqlalchemy import String, DateTime, Boolean, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -20,7 +20,8 @@ class Pessoa(Base):
     cpf: Mapped[Optional[str]] = mapped_column(String(11), unique=True, nullable=True, index=True)
     email: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     telefone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    data_nascimento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    rg: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    endereco: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     menor_de_idade: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.security import verify_password, create_access_token
+from app.core.security import verify_password, create_access_token, create_refresh_token
 from app.repositories import user as user_repo
 from app.services.pessoa import _clean_cpf
 
@@ -25,8 +25,10 @@ def login(db: Session, cpf: str, senha: str) -> dict:
         "pessoa_id": user.pessoa_id,
     }
     access_token = create_access_token(token_data)
+    refresh_token = create_refresh_token({"sub": user.pessoa.cpf})
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "role": user.role,
         "pessoa_id": user.pessoa_id,

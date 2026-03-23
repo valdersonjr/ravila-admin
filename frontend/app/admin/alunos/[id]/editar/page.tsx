@@ -2,16 +2,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { alunosService } from "@/services/admin/alunos";
+import { getErrorMessage } from "@/lib/utils";
 import { niveisService, type Nivel } from "@/services/admin/niveis";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
 import { Combobox } from "@/components/ui/Combobox";
+import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
+import { Field } from "@/components/ui/Field";
 
 export default function EditarAlunoPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +23,8 @@ export default function EditarAlunoPage() {
   const [responsavelId, setResponsavelId] = useState<number | string | null>(null);
   const [eMenor, setEMenor] = useState(false);
   const [status, setStatus] = useState("ativo");
+  const [aniversario, setAniversario] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
   const [nomeAluno, setNomeAluno] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -32,15 +33,17 @@ export default function EditarAlunoPage() {
     Promise.all([
       alunosService.buscar(Number(id)),
       niveisService.listar(),
-      pessoasService.listar(),
+      pessoasService.listar({ page_size: 500 }),
     ]).then(([aluno, ns, ps]) => {
       setNivelId(aluno.nivel?.id ?? null);
       setResponsavelId(aluno.responsavel?.id ?? null);
       setEMenor(aluno.pessoa?.menor_de_idade ?? false);
       setStatus(aluno.status);
+      setAniversario(aluno.aniversario ?? "");
+      setDataNascimento(aluno.data_nascimento ?? "");
       setNomeAluno(aluno.pessoa.nome);
       setNiveis(ns);
-      setPessoas(ps);
+      setPessoas(ps.items);
     }).finally(() => setLoadingData(false));
   }, [id]);
 
@@ -52,11 +55,13 @@ export default function EditarAlunoPage() {
         nivel_id: nivelId ? Number(nivelId) : undefined,
         responsavel_id: responsavelId ? Number(responsavelId) : undefined,
         status,
+        aniversario: aniversario || undefined,
+        data_nascimento: dataNascimento || undefined,
       });
       showToast("Aluno atualizado!");
       router.push("/admin/alunos");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao atualizar.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao atualizar."), "error");
     } finally { setLoading(false); }
   }
 
@@ -79,6 +84,12 @@ export default function EditarAlunoPage() {
             <Combobox options={pessoaOptions} value={responsavelId} onChange={setResponsavelId} placeholder="Buscar responsável por nome ou CPF..." />
           </Field>
         )}
+        <Field label="Aniversário">
+          <Input value={aniversario} onChange={(e) => setAniversario(e.target.value)} placeholder="DD/MM" maxLength={5} />
+        </Field>
+        <Field label="Data de nascimento">
+          <Input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} />
+        </Field>
         <Field label="Status">
           <Select
             options={[

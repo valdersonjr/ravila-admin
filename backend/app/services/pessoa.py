@@ -5,15 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.models.pessoa import Pessoa
 from app.repositories import pessoa as pessoa_repo
-from app.schemas.pessoa import PessoaCreate, PessoaUpdate
+from app.schemas.pessoa import PessoaCreate, PessoaUpdate, PessoaListOut
 
 
 def _clean_cpf(cpf: str) -> str:
     return re.sub(r"[.\-]", "", cpf)
 
 
-def listar(db: Session, search: str | None = None) -> list[Pessoa]:
-    return pessoa_repo.listar(db, search)
+def listar(db: Session, search: str | None = None, page: int = 1, page_size: int = 10) -> PessoaListOut:
+    items, total = pessoa_repo.listar(db, search, page, page_size)
+    return PessoaListOut(items=items, total=total, page=page, page_size=page_size)
 
 
 def buscar(db: Session, id: int) -> Pessoa:

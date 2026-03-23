@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { aulasService, type Aula } from "@/services/admin/aulas";
+import { getErrorMessage } from "@/lib/utils";
 import { presencasService, type Presenca } from "@/services/admin/presencas";
 import { matriculasService } from "@/services/admin/matriculas";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
@@ -45,23 +46,22 @@ export default function PresencasPage() {
     async function load() {
       setLoading(true);
       try {
-        const promises: Promise<any>[] = [
+        const promises: Promise<unknown>[] = [
           aulasService.buscar(Number(id)),
           presencasService.listarPorAula(Number(id)),
         ];
         if (isAdmin) {
-          promises.push(pessoasService.listar());
+          promises.push(pessoasService.listar({ page_size: 500 }));
           promises.push(alunosService.listar());
           promises.push(reposicoesService.listar());
         }
         const [aulaData, presencasData, pessoas, alunos, reposicoes] = await Promise.all(promises);
-        setAula(aulaData);
-        setDescricao(aulaData.descricao ?? "");
-        if (pessoas) setTodasPessoas(pessoas);
-        if (alunos) setTodosAlunos(alunos);
-        if (reposicoes) setReposicoesPendentes(reposicoes);
-
-        const matriculasTurma = await matriculasService.listar({ turma_id: aulaData.turma_id, status: "ativa" });
+        const aula = aulaData as Aula;
+        setAula(aula);
+        setDescricao(aula.descricao ?? "");
+        if (pessoas) setTodasPessoas((pessoas as { items: Pessoa[] }).items);
+        if (alunos) setTodosAlunos(alunos as Aluno[]);
+        if (reposicoes) setReposicoesPendentes(reposicoes as ReposicaoPendente[]);
 
         const presencasSalvas = new Map<number, Presenca>(
           (presencasData as Presenca[]).map((p: Presenca) => [p.aluno_id, p])
@@ -69,18 +69,33 @@ export default function PresencasPage() {
 
         const items: PresencaItem[] = [];
 
-        for (const m of matriculasTurma) {
-          if (!m.aluno) continue;
-          const salva = presencasSalvas.get(m.aluno.pessoa_id);
+        if (aula.turma_id) {
+          // Aula de turma: popula a lista a partir das matrículas ativas
+          const matriculasTurma = await matriculasService.listar({ turma_id: aula.turma_id, status: "ativa" });
+          for (const m of matriculasTurma) {
+            if (!m.aluno) continue;
+            const salva = presencasSalvas.get(m.aluno.pessoa_id);
+            items.push({
+              aluno_id: m.aluno.pessoa_id,
+              nome: m.aluno.pessoa.nome,
+              tipo: "matriculado",
+              presente: salva ? salva.presente : false,
+            });
+            presencasSalvas.delete(m.aluno.pessoa_id);
+          }
+        } else if (aula.aluno_id) {
+          // Aula avulsa/particular: aluno é o da própria aula
+          const salva = presencasSalvas.get(aula.aluno_id);
           items.push({
-            aluno_id: m.aluno.pessoa_id,
-            nome: m.aluno.pessoa.nome,
-            tipo: "matriculado",
+            aluno_id: aula.aluno_id,
+            nome: aula.aluno_nome_snapshot ?? `Pessoa ${aula.aluno_id}`,
+            tipo: "experimental",
             presente: salva ? salva.presente : false,
           });
-          presencasSalvas.delete(m.aluno.pessoa_id);
+          presencasSalvas.delete(aula.aluno_id);
         }
 
+        // Participantes extras adicionados manualmente (experimentais, substitutos)
         for (const p of presencasSalvas.values()) {
           items.push({
             aluno_id: p.aluno_id,
@@ -115,6 +130,7 @@ export default function PresencasPage() {
       nome = todasPessoas.find((p) => p.id === pessoaId)?.nome;
     }
     if (!nome) return;
+    const nomeSalvo = nome;
     setAddingAluno(true);
     try {
       await presencasService.adicionar(Number(id), { aluno_id: pessoaId, tipo: addTipo, presente: false });
@@ -128,11 +144,11 @@ export default function PresencasPage() {
         }
       }
 
-      setPresencas((prev) => [...prev, { aluno_id: pessoaId, nome: nome!, tipo: addTipo, presente: false }]);
+      setPresencas((prev) => [...prev, { aluno_id: pessoaId, nome: nomeSalvo, tipo: addTipo, presente: false }]);
       setAddAlunoId(null);
       showToast(`${nome} adicionado à lista.`);
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao adicionar.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao adicionar."), "error");
     } finally {
       setAddingAluno(false);
     }
@@ -145,8 +161,8 @@ export default function PresencasPage() {
       setAula(updated);
       setEditandoDescricao(false);
       showToast("Descrição salva!");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao salvar descrição.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao salvar descrição."), "error");
     } finally {
       setSavingDescricao(false);
     }
@@ -158,8 +174,8 @@ export default function PresencasPage() {
       const nova = await reposicoesService.gerar(alunoId, Number(id));
       setReposicoesPendentes((prev) => [...prev, nova]);
       showToast("Reposição gerada!");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao gerar reposição.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao gerar reposição."), "error");
     } finally {
       setGerandoReposicao(null);
     }
@@ -174,8 +190,8 @@ export default function PresencasPage() {
         presente: p.presente,
       })));
       showToast("Presenças salvas com sucesso!");
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao salvar presenças.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao salvar presenças."), "error");
     } finally { setSaving(false); }
   }
 

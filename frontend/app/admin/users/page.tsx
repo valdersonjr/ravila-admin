@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usersService } from "@/services/admin/pagamentos";
+import { getErrorMessage } from "@/lib/utils";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
+import { formatCpf } from "@/lib/masks";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -10,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Combobox } from "@/components/ui/Combobox";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/context/ToastContext";
+import { Field } from "@/components/ui/Field";
 
 const ROLE_OPTIONS = [
   { value: "", label: "Todos os roles" },
@@ -23,10 +26,6 @@ const ROLE_CREATE_OPTIONS = [
   { value: "professor", label: "Professor" },
   { value: "secretaria", label: "Secretaria" },
 ];
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-sm font-medium text-foreground mb-1">{label}</label>{children}</div>;
-}
 
 interface User {
   pessoa_id: number;
@@ -63,7 +62,7 @@ export default function UsersPage() {
   }
 
   useEffect(() => {
-    pessoasService.listar().then(setPessoas);
+    pessoasService.listar({ page_size: 500 }).then((r) => setPessoas(r.items));
     load();
   }, [filterRole]);
 
@@ -78,8 +77,8 @@ export default function UsersPage() {
       setCreatePessoaId(null);
       setCreateSenha("");
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao criar usuário.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao criar usuário."), "error");
     } finally { setCreating(false); }
   }
 
@@ -91,8 +90,8 @@ export default function UsersPage() {
       showToast(`Usuário ${toggleTarget.ativo ? "desativado" : "ativado"}!`);
       setToggleTarget(null);
       await load();
-    } catch (err: any) {
-      showToast(err.message ?? "Erro ao atualizar.", "error");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao atualizar."), "error");
     } finally { setTogglingId(null); }
   }
 
@@ -127,7 +126,7 @@ export default function UsersPage() {
           data={filteredUsers}
           columns={[
             { header: "Nome", render: (u) => u.pessoa?.nome ?? `Pessoa ${u.pessoa_id}` },
-            { header: "CPF", render: (u) => u.pessoa?.cpf ?? "-" },
+            { header: "CPF", render: (u) => formatCpf(u.pessoa?.cpf) },
             { header: "Role", render: (u) => <Badge variant={roleVariant[u.role] ?? "neutral"}>{u.role}</Badge> },
             { header: "Status", render: (u) => <Badge variant={u.ativo ? "success" : "neutral"}>{u.ativo ? "Ativo" : "Inativo"}</Badge> },
             {

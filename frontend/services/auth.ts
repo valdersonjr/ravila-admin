@@ -1,9 +1,13 @@
-import { api } from "./api";
+import { api, setAccessToken } from "./api";
 
-const TOKEN_KEY = "admin_token";
+const REFRESH_KEY = "refresh_token";
+const ROLE_KEY = "user_role";
+const NOME_KEY = "user_nome";
+const PESSOA_ID_KEY = "user_pessoa_id";
 
 interface LoginResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
   role: string;
   pessoa_id: number;
@@ -13,33 +17,55 @@ interface LoginResponse {
 export const authService = {
   async login(cpf: string, senha: string): Promise<LoginResponse> {
     const data = await api.post<LoginResponse>("/auth/login", { cpf, senha });
+    setAccessToken(data.access_token);
     if (typeof window !== "undefined") {
-      localStorage.setItem(TOKEN_KEY, data.access_token);
-      localStorage.setItem("user_role", data.role);
-      localStorage.setItem("user_pessoa_id", String(data.pessoa_id));
-      localStorage.setItem("user_nome", data.nome);
+      sessionStorage.setItem(REFRESH_KEY, data.refresh_token);
+      sessionStorage.setItem(ROLE_KEY, data.role);
+      sessionStorage.setItem(NOME_KEY, data.nome);
+      sessionStorage.setItem(PESSOA_ID_KEY, String(data.pessoa_id));
     }
     return data;
   },
-  logout(): void {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem("user_role");
-      localStorage.removeItem("user_pessoa_id");
-      localStorage.removeItem("user_nome");
+
+  async tryRefresh(): Promise<boolean> {
+    if (typeof window === "undefined") return false;
+    const refreshToken = sessionStorage.getItem(REFRESH_KEY);
+    if (!refreshToken) return false;
+    try {
+      const data = await api.post<{ access_token: string; token_type: string }>(
+        "/auth/refresh",
+        { refresh_token: refreshToken }
+      );
+      setAccessToken(data.access_token);
+      return true;
+    } catch {
+      this.logout();
+      return false;
     }
   },
-  getToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(TOKEN_KEY);
+
+  logout(): void {
+    setAccessToken(null);
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(REFRESH_KEY);
+      sessionStorage.removeItem(ROLE_KEY);
+      sessionStorage.removeItem(NOME_KEY);
+      sessionStorage.removeItem(PESSOA_ID_KEY);
+    }
   },
+
   getRole(): string | null {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("user_role");
+    return sessionStorage.getItem(ROLE_KEY);
   },
+
   getNome(): string | null {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("user_nome");
+    return sessionStorage.getItem(NOME_KEY);
   },
-  isAuthenticated(): boolean { return !!this.getToken(); },
+
+  isAuthenticated(): boolean {
+    if (typeof window === "undefined") return false;
+    return !!sessionStorage.getItem(REFRESH_KEY);
+  },
 };

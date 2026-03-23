@@ -1,25 +1,56 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.aluno import Aluno
-from app.models.pagamento import PagamentoAluno
+from app.models.pessoa import Pessoa
 
 
 def listar(
     db: Session,
     status: str | None = None,
-    inadimplente: bool | None = None,
-) -> list[Aluno]:
-    query = db.query(Aluno)
+    search: str | None = None,
+    nivel_id: int | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> tuple[list[Aluno], int]:
+    query = db.query(Aluno).join(Pessoa, Aluno.pessoa_id == Pessoa.id)
     if status:
         query = query.filter(Aluno.status == status)
-    if inadimplente is True:
-        subquery = (
-            db.query(PagamentoAluno.aluno_id)
-            .filter(PagamentoAluno.status == "atrasado")
-            .subquery()
+    if nivel_id is not None:
+        query = query.filter(Aluno.nivel_id == nivel_id)
+    if search:
+        termo = f"%{search}%"
+        query = query.filter(
+            Pessoa.nome.ilike(termo) | Pessoa.cpf.ilike(termo)
         )
-        query = query.filter(Aluno.pessoa_id.in_(subquery))
-    return query.all()
+    total = query.count()
+    items = (
+        query
+        .options(joinedload(Aluno.pessoa), joinedload(Aluno.nivel), joinedload(Aluno.responsavel))
+        .order_by(Pessoa.nome)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return items, total
+
+
+def aniversarios_semanas(db: Session, datas_ddmm: list[str]) -> list[Aluno]:
+    return (
+        db.query(Aluno)
+        .join(Pessoa, Aluno.pessoa_id == Pessoa.id)
+        .filter(Aluno.aniversario.in_(datas_ddmm), Aluno.status == "ativo")
+        .order_by(Aluno.aniversario)
+        .all()
+    )
+
+
+def alunos_com_aniversario(db: Session) -> list[Aluno]:
+    return (
+        db.query(Aluno)
+        .join(Pessoa, Aluno.pessoa_id == Pessoa.id)
+        .filter(Aluno.aniversario.isnot(None), Aluno.status == "ativo")
+        .all()
+    )
 
 
 def buscar_por_pessoa_id(db: Session, pessoa_id: int) -> Aluno | None:
