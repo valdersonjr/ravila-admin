@@ -14,7 +14,6 @@ class Livro(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     titulo: Mapped[str] = mapped_column(String(200), nullable=False)
-    serie: Mapped[str | None] = mapped_column(String(100), nullable=True)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     turmas: Mapped[list["Turma"]] = relationship("Turma", back_populates="livro")

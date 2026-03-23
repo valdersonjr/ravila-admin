@@ -15,18 +15,13 @@ export default function LivrosPage() {
   const [loading, setLoading] = useState(true);
   const [includeInactive, setIncludeInactive] = useState(false);
 
-  // Create form
   const [newTitulo, setNewTitulo] = useState("");
-  const [newSerie, setNewSerie] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Edit state
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitulo, setEditTitulo] = useState("");
-  const [editSerie, setEditSerie] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Delete/deactivate modal
   const [deleteTarget, setDeleteTarget] = useState<Livro | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -42,10 +37,9 @@ export default function LivrosPage() {
     if (!newTitulo.trim()) return;
     setCreating(true);
     try {
-      await livrosService.criar({ titulo: newTitulo.trim(), serie: newSerie.trim() || undefined });
+      await livrosService.criar({ titulo: newTitulo.trim() });
       showToast("Livro criado!");
       setNewTitulo("");
-      setNewSerie("");
       await load();
     } catch (err) {
       showToast(getErrorMessage(err, "Erro ao criar livro."), "error");
@@ -55,16 +49,12 @@ export default function LivrosPage() {
   function startEdit(livro: Livro) {
     setEditingId(livro.id);
     setEditTitulo(livro.titulo);
-    setEditSerie(livro.serie ?? "");
   }
 
   async function handleSave(livro: Livro) {
     setSaving(true);
     try {
-      await livrosService.atualizar(livro.id, {
-        titulo: editTitulo.trim(),
-        serie: editSerie.trim() || null,
-      });
+      await livrosService.atualizar(livro.id, { titulo: editTitulo.trim() });
       showToast("Livro atualizado!");
       setEditingId(null);
       await load();
@@ -101,10 +91,6 @@ export default function LivrosPage() {
           <label className="block text-sm font-medium text-foreground mb-1">Título *</label>
           <Input value={newTitulo} onChange={(e) => setNewTitulo(e.target.value)} placeholder="Ex: Interchange 1" required />
         </div>
-        <div className="w-40">
-          <label className="block text-sm font-medium text-foreground mb-1">Série</label>
-          <Input value={newSerie} onChange={(e) => setNewSerie(e.target.value)} placeholder="Ex: Interchange" />
-        </div>
         <Button type="submit" loading={creating}>+ Adicionar</Button>
       </form>
 
@@ -121,12 +107,6 @@ export default function LivrosPage() {
               render: (l) => editingId === l.id
                 ? <Input value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} />
                 : <span className="font-medium text-foreground">{l.titulo}</span>,
-            },
-            {
-              header: "Série",
-              render: (l) => editingId === l.id
-                ? <Input value={editSerie} onChange={(e) => setEditSerie(e.target.value)} placeholder="—" />
-                : (l.serie ?? "—"),
             },
             {
               header: "Status",

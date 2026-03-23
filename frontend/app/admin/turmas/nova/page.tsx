@@ -46,7 +46,7 @@ export default function NovaTurmaPage() {
     } finally { setLoading(false); }
   }
 
-  const livroOptions = livros.map((l) => ({ value: l.id, label: l.serie ? `${l.serie} — ${l.titulo}` : l.titulo }));
+  const livroOptions = livros.map((l) => ({ value: l.id, label: l.titulo }));
   const professorOptions = professores.map((p) => ({ value: p.pessoa_id, label: p.pessoa.nome }));
 
   return (
