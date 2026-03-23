@@ -3,7 +3,19 @@ from sqlalchemy.orm import Session
 
 from app.core.security import verify_password, create_access_token, create_refresh_token
 from app.repositories import user as user_repo
+from app.repositories import professor as professor_repo
 from app.services.pessoa import _clean_cpf
+
+
+def _derive_role(user, db: Session) -> str:
+    if user.is_admin:
+        return "admin"
+    if professor_repo.buscar_por_pessoa_id(db, user.pessoa_id):
+        return "professor"
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Usuário não possui perfil associado no sistema",
+    )
 
 
 def login(db: Session, cpf: str, senha: str) -> dict:
@@ -19,9 +31,10 @@ def login(db: Session, cpf: str, senha: str) -> dict:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="CPF ou senha incorretos",
         )
+    role = _derive_role(user, db)
     token_data = {
         "sub": user.pessoa.cpf,
-        "role": user.role,
+        "role": role,
         "pessoa_id": user.pessoa_id,
     }
     access_token = create_access_token(token_data)
@@ -30,7 +43,7 @@ def login(db: Session, cpf: str, senha: str) -> dict:
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
-        "role": user.role,
+        "role": role,
         "pessoa_id": user.pessoa_id,
         "nome": user.pessoa.nome,
     }

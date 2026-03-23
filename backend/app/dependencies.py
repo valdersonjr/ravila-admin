@@ -27,6 +27,8 @@ def get_current_user(
     user = db.query(User).filter(User.pessoa.has(cpf=cpf)).first()
     if user is None or not user.ativo:
         raise credentials_exception
+    # Role é derivada no login e carregada do JWT — não lida do banco
+    user.role = payload.get("role", "")
     return user
 
 

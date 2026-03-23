@@ -32,7 +32,7 @@ export const pagamentosProfessoresService = {
 };
 
 export const usersService = {
-  listar: (role?: string) => apiAuth.get<any[]>(`/users/${role ? `?role=${role}` : ""}`),
-  criar: (data: { pessoa_id: number; senha: string; role: string }) => apiAuth.post<any>("/users/", data),
-  atualizar: (pessoaId: number, data: { role?: string; senha?: string; ativo?: boolean }) => apiAuth.put<any>(`/users/${pessoaId}`, data),
+  listar: (is_admin?: boolean) => apiAuth.get<any[]>(`/users/${is_admin !== undefined ? `?is_admin=${is_admin}` : ""}`),
+  criar: (data: { pessoa_id: number; senha: string; is_admin: boolean }) => apiAuth.post<any>("/users/", data),
+  atualizar: (pessoaId: number, data: { is_admin?: boolean; senha?: string; ativo?: boolean }) => apiAuth.put<any>(`/users/${pessoaId}`, data),
 };

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { professoresService, type ProfessorDashboard } from "@/services/admin/professores";
 import type { GerarSemanaRelatorio } from "@/services/admin/turmas";
+import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { formatCpf } from "@/lib/masks";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -106,11 +107,16 @@ export default function ProfessorDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [modalState, setModalState] = useState<ModalState>("idle");
   const [relatorio, setRelatorio] = useState<GerarSemanaRelatorio | null>(null);
+  const [aniversarios, setAniversarios] = useState<Aluno[]>([]);
 
   useEffect(() => {
-    professoresService.dashboard(Number(id))
-      .then(setData)
-      .finally(() => setLoading(false));
+    Promise.all([
+      professoresService.dashboard(Number(id)),
+      alunosService.aniversarios(),
+    ]).then(([dash, aniv]) => {
+      setData(dash);
+      setAniversarios(aniv);
+    }).finally(() => setLoading(false));
   }, [id]);
 
   const semanaLabel = relatorio
@@ -233,6 +239,42 @@ export default function ProfessorDashboardPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Aniversários */}
+      <div className="space-y-3">
+        <SectionTitle>
+          Aniversários — semana atual e próxima
+          {aniversarios.length === 0 && <span className="text-xs font-normal text-muted ml-2 normal-case tracking-normal">Nenhum</span>}
+        </SectionTitle>
+        {aniversarios.length > 0 && (() => {
+          const hojeStr = (() => {
+            const d = new Date();
+            return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+          })();
+          return (
+            <div className="bg-surface border border-border rounded-xl divide-y divide-border">
+              {aniversarios.map((a) => {
+                const isHoje = a.aniversario === hojeStr;
+                const dataFormatada = (() => {
+                  if (!a.aniversario) return "-";
+                  const [dd, mm] = a.aniversario.split("/").map(Number);
+                  const mes = new Date(2000, mm - 1, dd).toLocaleDateString("pt-BR", { month: "long" });
+                  return `${String(dd).padStart(2,"0")} de ${mes}`;
+                })();
+                return (
+                  <div key={a.pessoa_id} className="flex items-center justify-between px-4 py-3 gap-3">
+                    <span className={`text-sm ${isHoje ? "font-bold text-primary-600" : "text-foreground"}`}>
+                      {a.pessoa.nome}
+                      {isHoje && <span className="ml-2 text-xs bg-primary-100 text-primary-700 rounded-full px-2 py-0.5">🎂 Hoje!</span>}
+                    </span>
+                    <span className="text-xs text-muted shrink-0">{dataFormatada}</span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modal gerar semana */}

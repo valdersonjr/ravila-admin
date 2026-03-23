@@ -5,11 +5,12 @@ from app.core.security import hash_password
 from app.models.user import User
 from app.repositories import user as user_repo
 from app.repositories import pessoa as pessoa_repo
+from app.repositories import professor as professor_repo
 from app.schemas.user import UserCreate, UserUpdate
 
 
-def listar(db: Session, role: str | None = None) -> list[User]:
-    return user_repo.listar(db, role)
+def listar(db: Session, is_admin: bool | None = None) -> list[User]:
+    return user_repo.listar(db, is_admin)
 
 
 def buscar(db: Session, pessoa_id: int) -> User:
@@ -34,10 +35,15 @@ def criar(db: Session, dados: UserCreate) -> User:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Esta pessoa já possui um usuário",
         )
+    if not dados.is_admin and not professor_repo.buscar_por_pessoa_id(db, dados.pessoa_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Para criar um acesso de professor, cadastre primeiro o professor no sistema.",
+        )
     payload = {
         "pessoa_id": dados.pessoa_id,
         "senha_hash": hash_password(dados.senha),
-        "role": dados.role,
+        "is_admin": dados.is_admin,
         "ativo": True,
     }
     return user_repo.criar(db, payload)

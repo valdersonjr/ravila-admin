@@ -7,7 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.nivel import Nivel
     from app.models.livro import Livro
     from app.models.professor import Professor
     from app.models.aula import Aula
@@ -31,13 +30,11 @@ class Turma(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     nome: Mapped[str] = mapped_column(String(200), nullable=False)
-    nivel_id: Mapped[int] = mapped_column(ForeignKey("niveis.id"), nullable=False)
     livro_id: Mapped[int | None] = mapped_column(ForeignKey("livros.id"), nullable=True)
     professor_id: Mapped[int] = mapped_column(ForeignKey("professores.pessoa_id"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ativa")  # ativa|encerrada
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
-    nivel: Mapped["Nivel"] = relationship("Nivel", back_populates="turmas")
     livro: Mapped["Livro | None"] = relationship("Livro", back_populates="turmas")
     professor: Mapped["Professor"] = relationship("Professor", back_populates="turmas")
     horarios: Mapped[list["HorarioTurma"]] = relationship(

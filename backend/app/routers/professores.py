@@ -54,8 +54,10 @@ def atualizar(
 def dashboard(
     pessoa_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
+    if current_user.role == "professor" and current_user.pessoa_id != pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
     return professor_service.dashboard(db, pessoa_id)
 
 
@@ -64,6 +66,8 @@ def gerar_semana(
     pessoa_id: int,
     body: GerarSemanaRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
+    if current_user.role == "professor" and current_user.pessoa_id != pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
     return turma_service.gerar_semana(db, dry_run=body.dry_run, professor_id=pessoa_id)

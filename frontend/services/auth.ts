@@ -64,6 +64,12 @@ export const authService = {
     return sessionStorage.getItem(NOME_KEY);
   },
 
+  getPessoaId(): number | null {
+    if (typeof window === "undefined") return null;
+    const v = sessionStorage.getItem(PESSOA_ID_KEY);
+    return v ? Number(v) : null;
+  },
+
   isAuthenticated(): boolean {
     if (typeof window === "undefined") return false;
     return !!sessionStorage.getItem(REFRESH_KEY);

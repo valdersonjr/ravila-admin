@@ -49,7 +49,6 @@ export default function TurmasPage() {
           data={turmas}
           columns={[
             { header: "Nome", render: (t) => <Link href={`/admin/turmas/${t.id}`} className="text-primary-600 hover:underline font-medium">{t.nome}</Link> },
-            { header: "Nível", render: (t) => t.nivel?.nome ?? "-" },
             { header: "Professor", render: (t) => t.professor?.pessoa.nome ?? "-" },
             {
               header: "Horários",

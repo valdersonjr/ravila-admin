@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.pessoa import PessoaOut
@@ -7,18 +7,18 @@ from app.schemas.pessoa import PessoaOut
 class UserCreate(BaseModel):
     pessoa_id: int
     senha: str
-    role: Literal["admin", "professor", "secretario"]
+    is_admin: bool = False
 
 
 class UserUpdate(BaseModel):
-    role: Optional[Literal["admin", "professor", "secretario"]] = None
+    is_admin: Optional[bool] = None
     senha: Optional[str] = None
     ativo: Optional[bool] = None
 
 
 class UserOut(BaseModel):
     pessoa_id: int
-    role: str
+    is_admin: bool
     ativo: bool
     pessoa: PessoaOut
 

@@ -9,6 +9,7 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RefreshRequest, RefreshResponse, TokenResponse
 from app.services import auth as auth_service
+from app.services.auth import _derive_role
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,8 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.pessoa.has(cpf=cpf)).first()
     if user is None or not user.ativo:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário inativo ou não encontrado")
-    access_token = create_access_token({"sub": cpf, "role": user.role, "pessoa_id": user.pessoa_id})
+    role = _derive_role(user, db)
+    access_token = create_access_token({"sub": cpf, "role": role, "pessoa_id": user.pessoa_id})
     return {"access_token": access_token, "token_type": "bearer"}
 
 

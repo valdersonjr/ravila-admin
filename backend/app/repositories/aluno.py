@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.aluno import Aluno
+from app.models.matricula import Matricula
 from app.models.pessoa import Pessoa
+from app.models.turma import Turma
 
 
 def listar(
@@ -34,23 +36,26 @@ def listar(
     return items, total
 
 
-def aniversarios_semanas(db: Session, datas_ddmm: list[str]) -> list[Aluno]:
-    return (
+def aniversarios_semanas(db: Session, datas_ddmm: list[str], professor_id: int | None = None) -> list[Aluno]:
+    query = (
         db.query(Aluno)
         .join(Pessoa, Aluno.pessoa_id == Pessoa.id)
         .filter(Aluno.aniversario.in_(datas_ddmm), Aluno.status == "ativo")
-        .order_by(Aluno.aniversario)
-        .all()
     )
+    if professor_id is not None:
+        query = query.join(Matricula, Matricula.aluno_id == Aluno.pessoa_id).join(Turma, Turma.id == Matricula.turma_id).filter(Turma.professor_id == professor_id)
+    return query.order_by(Aluno.aniversario).all()
 
 
-def alunos_com_aniversario(db: Session) -> list[Aluno]:
-    return (
+def alunos_com_aniversario(db: Session, professor_id: int | None = None) -> list[Aluno]:
+    query = (
         db.query(Aluno)
         .join(Pessoa, Aluno.pessoa_id == Pessoa.id)
         .filter(Aluno.aniversario.isnot(None), Aluno.status == "ativo")
-        .all()
     )
+    if professor_id is not None:
+        query = query.join(Matricula, Matricula.aluno_id == Aluno.pessoa_id).join(Turma, Turma.id == Matricula.turma_id).filter(Turma.professor_id == professor_id)
+    return query.all()
 
 
 def buscar_por_pessoa_id(db: Session, pessoa_id: int) -> Aluno | None:

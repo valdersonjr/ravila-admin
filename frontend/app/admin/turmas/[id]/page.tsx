@@ -122,7 +122,7 @@ export default function TurmaDetailPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">{turma.nome}</h1>
           <p className="text-sm text-muted mt-1">
-            {turma.nivel?.nome ?? "Sem nível"} · {turma.livro ? (turma.livro.serie ? `${turma.livro.serie} — ${turma.livro.titulo}` : turma.livro.titulo) : "Sem livro"} · {turma.professor?.pessoa.nome ?? "Sem professor"}
+            {turma.livro ? (turma.livro.serie ? `${turma.livro.serie} — ${turma.livro.titulo}` : turma.livro.titulo) : "Sem livro"} · {turma.professor?.pessoa.nome ?? "Sem professor"}
           </p>
         </div>
         <Badge variant={turma.status === "ativa" ? "success" : "neutral"}>{turma.status}</Badge>

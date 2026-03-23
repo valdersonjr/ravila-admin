@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { turmasService } from "@/services/admin/turmas";
 import { getErrorMessage } from "@/lib/utils";
-import { niveisService, type Nivel } from "@/services/admin/niveis";
 import { livrosService, type Livro } from "@/services/admin/livros";
 import { professoresService, type Professor } from "@/services/admin/professores";
 import { Input } from "@/components/ui/Input";
@@ -17,17 +16,14 @@ export default function NovaTurmaPage() {
   const { showToast } = useToast();
 
   const [nome, setNome] = useState("");
-  const [niveis, setNiveis] = useState<Nivel[]>([]);
   const [livros, setLivros] = useState<Livro[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
-  const [nivelId, setNivelId] = useState<number | string | null>(null);
   const [livroId, setLivroId] = useState<number | string | null>(null);
   const [professorId, setProfessorId] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    Promise.all([niveisService.listar(), livrosService.listar(), professoresService.listar()]).then(([ns, ls, ps]) => {
-      setNiveis(ns);
+    Promise.all([livrosService.listar(), professoresService.listar()]).then(([ls, ps]) => {
       setLivros(ls);
       setProfessores(ps.filter((p) => p.ativo));
     });
@@ -40,7 +36,6 @@ export default function NovaTurmaPage() {
     try {
       const turma = await turmasService.criar({
         nome: nome.trim(),
-        nivel_id: nivelId ? Number(nivelId) : undefined,
         livro_id: livroId ? Number(livroId) : undefined,
         professor_id: Number(professorId),
       });
@@ -51,7 +46,6 @@ export default function NovaTurmaPage() {
     } finally { setLoading(false); }
   }
 
-  const nivelOptions = niveis.map((n) => ({ value: n.id, label: n.nome }));
   const livroOptions = livros.map((l) => ({ value: l.id, label: l.serie ? `${l.serie} — ${l.titulo}` : l.titulo }));
   const professorOptions = professores.map((p) => ({ value: p.pessoa_id, label: p.pessoa.nome }));
 
@@ -61,9 +55,6 @@ export default function NovaTurmaPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Nome *">
           <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Turma Manhã A1" required />
-        </Field>
-        <Field label="Nível">
-          <Combobox options={nivelOptions} value={nivelId} onChange={setNivelId} placeholder="Selecionar nível..." />
         </Field>
         <Field label="Livro">
           <Combobox options={livroOptions} value={livroId} onChange={setLivroId} placeholder="Selecionar livro..." />

@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.constants import AulaStatus, AulaTipo
 from app.models.turma import Turma, HorarioTurma
 from app.repositories import turma as turma_repo
-from app.repositories import nivel as nivel_repo
 from app.repositories import professor as professor_repo
 from app.repositories import aula as aula_repo
 from app.schemas.turma import TurmaCreate, TurmaUpdate, HorarioTurmaCreate, GerarSemanaItem, GerarSemanaRelatorio
@@ -31,12 +30,6 @@ def buscar(db: Session, id: int) -> Turma:
 
 
 def criar(db: Session, dados: TurmaCreate) -> Turma:
-    nivel = nivel_repo.buscar_por_id(db, dados.nivel_id)
-    if not nivel:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nível não encontrado",
-        )
     professor = professor_repo.buscar_por_pessoa_id(db, dados.professor_id)
     if not professor:
         raise HTTPException(
@@ -49,13 +42,6 @@ def criar(db: Session, dados: TurmaCreate) -> Turma:
 def atualizar(db: Session, id: int, dados: TurmaUpdate) -> Turma:
     turma = buscar(db, id)
     data = dados.model_dump(exclude_unset=True)
-    if "nivel_id" in data:
-        nivel = nivel_repo.buscar_por_id(db, data["nivel_id"])
-        if not nivel:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Nível não encontrado",
-            )
     if "professor_id" in data:
         professor = professor_repo.buscar_por_pessoa_id(db, data["professor_id"])
         if not professor:

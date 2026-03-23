@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { notFound } from "next/navigation";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { turmasService } from "@/services/admin/turmas";
 import { aulasService } from "@/services/admin/aulas";
@@ -10,6 +11,7 @@ import type { Aula } from "@/services/admin/aulas";
 import Link from "next/link";
 
 export default function DashboardPage() {
+  if (authService.getRole() === "professor") notFound();
   const isAdmin = authService.getRole() === "admin";
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, aulasHoje: 0 });
   const [aulasRecentes, setAulasRecentes] = useState<Aula[]>([]);

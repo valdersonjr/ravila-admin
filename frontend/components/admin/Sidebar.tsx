@@ -9,7 +9,7 @@ import { authService } from "@/services/auth";
 type NavLink = { href: string; label: string; exact: boolean; roles: string[] };
 
 const links: NavLink[] = [
-  { href: "/admin",                        label: "Dashboard",              exact: true,  roles: ["admin", "professor"] },
+  { href: "/admin",                        label: "Dashboard",              exact: true,  roles: ["admin"] },
   { href: "/admin/alunos",                 label: "Alunos",                 exact: false, roles: ["admin"] },
   { href: "/admin/professores",            label: "Professores",            exact: false, roles: ["admin"] },
   { href: "/admin/turmas",                 label: "Turmas",                 exact: false, roles: ["admin", "professor"] },
@@ -33,17 +33,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [nome, setNome] = useState<string | null>(null);
+  const [pessoaId, setPessoaId] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
     setRole(authService.getRole());
     setNome(authService.getNome());
+    setPessoaId(authService.getPessoaId());
   }, []);
 
   // Fecha sidebar ao navegar no mobile
   useEffect(() => { onClose(); }, [pathname]);
 
-  const visibleLinks = role ? links.filter((l) => l.roles.includes(role)) : [];
+  const extraProfessorLinks: NavLink[] = pessoaId ? [
+    { href: `/admin/professores/${pessoaId}/dashboard`, label: "Dashboard",    exact: false, roles: ["professor"] },
+    { href: `/admin/professores/${pessoaId}/agenda`,    label: "Minha Agenda", exact: false, roles: ["professor"] },
+  ] : [];
+
+  const allLinks = [...links, ...extraProfessorLinks];
+  const visibleLinks = role ? allLinks.filter((l) => l.roles.includes(role)) : [];
 
   function isActive(href: string, exact: boolean) {
     return exact ? pathname === href : pathname.startsWith(href);

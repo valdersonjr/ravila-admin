@@ -22,7 +22,7 @@ def listar(
     return AlunoListOut(items=items, total=total, page=page, page_size=page_size)
 
 
-def aniversarios_semanas(db: Session) -> list[Aluno]:
+def aniversarios_semanas(db: Session, professor_id: int | None = None) -> list[Aluno]:
     hoje = date.today()
     # Segunda-feira da semana atual até domingo da próxima (14 dias)
     inicio = hoje - timedelta(days=hoje.weekday())
@@ -33,12 +33,12 @@ def aniversarios_semanas(db: Session) -> list[Aluno]:
         datas.append(current.strftime("%d/%m"))
         current += timedelta(days=1)
 
-    resultado = aluno_repo.aniversarios_semanas(db, datas)
+    resultado = aluno_repo.aniversarios_semanas(db, datas, professor_id)
     if len(resultado) >= 5:
         return resultado
 
     # Menos de 5 aniversários nas próximas duas semanas — complementa com os próximos em geral
-    todos = aluno_repo.alunos_com_aniversario(db)
+    todos = aluno_repo.alunos_com_aniversario(db, professor_id)
 
     def proxima_ocorrencia(ddmm: str) -> date:
         dia, mes = int(ddmm[:2]), int(ddmm[3:])
