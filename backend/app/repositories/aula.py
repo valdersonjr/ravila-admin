@@ -30,7 +30,7 @@ def listar(
     if aluno_id:
         query = query.filter(Aula.aluno_id == aluno_id)
     total = query.count()
-    items = query.order_by(Aula.data.desc(), Aula.hora_inicio).offset((page - 1) * page_size).limit(page_size).all()
+    items = query.order_by(Aula.data.asc(), Aula.hora_inicio).offset((page - 1) * page_size).limit(page_size).all()
     return items, total
 
 
