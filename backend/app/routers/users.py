@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -45,13 +45,17 @@ def buscar(
 
 
 @router.patch("/{user_id}", response_model=UserOut)
-def atualizar(
+async def atualizar(
     user_id: int,
-    body: UserUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    return user_service.atualizar(db, user_id, body)
+    raw: dict[str, Any] = await request.json()
+    body = UserUpdate.model_validate(raw)
+    pessoa_id_in_body = "pessoa_id" in raw
+    pessoa_id_value = raw.get("pessoa_id")  # None if desvincular, int if vincular
+    return user_service.atualizar(db, user_id, body, pessoa_id_in_body, pessoa_id_value)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

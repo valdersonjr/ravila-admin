@@ -51,7 +51,13 @@ def criar(db: Session, dados: UserCreate) -> User:
     return user_repo.criar(db, payload)
 
 
-def atualizar(db: Session, user_id: int, dados: UserUpdate) -> User:
+def atualizar(
+    db: Session,
+    user_id: int,
+    dados: UserUpdate,
+    pessoa_id_in_body: bool = False,
+    pessoa_id_value: int | None = None,
+) -> User:
     user = buscar(db, user_id)
     data = dados.model_dump(exclude_unset=True)
     if "senha" in data:
@@ -62,6 +68,8 @@ def atualizar(db: Session, user_id: int, dados: UserUpdate) -> User:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Username já está em uso",
             )
+    if pessoa_id_in_body:
+        data["pessoa_id"] = pessoa_id_value
     return user_repo.atualizar(db, user, data)
 
 

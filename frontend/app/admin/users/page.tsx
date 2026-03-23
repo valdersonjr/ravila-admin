@@ -68,6 +68,7 @@ export default function UsersPage() {
   const [editRole, setEditRole] = useState("professor");
   const [editSenha, setEditSenha] = useState("");
   const [editAtivo, setEditAtivo] = useState(true);
+  const [editPessoaId, setEditPessoaId] = useState<number | string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Delete
@@ -116,6 +117,7 @@ export default function UsersPage() {
     setEditRole(userRole(u));
     setEditSenha("");
     setEditAtivo(u.ativo);
+    setEditPessoaId(u.pessoa_id ?? null);
   }
 
   async function handleEdit(e: React.FormEvent) {
@@ -128,6 +130,7 @@ export default function UsersPage() {
         is_admin: editRole === "admin",
         is_secretario: editRole === "secretario",
         ativo: editAtivo,
+        pessoa_id: editPessoaId ? Number(editPessoaId) : null,
       };
       if (editSenha) data.senha = editSenha;
       await usersService.atualizar(editTarget.id, data);
@@ -249,6 +252,20 @@ export default function UsersPage() {
                   value={String(editAtivo)}
                   onChange={(e) => setEditAtivo(e.target.value === "true")}
                 />
+              </Field>
+              <Field label="Pessoa vinculada">
+                {editPessoaId ? (
+                  <div className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2">
+                    <span className="text-sm text-foreground">
+                      {pessoas.find((p) => p.id === Number(editPessoaId))?.nome ?? `Pessoa ${editPessoaId}`}
+                    </span>
+                    <button type="button" onClick={() => setEditPessoaId(null)} className="text-sm text-rose-600 hover:underline ml-3">
+                      Desvincular
+                    </button>
+                  </div>
+                ) : (
+                  <Combobox options={pessoaOptions} value={editPessoaId} onChange={setEditPessoaId} placeholder="Buscar pessoa..." />
+                )}
               </Field>
               <Field label="Nova senha (deixe em branco para não alterar)">
                 <Input type="password" value={editSenha} onChange={(e) => setEditSenha(e.target.value)} minLength={6} placeholder="Mínimo 6 caracteres" />
