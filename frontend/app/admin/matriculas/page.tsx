@@ -36,7 +36,7 @@ export default function MatriculasPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [createAlunoId, setCreateAlunoId] = useState<number | string | null>(null);
   const [createTurmaId, setCreateTurmaId] = useState<number | string | null>(null);
-  const [createDataInicio, setCreateDataInicio] = useState(new Date().toISOString().split("T")[0]);
+  const [createDataInicio, setCreateDataInicio] = useState("");
   const [creating, setCreating] = useState(false);
 
   // Status update modal
@@ -71,7 +71,7 @@ export default function MatriculasPage() {
       await matriculasService.criar({
         aluno_id: Number(createAlunoId),
         turma_id: Number(createTurmaId),
-        data_inicio: createDataInicio,
+        data_inicio: createDataInicio || undefined,
       });
       showToast("Matrícula criada com sucesso!");
       setShowCreate(false);
@@ -137,7 +137,7 @@ export default function MatriculasPage() {
           columns={[
             { header: "Aluno", render: (m) => m.aluno?.pessoa.nome ?? "-" },
             { header: "Turma", render: (m) => m.turma?.nome ?? "-" },
-            { header: "Início", render: (m) => new Date(m.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") },
+            { header: "Início", render: (m) => m.data_inicio ? new Date(m.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "-" },
             { header: "Fim", render: (m) => m.data_fim ? new Date(m.data_fim + "T00:00:00").toLocaleDateString("pt-BR") : "-" },
             { header: "Status", render: (m) => <Badge variant={statusVariant[m.status] ?? "neutral"}>{m.status}</Badge> },
             {
@@ -166,7 +166,7 @@ export default function MatriculasPage() {
                 <Combobox options={turmaOptions} value={createTurmaId} onChange={setCreateTurmaId} placeholder="Selecionar turma..." />
               </Field>
               <Field label="Data de início *">
-                <Input type="date" value={createDataInicio} onChange={(e) => setCreateDataInicio(e.target.value)} required />
+                <Input type="date" value={createDataInicio} onChange={(e) => setCreateDataInicio(e.target.value)} />
               </Field>
               <div className="flex gap-3 justify-end">
                 <Button type="button" variant="ghost" onClick={() => setShowCreate(false)} disabled={creating}>Cancelar</Button>

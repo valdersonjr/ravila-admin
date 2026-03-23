@@ -17,7 +17,7 @@ class Matricula(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     aluno_id: Mapped[int] = mapped_column(ForeignKey("alunos.pessoa_id"), nullable=False)
     turma_id: Mapped[int] = mapped_column(ForeignKey("turmas.id"), nullable=False)
-    data_inicio: Mapped[date] = mapped_column(Date, nullable=False)
+    data_inicio: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     data_fim: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ativa")  # ativa|cancelada|concluida
 

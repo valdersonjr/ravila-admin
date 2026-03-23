@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { usersService } from "@/services/admin/pagamentos";
+import { usersService, type User } from "@/services/admin/users";
 import { getErrorMessage } from "@/lib/utils";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
 import { formatCpf } from "@/lib/masks";
@@ -16,21 +16,34 @@ import { Field } from "@/components/ui/Field";
 
 const FILTER_OPTIONS = [
   { value: "", label: "Todos" },
-  { value: "true", label: "Admin" },
-  { value: "false", label: "Professor" },
+  { value: "admin", label: "Admin" },
+  { value: "secretario", label: "Secretário" },
+  { value: "professor", label: "Professor" },
 ];
 
 const ROLE_CREATE_OPTIONS = [
-  { value: "false", label: "Professor" },
-  { value: "true", label: "Admin" },
+  { value: "professor", label: "Professor" },
+  { value: "secretario", label: "Secretário" },
+  { value: "admin", label: "Admin" },
 ];
 
-interface User {
-  pessoa_id: number;
-  is_admin: boolean;
-  ativo: boolean;
-  pessoa: { id: number; nome: string; cpf: string } | null;
+function userRole(u: User): string {
+  if (u.is_admin) return "admin";
+  if (u.is_secretario) return "secretario";
+  return "professor";
 }
+
+const roleVariant: Record<string, "primary" | "warning" | "neutral"> = {
+  admin: "primary",
+  secretario: "warning",
+  professor: "neutral",
+};
+
+const roleLabel: Record<string, string> = {
+  admin: "Admin",
+  secretario: "Secretário",
+  professor: "Professor",
+};
 
 export default function UsersPage() {
   const { showToast } = useToast();
@@ -38,43 +51,46 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterIsAdmin, setFilterIsAdmin] = useState("");
+  const [filterRole, setFilterRole] = useState("");
   const [search, setSearch] = useState("");
 
-  // Create modal
   const [showCreate, setShowCreate] = useState(false);
   const [createPessoaId, setCreatePessoaId] = useState<number | string | null>(null);
-  const [createIsAdmin, setCreateIsAdmin] = useState("false");
+  const [createRole, setCreateRole] = useState("professor");
   const [createSenha, setCreateSenha] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Toggle ativo
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [toggleTarget, setToggleTarget] = useState<User | null>(null);
 
   async function load() {
     setLoading(true);
     try {
-      const isAdmin = filterIsAdmin === "" ? undefined : filterIsAdmin === "true";
-      setUsers((await usersService.listar(isAdmin)) as User[]);
+      setUsers(await usersService.listar(filterRole || undefined));
     } finally { setLoading(false); }
   }
 
   useEffect(() => {
     pessoasService.listar({ page_size: 500 }).then((r) => setPessoas(r.items));
     load();
-  }, [filterIsAdmin]);
+  }, [filterRole]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!createPessoaId || !createSenha) { showToast("Preencha todos os campos.", "error"); return; }
     setCreating(true);
     try {
-      await usersService.criar({ pessoa_id: Number(createPessoaId), senha: createSenha, is_admin: createIsAdmin === "true" });
+      await usersService.criar({
+        pessoa_id: Number(createPessoaId),
+        senha: createSenha,
+        is_admin: createRole === "admin",
+        is_secretario: createRole === "secretario",
+      });
       showToast("Usuário criado com sucesso!");
       setShowCreate(false);
       setCreatePessoaId(null);
       setCreateSenha("");
+      setCreateRole("professor");
       await load();
     } catch (err) {
       showToast(getErrorMessage(err, "Erro ao criar usuário."), "error");
@@ -94,8 +110,6 @@ export default function UsersPage() {
     } finally { setTogglingId(null); }
   }
 
-  const roleVariant = (is_admin: boolean): "primary" | "warning" => is_admin ? "primary" : "warning";
-
   const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: p.nome }));
   const filteredUsers = search
     ? users.filter((u) => u.pessoa?.nome.toLowerCase().includes(search.toLowerCase()))
@@ -110,7 +124,7 @@ export default function UsersPage() {
 
       <div className="flex flex-wrap gap-3">
         <Input placeholder="Buscar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
-        <Select options={FILTER_OPTIONS} value={filterIsAdmin} onChange={(e) => setFilterIsAdmin(e.target.value)} className="w-48" />
+        <Select options={FILTER_OPTIONS} value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-48" />
       </div>
 
       {loading ? (
@@ -122,17 +136,15 @@ export default function UsersPage() {
           columns={[
             { header: "Nome", render: (u) => u.pessoa?.nome ?? `Pessoa ${u.pessoa_id}` },
             { header: "CPF", render: (u) => formatCpf(u.pessoa?.cpf) },
-            { header: "Role", render: (u) => <Badge variant={roleVariant(u.is_admin)}>{u.is_admin ? "Admin" : "Professor"}</Badge> },
+            { header: "Role", render: (u) => {
+              const role = userRole(u);
+              return <Badge variant={roleVariant[role]}>{roleLabel[role]}</Badge>;
+            }},
             { header: "Status", render: (u) => <Badge variant={u.ativo ? "success" : "neutral"}>{u.ativo ? "Ativo" : "Inativo"}</Badge> },
             {
               header: "Ações",
               render: (u) => (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  loading={togglingId === u.pessoa_id}
-                  onClick={() => setToggleTarget(u)}
-                >
+                <Button size="sm" variant="outline" loading={togglingId === u.pessoa_id} onClick={() => setToggleTarget(u)}>
                   {u.ativo ? "Desativar" : "Ativar"}
                 </Button>
               ),
@@ -141,7 +153,6 @@ export default function UsersPage() {
         />
       )}
 
-      {/* Create modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-foreground/40" onClick={() => setShowCreate(false)} />
@@ -152,7 +163,7 @@ export default function UsersPage() {
                 <Combobox options={pessoaOptions} value={createPessoaId} onChange={setCreatePessoaId} placeholder="Buscar pessoa..." />
               </Field>
               <Field label="Tipo *">
-                <Select options={ROLE_CREATE_OPTIONS} value={createIsAdmin} onChange={(e) => setCreateIsAdmin(e.target.value)} />
+                <Select options={ROLE_CREATE_OPTIONS} value={createRole} onChange={(e) => setCreateRole(e.target.value)} />
               </Field>
               <Field label="Senha *">
                 <Input type="password" value={createSenha} onChange={(e) => setCreateSenha(e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" />
@@ -165,6 +176,7 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
       {toggleTarget && (
         <Modal
           title={toggleTarget.ativo ? "Desativar usuário" : "Ativar usuário"}

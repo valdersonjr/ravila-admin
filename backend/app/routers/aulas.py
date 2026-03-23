@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_admin, require_admin_or_professor
+from app.dependencies import get_current_user, require_staff, require_staff_or_professor
 from app.models.user import User
 from app.schemas.aula import (
     AulaAvulsaCreate,
@@ -61,7 +61,7 @@ def buscar(
 def criar(
     body: AulaCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     pendente = current_user.role == "professor"
     return aula_service.criar(db, body, pendente_aprovacao=pendente)
@@ -71,7 +71,7 @@ def criar(
 def criar_avulsa(
     body: AulaAvulsaCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return aula_service.criar_avulsa(db, body)
 
@@ -80,7 +80,7 @@ def criar_avulsa(
 def deletar(
     aula_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     aula_service.deletar(db, aula_id)
 
@@ -90,7 +90,7 @@ def atualizar_status(
     aula_id: int,
     body: AulaStatusUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_professor),
+    _: User = Depends(require_staff_or_professor),
 ):
     return aula_service.atualizar_status(db, aula_id, body.status)
 
@@ -99,7 +99,7 @@ def atualizar_status(
 def aprovar(
     aula_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return aula_service.aprovar(db, aula_id)
 
@@ -109,7 +109,7 @@ def substituir_professor(
     aula_id: int,
     body: AulaSubstituirProfessorRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_professor),
+    _: User = Depends(require_staff_or_professor),
 ):
     return aula_service.substituir_professor(db, aula_id, body.professor_id)
 
@@ -119,7 +119,7 @@ def atualizar_descricao(
     aula_id: int,
     body: AulaDescricaoUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_professor),
+    _: User = Depends(require_staff_or_professor),
 ):
     return aula_service.atualizar_descricao(db, aula_id, body.descricao)
 
@@ -129,6 +129,6 @@ def remarcar(
     aula_id: int,
     body: AulaRemarcarRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_professor),
+    _: User = Depends(require_staff_or_professor),
 ):
     return aula_service.remarcar(db, aula_id, body.data, body.hora_inicio, body.hora_fim)

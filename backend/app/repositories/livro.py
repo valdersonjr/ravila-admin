@@ -7,7 +7,7 @@ def listar(db: Session, include_inactive: bool = False) -> list[Livro]:
     query = db.query(Livro)
     if not include_inactive:
         query = query.filter(Livro.ativo == True)
-    return query.order_by(Livro.ordem, Livro.titulo).all()
+    return query.order_by(Livro.titulo).all()
 
 
 def buscar_por_id(db: Session, id: int) -> Livro | None:

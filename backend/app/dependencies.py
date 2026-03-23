@@ -41,6 +41,26 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+def require_staff(current_user: User = Depends(get_current_user)) -> User:
+    """Admin ou secretário — tudo exceto gestão de usuários."""
+    if current_user.role not in ("admin", "secretario"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff privileges required",
+        )
+    return current_user
+
+
+def require_staff_or_professor(current_user: User = Depends(get_current_user)) -> User:
+    """Admin, secretário ou professor."""
+    if current_user.role not in ("admin", "secretario", "professor"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff or professor privileges required",
+        )
+    return current_user
+
+
 def require_admin_or_professor(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role not in ("admin", "professor"):
         raise HTTPException(

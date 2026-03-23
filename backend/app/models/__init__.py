@@ -9,7 +9,6 @@ from app.models.turma import Turma, HorarioTurma
 from app.models.aula import Aula
 from app.models.matricula import Matricula
 from app.models.presenca import Presenca
-from app.models.pagamento import PagamentoProfessor
 from app.models.reposicao import ReposicaoPendente
 
 __all__ = [
@@ -25,6 +24,5 @@ __all__ = [
     "Aula",
     "Matricula",
     "Presenca",
-    "PagamentoProfessor",
     "ReposicaoPendente",
 ]

@@ -19,11 +19,11 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 @router.get("/", response_model=list[UserOut])
 def listar(
-    is_admin: Optional[bool] = Query(None),
+    role: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    return user_service.listar(db, is_admin)
+    return user_service.listar(db, role)
 
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)

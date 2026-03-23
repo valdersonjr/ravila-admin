@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_admin
+from app.dependencies import require_staff
 from app.models.user import User
 from app.schemas.pessoa import PessoaCreate, PessoaUpdate, PessoaOut, PessoaListOut
 from app.services import pessoa as pessoa_service
@@ -18,7 +18,7 @@ def listar(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=500),
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return pessoa_service.listar(db, search, page, page_size)
 
@@ -27,7 +27,7 @@ def listar(
 def criar(
     body: PessoaCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return pessoa_service.criar(db, body)
 
@@ -36,7 +36,7 @@ def criar(
 def buscar(
     pessoa_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return pessoa_service.buscar(db, pessoa_id)
 
@@ -46,6 +46,6 @@ def atualizar(
     pessoa_id: int,
     body: PessoaUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return pessoa_service.atualizar(db, pessoa_id, body)

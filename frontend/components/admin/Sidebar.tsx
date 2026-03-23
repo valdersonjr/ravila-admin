@@ -9,16 +9,15 @@ import { authService } from "@/services/auth";
 type NavLink = { href: string; label: string; exact: boolean; roles: string[] };
 
 const links: NavLink[] = [
-  { href: "/admin",                        label: "Dashboard",              exact: true,  roles: ["admin"] },
-  { href: "/admin/alunos",                 label: "Alunos",                 exact: false, roles: ["admin"] },
-  { href: "/admin/professores",            label: "Professores",            exact: false, roles: ["admin"] },
-  { href: "/admin/turmas",                 label: "Turmas",                 exact: false, roles: ["admin", "professor"] },
-  { href: "/admin/aulas",                  label: "Aulas",                  exact: false, roles: ["admin", "professor"] },
-  { href: "/admin/matriculas",             label: "Matrículas",             exact: false, roles: ["admin"] },
-  { href: "/admin/pessoas",                label: "Pessoas",                exact: false, roles: ["admin"] },
-  { href: "/admin/livros",                 label: "Livros",                 exact: false, roles: ["admin"] },
+  { href: "/admin",                        label: "Dashboard",              exact: true,  roles: ["admin", "secretario"] },
+  { href: "/admin/alunos",                 label: "Alunos",                 exact: false, roles: ["admin", "secretario"] },
+  { href: "/admin/professores",            label: "Professores",            exact: false, roles: ["admin", "secretario"] },
+  { href: "/admin/turmas",                 label: "Turmas",                 exact: false, roles: ["admin", "secretario", "professor"] },
+  { href: "/admin/aulas",                  label: "Aulas",                  exact: false, roles: ["admin", "secretario", "professor"] },
+  { href: "/admin/matriculas",             label: "Matrículas",             exact: false, roles: ["admin", "secretario"] },
+  { href: "/admin/pessoas",                label: "Pessoas",                exact: false, roles: ["admin", "secretario"] },
+  { href: "/admin/livros",                 label: "Livros",                 exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/users",                  label: "Usuários",               exact: false, roles: ["admin"] },
-  { href: "/admin/pagamentos/professores", label: "Pagamentos Professores", exact: false, roles: ["admin"] },
 ];
 
 interface SidebarProps {

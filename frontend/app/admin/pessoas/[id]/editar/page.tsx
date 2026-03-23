@@ -17,7 +17,7 @@ export default function EditarPessoaPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    pessoasService.buscar(Number(id)).then((p) => setForm({ nome: p.nome, cpf: mascaraCpf(p.cpf), rg: p.rg ?? "", email: p.email ?? "", telefone: p.telefone ?? "", endereco: p.endereco ?? "", menor_de_idade: p.menor_de_idade }));
+    pessoasService.buscar(Number(id)).then((p) => setForm({ nome: p.nome, cpf: mascaraCpf(p.cpf ?? ""), rg: p.rg ?? "", email: p.email ?? "", telefone: p.telefone ?? "", endereco: p.endereco ?? "", menor_de_idade: p.menor_de_idade }));
   }, [id]);
 
   function set(field: keyof PessoaCreate, value: string) { setForm((f) => ({ ...f, [field]: value })); }

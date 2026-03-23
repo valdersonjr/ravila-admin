@@ -36,20 +36,6 @@ export default function ProfessoresPage() {
             { header: "Nome", render: (p) => <Link href={`/admin/professores/${p.pessoa_id}/dashboard`} className="text-primary-600 hover:underline">{p.pessoa.nome}</Link> },
             { header: "CPF", render: (p) => formatCpf(p.pessoa.cpf) },
             {
-              header: "Contrato",
-              render: (p) => <Badge variant={p.tipo_contrato === "clt" ? "primary" : "warning"}>{p.tipo_contrato.toUpperCase()}</Badge>,
-            },
-            {
-              header: "Remuneração",
-              render: (p) => {
-                if (p.tipo_contrato === "pj" && p.valor_por_aula != null)
-                  return `R$ ${Number(p.valor_por_aula).toFixed(2)}/aula`;
-                if (p.tipo_contrato === "clt" && p.salario != null)
-                  return `R$ ${Number(p.salario).toFixed(2)}/mês`;
-                return "-";
-              },
-            },
-            {
               header: "Status",
               render: (p) => <Badge variant={p.ativo ? "success" : "neutral"}>{p.ativo ? "Ativo" : "Inativo"}</Badge>,
             },

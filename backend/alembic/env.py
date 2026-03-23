@@ -16,7 +16,7 @@ from app.models import (  # noqa: F401
     Matricula,
     Aula,
     Presenca,
-    PagamentoProfessor,
+    ReposicaoPendente,
 )
 
 from app.core.config import settings

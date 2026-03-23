@@ -18,14 +18,12 @@ export default function LivrosPage() {
   // Create form
   const [newTitulo, setNewTitulo] = useState("");
   const [newSerie, setNewSerie] = useState("");
-  const [newOrdem, setNewOrdem] = useState("");
   const [creating, setCreating] = useState(false);
 
   // Edit state
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitulo, setEditTitulo] = useState("");
   const [editSerie, setEditSerie] = useState("");
-  const [editOrdem, setEditOrdem] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Delete/deactivate modal
@@ -41,14 +39,13 @@ export default function LivrosPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTitulo.trim() || !newOrdem) return;
+    if (!newTitulo.trim()) return;
     setCreating(true);
     try {
-      await livrosService.criar({ titulo: newTitulo.trim(), serie: newSerie.trim() || undefined, ordem: Number(newOrdem) });
+      await livrosService.criar({ titulo: newTitulo.trim(), serie: newSerie.trim() || undefined });
       showToast("Livro criado!");
       setNewTitulo("");
       setNewSerie("");
-      setNewOrdem("");
       await load();
     } catch (err) {
       showToast(getErrorMessage(err, "Erro ao criar livro."), "error");
@@ -59,7 +56,6 @@ export default function LivrosPage() {
     setEditingId(livro.id);
     setEditTitulo(livro.titulo);
     setEditSerie(livro.serie ?? "");
-    setEditOrdem(String(livro.ordem));
   }
 
   async function handleSave(livro: Livro) {
@@ -68,7 +64,6 @@ export default function LivrosPage() {
       await livrosService.atualizar(livro.id, {
         titulo: editTitulo.trim(),
         serie: editSerie.trim() || null,
-        ordem: Number(editOrdem),
       });
       showToast("Livro atualizado!");
       setEditingId(null);
@@ -110,10 +105,6 @@ export default function LivrosPage() {
           <label className="block text-sm font-medium text-foreground mb-1">Série</label>
           <Input value={newSerie} onChange={(e) => setNewSerie(e.target.value)} placeholder="Ex: Interchange" />
         </div>
-        <div className="w-24">
-          <label className="block text-sm font-medium text-foreground mb-1">Ordem *</label>
-          <Input type="number" value={newOrdem} onChange={(e) => setNewOrdem(e.target.value)} placeholder="1" required min="0" />
-        </div>
         <Button type="submit" loading={creating}>+ Adicionar</Button>
       </form>
 
@@ -136,12 +127,6 @@ export default function LivrosPage() {
               render: (l) => editingId === l.id
                 ? <Input value={editSerie} onChange={(e) => setEditSerie(e.target.value)} placeholder="—" />
                 : (l.serie ?? "—"),
-            },
-            {
-              header: "Ordem",
-              render: (l) => editingId === l.id
-                ? <Input type="number" value={editOrdem} onChange={(e) => setEditOrdem(e.target.value)} className="w-20" />
-                : l.ordem,
             },
             {
               header: "Status",

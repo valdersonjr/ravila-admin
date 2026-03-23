@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from fastapi import HTTPException
 from app.database import get_db
-from app.dependencies import require_admin, get_current_user
+from app.dependencies import require_staff, get_current_user
 from app.models.turma import Turma
 from app.models.user import User
 from app.schemas.matricula import MatriculaCreate, MatriculaStatusUpdate, MatriculaOut
@@ -35,7 +35,7 @@ def listar(
 def criar(
     body: MatriculaCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return matricula_service.criar(db, body)
 
@@ -45,6 +45,6 @@ def atualizar_status(
     matricula_id: int,
     body: MatriculaStatusUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return matricula_service.atualizar_status(db, matricula_id, body)

@@ -11,8 +11,9 @@ import type { Aula } from "@/services/admin/aulas";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  if (authService.getRole() === "professor") notFound();
-  const isAdmin = authService.getRole() === "admin";
+  const role = authService.getRole();
+  if (role === "professor") notFound();
+  const isAdmin = role === "admin";
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, aulasHoje: 0 });
   const [aulasRecentes, setAulasRecentes] = useState<Aula[]>([]);
   const [aniversarios, setAniversarios] = useState<Aluno[]>([]);

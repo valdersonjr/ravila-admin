@@ -9,8 +9,8 @@ from app.repositories import professor as professor_repo
 from app.schemas.user import UserCreate, UserUpdate
 
 
-def listar(db: Session, is_admin: bool | None = None) -> list[User]:
-    return user_repo.listar(db, is_admin)
+def listar(db: Session, role: str | None = None) -> list[User]:
+    return user_repo.listar(db, role)
 
 
 def buscar(db: Session, pessoa_id: int) -> User:
@@ -35,7 +35,8 @@ def criar(db: Session, dados: UserCreate) -> User:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Esta pessoa já possui um usuário",
         )
-    if not dados.is_admin and not professor_repo.buscar_por_pessoa_id(db, dados.pessoa_id):
+    is_staff = dados.is_admin or dados.is_secretario
+    if not is_staff and not professor_repo.buscar_por_pessoa_id(db, dados.pessoa_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Para criar um acesso de professor, cadastre primeiro o professor no sistema.",
@@ -44,6 +45,7 @@ def criar(db: Session, dados: UserCreate) -> User:
         "pessoa_id": dados.pessoa_id,
         "senha_hash": hash_password(dados.senha),
         "is_admin": dados.is_admin,
+        "is_secretario": dados.is_secretario,
         "ativo": True,
     }
     return user_repo.criar(db, payload)

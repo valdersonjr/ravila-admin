@@ -1,9 +1,7 @@
 import logging
-import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 
@@ -24,7 +22,6 @@ from app.routers import (
     aulas,
     matriculas,
     presencas,
-    pagamentos,
     reposicoes,
 )
 
@@ -44,11 +41,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files for uploaded comprovantes
-uploads_dir = "/app/uploads"
-os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
-
 # Routers
 app.include_router(auth.router)
 app.include_router(pessoas.router)
@@ -61,7 +53,6 @@ app.include_router(turmas.router)
 app.include_router(aulas.router)
 app.include_router(matriculas.router)
 app.include_router(presencas.router)
-app.include_router(pagamentos.router)
 app.include_router(reposicoes.router)
 
 

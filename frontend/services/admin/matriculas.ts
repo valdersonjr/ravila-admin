@@ -4,7 +4,7 @@ export interface Matricula {
   id: number;
   aluno_id: number;
   turma_id: number;
-  data_inicio: string;
+  data_inicio: string | null;
   data_fim: string | null;
   status: "ativa" | "cancelada" | "concluida";
   aluno: { pessoa_id: number; pessoa: { nome: string; cpf: string } } | null;
@@ -19,6 +19,6 @@ export const matriculasService = {
     if (params?.status) qs.set("status", params.status);
     return apiAuth.get<Matricula[]>(`/matriculas/${qs.toString() ? `?${qs}` : ""}`);
   },
-  criar: (data: { aluno_id: number; turma_id: number; data_inicio: string }) => apiAuth.post<Matricula>("/matriculas/", data),
+  criar: (data: { aluno_id: number; turma_id: number; data_inicio?: string }) => apiAuth.post<Matricula>("/matriculas/", data),
   atualizarStatus: (id: number, data: { status: string; data_fim?: string }) => apiAuth.patch<Matricula>(`/matriculas/${id}/status`, data),
 };

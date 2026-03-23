@@ -21,8 +21,11 @@ def listar(
         query = query.filter(Aluno.nivel_id == nivel_id)
     if search:
         termo = f"%{search}%"
+        cpf_search = "".join(c for c in search if c.isdigit())
+        cpf_pattern = f"%{cpf_search}%" if cpf_search else None
         query = query.filter(
-            Pessoa.nome.ilike(termo) | Pessoa.cpf.ilike(termo)
+            Pessoa.nome.ilike(termo)
+            | (Pessoa.cpf.ilike(cpf_pattern) if cpf_pattern else False)
         )
     total = query.count()
     items = (

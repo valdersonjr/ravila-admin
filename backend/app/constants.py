@@ -38,11 +38,6 @@ class TurmaStatus:
     ENCERRADA = "encerrada"
 
 
-class TipoContrato:
-    CLT = "clt"
-    PJ = "pj"
-
-
 class UserRole:
     ADMIN = "admin"
     PROFESSOR = "professor"

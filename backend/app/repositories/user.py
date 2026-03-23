@@ -3,10 +3,14 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 
 
-def listar(db: Session, is_admin: bool | None = None) -> list[User]:
+def listar(db: Session, role: str | None = None) -> list[User]:
     query = db.query(User)
-    if is_admin is not None:
-        query = query.filter(User.is_admin == is_admin)
+    if role == "admin":
+        query = query.filter(User.is_admin == True)
+    elif role == "secretario":
+        query = query.filter(User.is_secretario == True, User.is_admin == False)
+    elif role == "professor":
+        query = query.filter(User.is_admin == False, User.is_secretario == False)
     return query.all()
 
 

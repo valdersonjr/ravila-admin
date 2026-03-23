@@ -12,8 +12,11 @@ def listar(
     query = db.query(Pessoa)
     if search:
         pattern = f"%{search}%"
+        cpf_search = "".join(c for c in search if c.isdigit())
+        cpf_pattern = f"%{cpf_search}%" if cpf_search else None
         query = query.filter(
-            (Pessoa.nome.ilike(pattern)) | (Pessoa.cpf.ilike(pattern))
+            Pessoa.nome.ilike(pattern)
+            | (Pessoa.cpf.ilike(cpf_pattern) if cpf_pattern else False)
         )
     total = query.count()
     items = query.order_by(Pessoa.nome).offset((page - 1) * page_size).limit(page_size).all()

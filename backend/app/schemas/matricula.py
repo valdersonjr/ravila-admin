@@ -20,7 +20,7 @@ class TurmaSimples(BaseModel):
 class MatriculaCreate(BaseModel):
     aluno_id: int
     turma_id: int
-    data_inicio: date
+    data_inicio: Optional[date] = None
     data_fim: Optional[date] = None
     status: Literal["ativa", "cancelada", "concluida"] = "ativa"
 
@@ -34,7 +34,7 @@ class MatriculaOut(BaseModel):
     id: int
     aluno_id: int
     turma_id: int
-    data_inicio: date
+    data_inicio: Optional[date] = None
     data_fim: Optional[date] = None
     status: str
     aluno: Optional[AlunoSimples] = None

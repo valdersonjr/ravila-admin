@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_admin, get_current_user
+from app.dependencies import require_staff, get_current_user
 from app.models.matricula import Matricula
 from app.models.turma import Turma
 from app.models.user import User
@@ -22,7 +22,7 @@ def listar(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=500),
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return aluno_service.listar(db, status_filter, search, nivel_id, page, page_size)
 
@@ -31,7 +31,7 @@ def listar(
 def criar(
     body: AlunoCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return aluno_service.criar(db, body)
 
@@ -68,6 +68,6 @@ def atualizar(
     pessoa_id: int,
     body: AlunoUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return aluno_service.atualizar(db, pessoa_id, body)

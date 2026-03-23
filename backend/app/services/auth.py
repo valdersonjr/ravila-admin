@@ -10,6 +10,8 @@ from app.services.pessoa import _clean_cpf
 def _derive_role(user, db: Session) -> str:
     if user.is_admin:
         return "admin"
+    if user.is_secretario:
+        return "secretario"
     if professor_repo.buscar_por_pessoa_id(db, user.pessoa_id):
         return "professor"
     raise HTTPException(

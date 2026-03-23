@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_admin, get_current_user
+from app.dependencies import require_admin, require_staff, get_current_user
 from app.models.user import User
 from app.schemas.professor import ProfessorCreate, ProfessorUpdate, ProfessorOut, ProfessorDashboardOut
 from app.schemas.turma import GerarSemanaRelatorio, GerarSemanaRequest
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/professores", tags=["professores"])
 @router.get("/", response_model=list[ProfessorOut])
 def listar(
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return professor_service.listar(db)
 

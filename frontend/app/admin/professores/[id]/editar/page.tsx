@@ -4,7 +4,6 @@ import { useParams, useRouter } from "next/navigation";
 import { professoresService } from "@/services/admin/professores";
 import { getErrorMessage } from "@/lib/utils";
 import { Select } from "@/components/ui/Select";
-import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
 import { Field } from "@/components/ui/Field";
@@ -15,9 +14,6 @@ export default function EditarProfessorPage() {
   const { showToast } = useToast();
 
   const [nomeProfessor, setNomeProfessor] = useState("");
-  const [tipoContrato, setTipoContrato] = useState<"clt" | "pj">("clt");
-  const [salario, setSalario] = useState("");
-  const [valorPorAula, setValorPorAula] = useState("");
   const [ativo, setAtivo] = useState(true);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -25,9 +21,6 @@ export default function EditarProfessorPage() {
   useEffect(() => {
     professoresService.buscar(Number(id)).then((p) => {
       setNomeProfessor(p.pessoa.nome);
-      setTipoContrato(p.tipo_contrato);
-      setSalario(p.salario != null ? String(p.salario) : "");
-      setValorPorAula(p.valor_por_aula != null ? String(p.valor_por_aula) : "");
       setAtivo(p.ativo);
     }).finally(() => setLoadingData(false));
   }, [id]);
@@ -36,11 +29,7 @@ export default function EditarProfessorPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await professoresService.atualizar(Number(id), {
-        tipo_contrato: tipoContrato,
-        salario: tipoContrato === "clt" && salario ? Number(salario) : undefined,
-        valor_por_aula: tipoContrato === "pj" && valorPorAula ? Number(valorPorAula) : undefined,
-      });
+      await professoresService.atualizar(Number(id), { ativo });
       showToast("Professor atualizado!");
       router.push("/admin/professores");
     } catch (err) {
@@ -56,26 +45,6 @@ export default function EditarProfessorPage() {
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Editar Professor — {nomeProfessor}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Tipo de contrato">
-          <Select
-            options={[
-              { value: "clt", label: "CLT" },
-              { value: "pj", label: "PJ" },
-            ]}
-            value={tipoContrato}
-            onChange={(e) => setTipoContrato(e.target.value as "clt" | "pj")}
-          />
-        </Field>
-        {tipoContrato === "clt" && (
-          <Field label="Salário (R$)">
-            <Input type="number" step="0.01" min="0" value={salario} onChange={(e) => setSalario(e.target.value)} placeholder="0.00" />
-          </Field>
-        )}
-        {tipoContrato === "pj" && (
-          <Field label="Valor por aula (R$)">
-            <Input type="number" step="0.01" min="0" value={valorPorAula} onChange={(e) => setValorPorAula(e.target.value)} placeholder="0.00" />
-          </Field>
-        )}
         <Field label="Status">
           <Select
             options={[

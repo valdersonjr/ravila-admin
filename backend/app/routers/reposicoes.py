@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_admin_or_professor, require_admin
+from app.dependencies import require_staff_or_professor
 from app.models.user import User
 from app.repositories import reposicao as reposicao_repo
 from app.repositories import aula as aula_repo
@@ -16,7 +16,7 @@ def gerar_reposicao(
     aluno_id: int,
     aula_origem_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_professor),
+    _: User = Depends(require_staff_or_professor),
 ):
     aula = aula_repo.buscar_por_id(db, aula_origem_id)
     if not aula:
@@ -31,7 +31,7 @@ def gerar_reposicao(
 def listar_pendentes(
     aluno_id: int | None = None,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_professor),
+    _: User = Depends(require_staff_or_professor),
 ):
     if aluno_id:
         return reposicao_repo.listar_pendentes_por_aluno(db, aluno_id)
@@ -43,7 +43,7 @@ def usar_reposicao(
     reposicao_id: int,
     aula_reposicao_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_or_professor),
+    _: User = Depends(require_staff_or_professor),
 ):
     r = reposicao_repo.usar(db, reposicao_id, aula_reposicao_id)
     if not r:

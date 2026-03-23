@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_admin, get_current_user
+from app.dependencies import require_staff, get_current_user
 from app.models.user import User
 from app.schemas.turma import (
     TurmaCreate,
@@ -42,7 +42,7 @@ def listar(
 def criar(
     body: TurmaCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return turma_service.criar(db, body)
 
@@ -64,7 +64,7 @@ def atualizar(
     turma_id: int,
     body: TurmaUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return turma_service.atualizar(db, turma_id, body)
 
@@ -74,7 +74,7 @@ def adicionar_horario(
     turma_id: int,
     body: HorarioTurmaCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return turma_service.adicionar_horario(db, turma_id, body)
 
@@ -84,7 +84,7 @@ def remover_horario(
     turma_id: int,
     horario_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     turma_service.remover_horario(db, turma_id, horario_id)
 
@@ -94,7 +94,7 @@ def gerar_aulas(
     turma_id: int,
     body: GerarAulasRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     try:
         data_inicio = date.fromisoformat(body.data_inicio)
@@ -112,6 +112,6 @@ def gerar_aulas(
 def gerar_semana(
     body: GerarSemanaRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_staff),
 ):
     return turma_service.gerar_semana(db, dry_run=body.dry_run)

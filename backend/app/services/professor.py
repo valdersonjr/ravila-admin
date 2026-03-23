@@ -1,11 +1,10 @@
 from calendar import monthrange
 from datetime import date
-from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.constants import AulaStatus, MatriculaStatus, TipoContrato
+from app.constants import AulaStatus, MatriculaStatus
 from app.models.aula import Aula
 from app.models.matricula import Matricula
 from app.models.presenca import Presenca
@@ -13,7 +12,6 @@ from app.models.turma import Turma
 from app.models.professor import Professor
 from app.repositories import professor as professor_repo
 from app.repositories import pessoa as pessoa_repo
-from app.repositories import pagamento as pagamento_repo
 from app.schemas.professor import ProfessorCreate, ProfessorUpdate, ProfessorDashboardOut, MesHistorico
 
 
@@ -54,7 +52,6 @@ def atualizar(db: Session, pessoa_id: int, dados: ProfessorUpdate) -> Professor:
 # ── Dashboard helpers ────────────────────────────────────────────────────────
 
 def _turmas_com_contagem(db: Session, professor_id: int) -> list[dict]:
-    """Retorna turmas do professor com total de alunos ativos em cada uma."""
     turmas = db.query(Turma).filter(Turma.professor_id == professor_id).all()
     return [
         {
@@ -70,7 +67,6 @@ def _turmas_com_contagem(db: Session, professor_id: int) -> list[dict]:
 
 
 def _contagem_aulas(db: Session, professor_id: int) -> dict:
-    """Retorna totais gerais de aulas por status para o professor."""
     base = db.query(Aula).filter(Aula.professor_id == professor_id)
     return {
         "total": base.count(),
@@ -81,7 +77,6 @@ def _contagem_aulas(db: Session, professor_id: int) -> dict:
 
 
 def _contagem_aulas_mes(db: Session, professor_id: int, primeiro_dia: date) -> dict:
-    """Retorna totais de aulas por status no mês indicado."""
     base_mes = db.query(Aula).filter(
         Aula.professor_id == professor_id,
         Aula.data >= primeiro_dia,
@@ -99,7 +94,6 @@ def _presenca_media(
     data_inicio: date | None = None,
     data_fim: date | None = None,
 ) -> float | None:
-    """Calcula taxa de presença (presentes / total) para aulas realizadas no período."""
     filtros = [
         Aula.professor_id == professor_id,
         Aula.status == AulaStatus.REALIZADA,
@@ -117,17 +111,7 @@ def _presenca_media(
     return presentes / total
 
 
-def _custo_mes_atual(professor: Professor, realizadas_mes: int) -> Decimal | None:
-    """Calcula o custo estimado do mês atual com base no tipo de contrato."""
-    if professor.tipo_contrato == TipoContrato.CLT:
-        return professor.salario
-    if professor.valor_por_aula:
-        return Decimal(str(realizadas_mes)) * professor.valor_por_aula
-    return None
-
-
 def _historico_mensal(db: Session, professor_id: int, hoje: date) -> list[MesHistorico]:
-    """Monta histórico dos últimos 6 meses completos (exclui o mês atual)."""
     historico = []
     for meses_atras in range(6, 0, -1):
         ano = hoje.year
@@ -172,16 +156,10 @@ def dashboard(db: Session, pessoa_id: int) -> ProfessorDashboardOut:
     contagem = _contagem_aulas(db, pessoa_id)
     contagem_mes = _contagem_aulas_mes(db, pessoa_id, primeiro_dia_mes)
 
-    pagamentos = pagamento_repo.listar_professores(db, professor_id=pessoa_id)
-    custo_total_pago = sum(p.valor_total for p in pagamentos) or Decimal("0")
-
     return ProfessorDashboardOut(
         professor_id=professor.pessoa_id,
         nome=professor.pessoa.nome,
         cpf=professor.pessoa.cpf,
-        tipo_contrato=professor.tipo_contrato,
-        salario=professor.salario,
-        valor_por_aula=professor.valor_por_aula,
         ativo=professor.ativo,
         turmas=turmas,
         aulas={
@@ -192,8 +170,5 @@ def dashboard(db: Session, pessoa_id: int) -> ProfessorDashboardOut:
             },
         },
         presenca_media=_presenca_media(db, pessoa_id),
-        custo_total_pago=custo_total_pago,
-        custo_mes_atual=_custo_mes_atual(professor, contagem_mes["realizadas"]),
-        historico_pagamentos=pagamentos[:6],
         historico_mensal=_historico_mensal(db, pessoa_id, hoje),
     )

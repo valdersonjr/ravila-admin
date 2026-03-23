@@ -153,8 +153,6 @@ export default function ProfessorDashboardPage() {
 
   if (!data) return <p className="text-muted">Professor não encontrado.</p>;
 
-  const fmt = (v: number) =>
-    `R$ ${Number(v).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
   const pct = (v: number | null) => v != null ? `${(v * 100).toFixed(1)}%` : "—";
   const mesAtual = new Date().toLocaleString("pt-BR", { month: "long", year: "numeric" });
 
@@ -166,15 +164,8 @@ export default function ProfessorDashboardPage() {
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl font-bold text-foreground">{data.nome}</h1>
             <Badge variant={data.ativo ? "success" : "neutral"}>{data.ativo ? "Ativo" : "Inativo"}</Badge>
-            <Badge variant={data.tipo_contrato === "clt" ? "primary" : "warning"}>{data.tipo_contrato.toUpperCase()}</Badge>
           </div>
           <p className="text-sm text-muted">CPF: {formatCpf(data.cpf)}</p>
-          {data.tipo_contrato === "clt" && data.salario != null && (
-            <p className="text-sm text-muted">Salário: {fmt(data.salario)}/mês</p>
-          )}
-          {data.tipo_contrato === "pj" && data.valor_por_aula != null && (
-            <p className="text-sm text-muted">Valor/aula: {fmt(data.valor_por_aula)}</p>
-          )}
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={handleAbrirModal}>Gerar semana</Button>
