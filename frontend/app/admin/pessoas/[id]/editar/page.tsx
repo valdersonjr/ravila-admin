@@ -38,15 +38,15 @@ export default function EditarPessoaPage() {
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Editar Pessoa</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Nome *"><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} required /></Field>
+        <Field label="Nome *"><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} required placeholder="Nome completo" /></Field>
         <Field label="CPF">
           <Input inputMode="numeric" value={form.cpf ?? ""} onChange={(e) => set("cpf", mascaraCpf(e.target.value))} placeholder="000.000.000-00" />
         </Field>
         <Field label="RG">
           <Input value={form.rg ?? ""} onChange={(e) => set("rg", e.target.value)} placeholder="Ex: 4315247" />
         </Field>
-        <Field label="Email"><Input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} /></Field>
-        <Field label="Telefone"><Input value={form.telefone ?? ""} onChange={(e) => set("telefone", e.target.value)} /></Field>
+        <Field label="Email"><Input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} placeholder="exemplo@email.com" /></Field>
+        <Field label="Telefone"><Input value={form.telefone ?? ""} onChange={(e) => set("telefone", e.target.value)} placeholder="(00) 00000-0000" /></Field>
         <Field label="Endereço">
           <textarea
             value={form.endereco ?? ""}

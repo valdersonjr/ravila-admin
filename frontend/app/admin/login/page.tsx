@@ -36,7 +36,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Usuário</label>
-            <Input type="text" value={username} onChange={(e) => { setUsername(e.target.value); setError(""); }} autoFocus autoComplete="username" />
+            <Input type="text" value={username} onChange={(e) => { setUsername(e.target.value); setError(""); }} autoFocus autoComplete="username" placeholder="Seu usuário" />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Senha</label>

@@ -40,8 +40,8 @@ export default function NovaPessoaPage() {
         <Field label="RG">
           <Input value={form.rg} onChange={(e) => set("rg", e.target.value)} placeholder="Ex: 4315247" />
         </Field>
-        <Field label="Email"><Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} /></Field>
-        <Field label="Telefone"><Input value={form.telefone} onChange={(e) => set("telefone", e.target.value)} /></Field>
+        <Field label="Email"><Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="exemplo@email.com" /></Field>
+        <Field label="Telefone"><Input value={form.telefone} onChange={(e) => set("telefone", e.target.value)} placeholder="(00) 00000-0000" /></Field>
         <Field label="Endereço">
           <textarea
             value={form.endereco}

@@ -238,7 +238,7 @@ export default function UsersPage() {
             <h2 className="text-lg font-semibold text-foreground mb-4">Editar Usuário</h2>
             <form onSubmit={handleEdit} className="space-y-4">
               <Field label="Usuário (login)">
-                <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} required />
+                <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} required placeholder="ex: joao.silva" />
               </Field>
               <Field label="Tipo">
                 <Select options={ROLE_OPTIONS} value={editRole} onChange={(e) => setEditRole(e.target.value)} />
