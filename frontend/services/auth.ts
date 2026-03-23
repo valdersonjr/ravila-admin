@@ -10,19 +10,19 @@ interface LoginResponse {
   refresh_token: string;
   token_type: string;
   role: string;
-  pessoa_id: number;
+  pessoa_id: number | null;
   nome: string;
 }
 
 export const authService = {
-  async login(cpf: string, senha: string): Promise<LoginResponse> {
-    const data = await api.post<LoginResponse>("/auth/login", { cpf, senha });
+  async login(username: string, senha: string): Promise<LoginResponse> {
+    const data = await api.post<LoginResponse>("/auth/login", { username, senha });
     setAccessToken(data.access_token);
     if (typeof window !== "undefined") {
       sessionStorage.setItem(REFRESH_KEY, data.refresh_token);
       sessionStorage.setItem(ROLE_KEY, data.role);
       sessionStorage.setItem(NOME_KEY, data.nome);
-      sessionStorage.setItem(PESSOA_ID_KEY, String(data.pessoa_id));
+      sessionStorage.setItem(PESSOA_ID_KEY, data.pessoa_id != null ? String(data.pessoa_id) : "");
     }
     return data;
   },

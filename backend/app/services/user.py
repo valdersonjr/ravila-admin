@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.models.user import User
 from app.repositories import user as user_repo
-from app.repositories import pessoa as pessoa_repo
 from app.repositories import professor as professor_repo
 from app.schemas.user import UserCreate, UserUpdate
 
@@ -13,8 +12,8 @@ def listar(db: Session, role: str | None = None) -> list[User]:
     return user_repo.listar(db, role)
 
 
-def buscar(db: Session, pessoa_id: int) -> User:
-    user = user_repo.buscar_por_pessoa_id(db, pessoa_id)
+def buscar(db: Session, user_id: int) -> User:
+    user = user_repo.buscar_por_id(db, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -24,24 +23,25 @@ def buscar(db: Session, pessoa_id: int) -> User:
 
 
 def criar(db: Session, dados: UserCreate) -> User:
-    pessoa = pessoa_repo.buscar_por_id(db, dados.pessoa_id)
-    if not pessoa:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Pessoa não encontrada",
-        )
-    if user_repo.buscar_por_pessoa_id(db, dados.pessoa_id):
+    if user_repo.buscar_por_username(db, dados.username):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esta pessoa já possui um usuário",
+            detail="Username já está em uso",
         )
-    is_staff = dados.is_admin or dados.is_secretario
-    if not is_staff and not professor_repo.buscar_por_pessoa_id(db, dados.pessoa_id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Para criar um acesso de professor, cadastre primeiro o professor no sistema.",
-        )
+    if dados.pessoa_id is not None:
+        if user_repo.buscar_por_pessoa_id(db, dados.pessoa_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Esta pessoa já possui um usuário",
+            )
+        is_staff = dados.is_admin or dados.is_secretario
+        if not is_staff and not professor_repo.buscar_por_pessoa_id(db, dados.pessoa_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Para criar um acesso de professor, cadastre primeiro o professor no sistema.",
+            )
     payload = {
+        "username": dados.username,
         "pessoa_id": dados.pessoa_id,
         "senha_hash": hash_password(dados.senha),
         "is_admin": dados.is_admin,
@@ -51,14 +51,20 @@ def criar(db: Session, dados: UserCreate) -> User:
     return user_repo.criar(db, payload)
 
 
-def atualizar(db: Session, pessoa_id: int, dados: UserUpdate) -> User:
-    user = buscar(db, pessoa_id)
+def atualizar(db: Session, user_id: int, dados: UserUpdate) -> User:
+    user = buscar(db, user_id)
     data = dados.model_dump(exclude_unset=True)
     if "senha" in data:
         user.senha_hash = hash_password(data.pop("senha"))
+    if "username" in data and data["username"] != user.username:
+        if user_repo.buscar_por_username(db, data["username"]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username já está em uso",
+            )
     return user_repo.atualizar(db, user, data)
 
 
-def deletar(db: Session, pessoa_id: int) -> None:
-    user = buscar(db, pessoa_id)
+def deletar(db: Session, user_id: int) -> None:
+    user = buscar(db, user_id)
     user_repo.deletar(db, user)

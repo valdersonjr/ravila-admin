@@ -1,11 +1,13 @@
 import { apiAuth } from "../api";
 
 export interface User {
-  pessoa_id: number;
+  id: number;
+  username: string;
+  pessoa_id: number | null;
   is_admin: boolean;
   is_secretario: boolean;
   ativo: boolean;
-  pessoa: { id: number; nome: string; cpf: string } | null;
+  pessoa: { id: number; nome: string; cpf: string | null } | null;
 }
 
 export const usersService = {
@@ -13,10 +15,10 @@ export const usersService = {
     const qs = role ? `?role=${role}` : "";
     return apiAuth.get<User[]>(`/users/${qs}`);
   },
-  criar: (data: { pessoa_id: number; senha: string; is_admin: boolean; is_secretario: boolean }) =>
+  criar: (data: { username: string; senha: string; is_admin: boolean; is_secretario: boolean; pessoa_id?: number }) =>
     apiAuth.post<User>("/users/", data),
-  atualizar: (pessoaId: number, data: { ativo?: boolean; is_admin?: boolean; is_secretario?: boolean; senha?: string }) =>
-    apiAuth.patch<User>(`/users/${pessoaId}`, data),
-  deletar: (pessoaId: number) =>
-    apiAuth.delete<void>(`/users/${pessoaId}`),
+  atualizar: (userId: number, data: { ativo?: boolean; is_admin?: boolean; is_secretario?: boolean; senha?: string; username?: string }) =>
+    apiAuth.patch<User>(`/users/${userId}`, data),
+  deletar: (userId: number) =>
+    apiAuth.delete<void>(`/users/${userId}`),
 };

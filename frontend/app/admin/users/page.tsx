@@ -56,13 +56,15 @@ export default function UsersPage() {
 
   // Create
   const [showCreate, setShowCreate] = useState(false);
-  const [createPessoaId, setCreatePessoaId] = useState<number | string | null>(null);
-  const [createRole, setCreateRole] = useState("professor");
+  const [createUsername, setCreateUsername] = useState("");
+  const [createRole, setCreateRole] = useState("secretario");
   const [createSenha, setCreateSenha] = useState("");
+  const [createPessoaId, setCreatePessoaId] = useState<number | string | null>(null);
   const [creating, setCreating] = useState(false);
 
   // Edit
   const [editTarget, setEditTarget] = useState<User | null>(null);
+  const [editUsername, setEditUsername] = useState("");
   const [editRole, setEditRole] = useState("professor");
   const [editSenha, setEditSenha] = useState("");
   const [editAtivo, setEditAtivo] = useState(true);
@@ -86,20 +88,22 @@ export default function UsersPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!createPessoaId || !createSenha) { showToast("Preencha todos os campos.", "error"); return; }
+    if (!createUsername || !createSenha) { showToast("Preencha usuário e senha.", "error"); return; }
     setCreating(true);
     try {
       await usersService.criar({
-        pessoa_id: Number(createPessoaId),
+        username: createUsername.trim(),
         senha: createSenha,
         is_admin: createRole === "admin",
         is_secretario: createRole === "secretario",
+        pessoa_id: createPessoaId ? Number(createPessoaId) : undefined,
       });
       showToast("Usuário criado com sucesso!");
       setShowCreate(false);
-      setCreatePessoaId(null);
+      setCreateUsername("");
       setCreateSenha("");
-      setCreateRole("professor");
+      setCreateRole("secretario");
+      setCreatePessoaId(null);
       await load();
     } catch (err) {
       showToast(getErrorMessage(err, "Erro ao criar usuário."), "error");
@@ -108,6 +112,7 @@ export default function UsersPage() {
 
   function openEdit(u: User) {
     setEditTarget(u);
+    setEditUsername(u.username);
     setEditRole(userRole(u));
     setEditSenha("");
     setEditAtivo(u.ativo);
@@ -119,12 +124,13 @@ export default function UsersPage() {
     setSaving(true);
     try {
       const data: Parameters<typeof usersService.atualizar>[1] = {
+        username: editUsername.trim(),
         is_admin: editRole === "admin",
         is_secretario: editRole === "secretario",
         ativo: editAtivo,
       };
       if (editSenha) data.senha = editSenha;
-      await usersService.atualizar(editTarget.pessoa_id, data);
+      await usersService.atualizar(editTarget.id, data);
       showToast("Usuário atualizado!");
       setEditTarget(null);
       await load();
@@ -137,7 +143,7 @@ export default function UsersPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await usersService.deletar(deleteTarget.pessoa_id);
+      await usersService.deletar(deleteTarget.id);
       showToast("Usuário excluído.");
       setDeleteTarget(null);
       await load();
@@ -148,7 +154,10 @@ export default function UsersPage() {
 
   const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: p.nome }));
   const filteredUsers = search
-    ? users.filter((u) => u.pessoa?.nome.toLowerCase().includes(search.toLowerCase()))
+    ? users.filter((u) =>
+        u.username.toLowerCase().includes(search.toLowerCase()) ||
+        (u.pessoa?.nome.toLowerCase().includes(search.toLowerCase()) ?? false)
+      )
     : users;
 
   return (
@@ -159,7 +168,7 @@ export default function UsersPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Input placeholder="Buscar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
+        <Input placeholder="Buscar por usuário ou nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
         <Select options={FILTER_OPTIONS} value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-48" />
       </div>
 
@@ -167,11 +176,11 @@ export default function UsersPage() {
         <div className="flex justify-center h-20 items-center"><span className="w-6 h-6 rounded-full border-2 border-primary-600 border-t-transparent animate-spin" /></div>
       ) : (
         <Table<User>
-          keyExtractor={(u) => u.pessoa_id}
+          keyExtractor={(u) => u.id}
           data={filteredUsers}
           columns={[
-            { header: "Nome", render: (u) => u.pessoa?.nome ?? `Pessoa ${u.pessoa_id}` },
-            { header: "CPF", render: (u) => formatCpf(u.pessoa?.cpf) },
+            { header: "Usuário", render: (u) => <span className="font-mono text-sm">{u.username}</span> },
+            { header: "Pessoa vinculada", render: (u) => u.pessoa ? `${u.pessoa.nome}${u.pessoa.cpf ? ` · ${formatCpf(u.pessoa.cpf)}` : ""}` : <span className="text-muted text-xs">Nenhuma</span> },
             { header: "Role", render: (u) => {
               const role = userRole(u);
               return <Badge variant={roleVariant[role]}>{roleLabel[role]}</Badge>;
@@ -197,14 +206,17 @@ export default function UsersPage() {
           <div className="relative z-10 w-full max-w-md mx-4 rounded-xl bg-background border border-border p-6 shadow-xl">
             <h2 className="text-lg font-semibold text-foreground mb-4">Novo Usuário</h2>
             <form onSubmit={handleCreate} className="space-y-4">
-              <Field label="Pessoa *">
-                <Combobox options={pessoaOptions} value={createPessoaId} onChange={setCreatePessoaId} placeholder="Buscar pessoa..." />
+              <Field label="Usuário (login) *">
+                <Input value={createUsername} onChange={(e) => setCreateUsername(e.target.value)} placeholder="ex: joao.silva" required />
+              </Field>
+              <Field label="Senha *">
+                <Input type="password" value={createSenha} onChange={(e) => setCreateSenha(e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" />
               </Field>
               <Field label="Tipo *">
                 <Select options={ROLE_OPTIONS} value={createRole} onChange={(e) => setCreateRole(e.target.value)} />
               </Field>
-              <Field label="Senha *">
-                <Input type="password" value={createSenha} onChange={(e) => setCreateSenha(e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" />
+              <Field label="Pessoa vinculada (opcional)">
+                <Combobox options={pessoaOptions} value={createPessoaId} onChange={setCreatePessoaId} placeholder="Buscar pessoa..." />
               </Field>
               <div className="flex gap-3 justify-end">
                 <Button type="button" variant="ghost" onClick={() => setShowCreate(false)} disabled={creating}>Cancelar</Button>
@@ -220,8 +232,11 @@ export default function UsersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-foreground/40" onClick={() => setEditTarget(null)} />
           <div className="relative z-10 w-full max-w-md mx-4 rounded-xl bg-background border border-border p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Editar Usuário — {editTarget.pessoa?.nome}</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Editar Usuário</h2>
             <form onSubmit={handleEdit} className="space-y-4">
+              <Field label="Usuário (login)">
+                <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} required />
+              </Field>
               <Field label="Tipo">
                 <Select options={ROLE_OPTIONS} value={editRole} onChange={(e) => setEditRole(e.target.value)} />
               </Field>
@@ -251,7 +266,7 @@ export default function UsersPage() {
       {deleteTarget && (
         <Modal
           title="Excluir usuário"
-          message={`Tem certeza que deseja excluir o acesso de ${deleteTarget.pessoa?.nome}? Esta ação não pode ser desfeita.`}
+          message={`Tem certeza que deseja excluir o usuário "${deleteTarget.username}"? Esta ação não pode ser desfeita.`}
           confirmLabel="Excluir"
           onConfirm={handleDelete}
           onClose={() => setDeleteTarget(null)}

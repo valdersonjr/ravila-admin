@@ -14,12 +14,16 @@ def listar(db: Session, role: str | None = None) -> list[User]:
     return query.all()
 
 
+def buscar_por_id(db: Session, user_id: int) -> User | None:
+    return db.query(User).filter(User.id == user_id).first()
+
+
+def buscar_por_username(db: Session, username: str) -> User | None:
+    return db.query(User).filter(User.username == username).first()
+
+
 def buscar_por_pessoa_id(db: Session, pessoa_id: int) -> User | None:
     return db.query(User).filter(User.pessoa_id == pessoa_id).first()
-
-
-def buscar_por_cpf(db: Session, cpf: str) -> User | None:
-    return db.query(User).filter(User.pessoa.has(cpf=cpf)).first()
 
 
 def criar(db: Session, dados: dict) -> User:

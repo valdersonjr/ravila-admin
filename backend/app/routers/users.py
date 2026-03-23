@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -35,32 +35,31 @@ def criar(
     return user_service.criar(db, body)
 
 
-@router.get("/{pessoa_id}", response_model=UserOut)
+@router.get("/{user_id}", response_model=UserOut)
 def buscar(
-    pessoa_id: int,
+    user_id: int,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    return user_service.buscar(db, pessoa_id)
+    return user_service.buscar(db, user_id)
 
 
-@router.patch("/{pessoa_id}", response_model=UserOut)
+@router.patch("/{user_id}", response_model=UserOut)
 def atualizar(
-    pessoa_id: int,
+    user_id: int,
     body: UserUpdate,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    return user_service.atualizar(db, pessoa_id, body)
+    return user_service.atualizar(db, user_id, body)
 
 
-@router.delete("/{pessoa_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def deletar(
-    pessoa_id: int,
+    user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    if current_user.pessoa_id == pessoa_id:
-        from fastapi import HTTPException
+    if current_user.id == user_id:
         raise HTTPException(status_code=400, detail="Não é possível excluir o próprio usuário.")
-    user_service.deletar(db, pessoa_id)
+    user_service.deletar(db, user_id)

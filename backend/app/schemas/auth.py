@@ -1,8 +1,9 @@
+from typing import Optional
 from pydantic import BaseModel
 
 
 class LoginRequest(BaseModel):
-    cpf: str
+    username: str
     senha: str
 
 
@@ -11,7 +12,7 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     role: str
-    pessoa_id: int
+    pessoa_id: Optional[int] = None
     nome: str
 
 
