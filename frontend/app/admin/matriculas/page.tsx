@@ -56,9 +56,9 @@ export default function MatriculasPage() {
   }
 
   useEffect(() => {
-    Promise.all([turmasService.listar(), alunosService.listar({ status: "ativo" })]).then(([ts, as]) => {
+    Promise.all([turmasService.listar(), alunosService.listar({ status: "ativo", page_size: 500 })]).then(([ts, as]) => {
       setTurmas(ts);
-      setAlunos(as);
+      setAlunos(as.items);
     });
     load();
   }, []);

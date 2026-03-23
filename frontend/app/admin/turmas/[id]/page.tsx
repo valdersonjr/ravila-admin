@@ -46,11 +46,11 @@ export default function TurmaDetailPage() {
     try {
       const [t, as, ms] = await Promise.all([
         turmasService.buscar(Number(id)),
-        aulasService.listar({ turma_id: Number(id) }),
+        aulasService.listar({ turma_id: Number(id), page_size: 500 }),
         matriculasService.listar({ turma_id: Number(id) }),
       ]);
       setTurma(t);
-      setAulas(as);
+      setAulas(as.items);
       setMatriculas(ms);
     } finally { setLoading(false); }
   }

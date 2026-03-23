@@ -68,8 +68,8 @@ export default function NovaAulaPage() {
     if (!turma || !turma.horarios.length || !pId) { setSlots([]); return; }
     setLoadingSlots(true);
     try {
-      const aulasProf = await aulasService.listar({ professor_id: Number(pId) });
-      setSlots(calcularProximasDatasTurma(turma.horarios, aulasProf));
+      const aulasProf = await aulasService.listar({ professor_id: Number(pId), page_size: 500 });
+      setSlots(calcularProximasDatasTurma(turma.horarios, aulasProf.items));
     } finally { setLoadingSlots(false); }
     setSlotSelecionado("");
   }
