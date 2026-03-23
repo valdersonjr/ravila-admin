@@ -44,7 +44,7 @@ def buscar(
     return user_service.buscar(db, pessoa_id)
 
 
-@router.put("/{pessoa_id}", response_model=UserOut)
+@router.patch("/{pessoa_id}", response_model=UserOut)
 def atualizar(
     pessoa_id: int,
     body: UserUpdate,
@@ -52,3 +52,15 @@ def atualizar(
     _: User = Depends(require_admin),
 ):
     return user_service.atualizar(db, pessoa_id, body)
+
+
+@router.delete("/{pessoa_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar(
+    pessoa_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    if current_user.pessoa_id == pessoa_id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Não é possível excluir o próprio usuário.")
+    user_service.deletar(db, pessoa_id)

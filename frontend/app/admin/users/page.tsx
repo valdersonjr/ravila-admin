@@ -21,7 +21,7 @@ const FILTER_OPTIONS = [
   { value: "professor", label: "Professor" },
 ];
 
-const ROLE_CREATE_OPTIONS = [
+const ROLE_OPTIONS = [
   { value: "professor", label: "Professor" },
   { value: "secretario", label: "Secretário" },
   { value: "admin", label: "Admin" },
@@ -54,14 +54,23 @@ export default function UsersPage() {
   const [filterRole, setFilterRole] = useState("");
   const [search, setSearch] = useState("");
 
+  // Create
   const [showCreate, setShowCreate] = useState(false);
   const [createPessoaId, setCreatePessoaId] = useState<number | string | null>(null);
   const [createRole, setCreateRole] = useState("professor");
   const [createSenha, setCreateSenha] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const [togglingId, setTogglingId] = useState<number | null>(null);
-  const [toggleTarget, setToggleTarget] = useState<User | null>(null);
+  // Edit
+  const [editTarget, setEditTarget] = useState<User | null>(null);
+  const [editRole, setEditRole] = useState("professor");
+  const [editSenha, setEditSenha] = useState("");
+  const [editAtivo, setEditAtivo] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Delete
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -97,17 +106,44 @@ export default function UsersPage() {
     } finally { setCreating(false); }
   }
 
-  async function handleToggleAtivo() {
-    if (!toggleTarget) return;
-    setTogglingId(toggleTarget.pessoa_id);
+  function openEdit(u: User) {
+    setEditTarget(u);
+    setEditRole(userRole(u));
+    setEditSenha("");
+    setEditAtivo(u.ativo);
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editTarget) return;
+    setSaving(true);
     try {
-      await usersService.atualizar(toggleTarget.pessoa_id, { ativo: !toggleTarget.ativo });
-      showToast(`Usuário ${toggleTarget.ativo ? "desativado" : "ativado"}!`);
-      setToggleTarget(null);
+      const data: Parameters<typeof usersService.atualizar>[1] = {
+        is_admin: editRole === "admin",
+        is_secretario: editRole === "secretario",
+        ativo: editAtivo,
+      };
+      if (editSenha) data.senha = editSenha;
+      await usersService.atualizar(editTarget.pessoa_id, data);
+      showToast("Usuário atualizado!");
+      setEditTarget(null);
       await load();
     } catch (err) {
-      showToast(getErrorMessage(err, "Erro ao atualizar."), "error");
-    } finally { setTogglingId(null); }
+      showToast(getErrorMessage(err, "Erro ao atualizar usuário."), "error");
+    } finally { setSaving(false); }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await usersService.deletar(deleteTarget.pessoa_id);
+      showToast("Usuário excluído.");
+      setDeleteTarget(null);
+      await load();
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao excluir usuário."), "error");
+    } finally { setDeleting(false); }
   }
 
   const pessoaOptions = pessoas.map((p) => ({ value: p.id, label: p.nome }));
@@ -144,15 +180,17 @@ export default function UsersPage() {
             {
               header: "Ações",
               render: (u) => (
-                <Button size="sm" variant="outline" loading={togglingId === u.pessoa_id} onClick={() => setToggleTarget(u)}>
-                  {u.ativo ? "Desativar" : "Ativar"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Editar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(u)}>Excluir</Button>
+                </div>
               ),
             },
           ]}
         />
       )}
 
+      {/* Create modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-foreground/40" onClick={() => setShowCreate(false)} />
@@ -163,7 +201,7 @@ export default function UsersPage() {
                 <Combobox options={pessoaOptions} value={createPessoaId} onChange={setCreatePessoaId} placeholder="Buscar pessoa..." />
               </Field>
               <Field label="Tipo *">
-                <Select options={ROLE_CREATE_OPTIONS} value={createRole} onChange={(e) => setCreateRole(e.target.value)} />
+                <Select options={ROLE_OPTIONS} value={createRole} onChange={(e) => setCreateRole(e.target.value)} />
               </Field>
               <Field label="Senha *">
                 <Input type="password" value={createSenha} onChange={(e) => setCreateSenha(e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" />
@@ -177,14 +215,47 @@ export default function UsersPage() {
         </div>
       )}
 
-      {toggleTarget && (
+      {/* Edit modal */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-foreground/40" onClick={() => setEditTarget(null)} />
+          <div className="relative z-10 w-full max-w-md mx-4 rounded-xl bg-background border border-border p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Editar Usuário — {editTarget.pessoa?.nome}</h2>
+            <form onSubmit={handleEdit} className="space-y-4">
+              <Field label="Tipo">
+                <Select options={ROLE_OPTIONS} value={editRole} onChange={(e) => setEditRole(e.target.value)} />
+              </Field>
+              <Field label="Status">
+                <Select
+                  options={[
+                    { value: "true", label: "Ativo" },
+                    { value: "false", label: "Inativo" },
+                  ]}
+                  value={String(editAtivo)}
+                  onChange={(e) => setEditAtivo(e.target.value === "true")}
+                />
+              </Field>
+              <Field label="Nova senha (deixe em branco para não alterar)">
+                <Input type="password" value={editSenha} onChange={(e) => setEditSenha(e.target.value)} minLength={6} placeholder="Mínimo 6 caracteres" />
+              </Field>
+              <div className="flex gap-3 justify-end">
+                <Button type="button" variant="ghost" onClick={() => setEditTarget(null)} disabled={saving}>Cancelar</Button>
+                <Button type="submit" loading={saving}>Salvar</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
         <Modal
-          title={toggleTarget.ativo ? "Desativar usuário" : "Ativar usuário"}
-          message={`Tem certeza que deseja ${toggleTarget.ativo ? "desativar" : "ativar"} o usuário ${toggleTarget.pessoa?.nome}?`}
-          confirmLabel={toggleTarget.ativo ? "Desativar" : "Ativar"}
-          onConfirm={handleToggleAtivo}
-          onClose={() => setToggleTarget(null)}
-          loading={togglingId === toggleTarget.pessoa_id}
+          title="Excluir usuário"
+          message={`Tem certeza que deseja excluir o acesso de ${deleteTarget.pessoa?.nome}? Esta ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          onConfirm={handleDelete}
+          onClose={() => setDeleteTarget(null)}
+          loading={deleting}
         />
       )}
     </div>

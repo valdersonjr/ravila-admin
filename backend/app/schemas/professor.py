@@ -54,7 +54,7 @@ class MesHistorico(BaseModel):
 class ProfessorDashboardOut(BaseModel):
     professor_id: int
     nome: str
-    cpf: str
+    cpf: Optional[str] = None
     ativo: bool
     turmas: list[TurmaDashboard]
     aulas: AulasStats

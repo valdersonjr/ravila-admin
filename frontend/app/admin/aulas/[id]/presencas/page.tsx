@@ -60,7 +60,7 @@ export default function PresencasPage() {
         setAula(aula);
         setDescricao(aula.descricao ?? "");
         if (pessoas) setTodasPessoas((pessoas as { items: Pessoa[] }).items);
-        if (alunos) setTodosAlunos(alunos as Aluno[]);
+        if (alunos) setTodosAlunos((alunos as { items: Aluno[] }).items);
         if (reposicoes) setReposicoesPendentes(reposicoes as ReposicaoPendente[]);
 
         const presencasSalvas = new Map<number, Presenca>(

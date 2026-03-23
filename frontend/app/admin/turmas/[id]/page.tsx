@@ -212,7 +212,7 @@ export default function TurmaDetailPage() {
           columns={[
             { header: "Aluno", render: (m) => m.aluno?.pessoa.nome ?? "-" },
             { header: "CPF", render: (m) => formatCpf(m.aluno?.pessoa.cpf) },
-            { header: "Início", render: (m) => new Date(m.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") },
+            { header: "Início", render: (m) => m.data_inicio ? new Date(m.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "-" },
             { header: "Fim", render: (m) => m.data_fim ? new Date(m.data_fim + "T00:00:00").toLocaleDateString("pt-BR") : "-" },
             {
               header: "Status",

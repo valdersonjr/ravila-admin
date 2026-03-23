@@ -14,7 +14,7 @@ export interface ProfessorCreate {
 export interface ProfessorDashboard {
   professor_id: number;
   nome: string;
-  cpf: string;
+  cpf: string | null;
   ativo: boolean;
   turmas: { id: number; nome: string; status: string; num_alunos: number }[];
   aulas: {

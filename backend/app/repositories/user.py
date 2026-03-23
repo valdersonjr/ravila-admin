@@ -36,3 +36,8 @@ def atualizar(db: Session, user: User, dados: dict) -> User:
     db.commit()
     db.refresh(user)
     return user
+
+
+def deletar(db: Session, user: User) -> None:
+    db.delete(user)
+    db.commit()

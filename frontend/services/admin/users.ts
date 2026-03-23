@@ -15,6 +15,8 @@ export const usersService = {
   },
   criar: (data: { pessoa_id: number; senha: string; is_admin: boolean; is_secretario: boolean }) =>
     apiAuth.post<User>("/users/", data),
-  atualizar: (pessoaId: number, data: { ativo?: boolean; is_admin?: boolean; is_secretario?: boolean }) =>
+  atualizar: (pessoaId: number, data: { ativo?: boolean; is_admin?: boolean; is_secretario?: boolean; senha?: string }) =>
     apiAuth.patch<User>(`/users/${pessoaId}`, data),
+  deletar: (pessoaId: number) =>
+    apiAuth.delete<void>(`/users/${pessoaId}`),
 };

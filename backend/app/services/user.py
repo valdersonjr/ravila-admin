@@ -57,3 +57,8 @@ def atualizar(db: Session, pessoa_id: int, dados: UserUpdate) -> User:
     if "senha" in data:
         user.senha_hash = hash_password(data.pop("senha"))
     return user_repo.atualizar(db, user, data)
+
+
+def deletar(db: Session, pessoa_id: int) -> None:
+    user = buscar(db, pessoa_id)
+    user_repo.deletar(db, user)
