@@ -2,13 +2,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { niveisService, type Nivel } from "@/services/admin/niveis";
-import { reposicoesService, type ReposicaoPendente } from "@/services/admin/reposicoes";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { formatCpf } from "@/lib/masks";
 import Link from "next/link";
 
@@ -16,7 +14,6 @@ const PAGE_SIZE = 10;
 
 export default function AlunosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [reposicoes, setReposicoes] = useState<ReposicaoPendente[]>([]);
   const [niveis, setNiveis] = useState<Nivel[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -36,10 +33,9 @@ export default function AlunosPage() {
       if (status) params.status = status;
       if (search) params.search = search;
       if (nivelId) params.nivel_id = Number(nivelId);
-      const [result, r] = await Promise.all([alunosService.listar(params), reposicoesService.listar()]);
+      const result = await alunosService.listar(params);
       setAlunos(result.items);
       setTotal(result.total);
-      setReposicoes(r);
     } finally { setLoading(false); }
   }, [status, search, nivelId, page]);
 
@@ -112,20 +108,7 @@ export default function AlunosPage() {
               { header: "CPF", render: (a) => formatCpf(a.pessoa.cpf ?? a.responsavel?.cpf) },
               { header: "Nível", render: (a) => a.nivel?.nome ?? "-" },
               { header: "Responsável", render: (a) => a.responsavel?.nome ?? "-" },
-              {
-                header: (
-                  <span className="inline-flex items-center gap-1">
-                    Reposições
-                    <Tooltip content="Quantidade de reposições que o aluno precisa.">
-                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-muted text-background text-[10px] font-bold leading-none">i</span>
-                    </Tooltip>
-                  </span>
-                ),
-                render: (a) => {
-                  const count = reposicoes.filter((r) => r.aluno_id === a.pessoa_id).length;
-                  return count > 0 ? <Badge variant="warning">{count} pendente{count > 1 ? "s" : ""}</Badge> : "-";
-                },
-              },
+              { header: "Aniversário", render: (a) => a.aniversario ?? "-" },
               { header: "Status", render: (a) => <Badge variant={a.status === "ativo" ? "success" : "neutral"}>{a.status}</Badge> },
               {
                 header: "Ações",
