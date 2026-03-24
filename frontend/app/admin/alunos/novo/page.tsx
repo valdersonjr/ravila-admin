@@ -6,6 +6,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
 import { niveisService, type Nivel } from "@/services/admin/niveis";
 import { Combobox } from "@/components/ui/Combobox";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
 import { Field } from "@/components/ui/Field";
@@ -21,6 +22,8 @@ export default function NovoAlunoPage() {
   const [pessoaId, setPessoaId] = useState<number | string | null>(null);
   const [nivelId, setNivelId] = useState<number | string | null>(null);
   const [responsavelId, setResponsavelId] = useState<number | string | null>(null);
+  const [aniversario, setAniversario] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
 
   useEffect(() => {
     Promise.all([pessoasService.listar({ page_size: 500 }), niveisService.listar()]).then(([p, n]) => {
@@ -47,6 +50,8 @@ if (eMenor && !responsavelId) { showToast("Responsável obrigatório para menor 
         pessoa_id: Number(pessoaId),
         nivel_id: nivelId ? Number(nivelId) : undefined,
         responsavel_id: responsavelId ? Number(responsavelId) : undefined,
+        aniversario: aniversario || undefined,
+        data_nascimento: dataNascimento || undefined,
       });
       showToast("Aluno criado com sucesso!");
       router.push("/admin/alunos");
@@ -78,6 +83,12 @@ if (eMenor && !responsavelId) { showToast("Responsável obrigatório para menor 
             />
           </Field>
         )}
+        <Field label="Data de nascimento">
+          <Input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} />
+        </Field>
+        <Field label="Aniversário (DD/MM)">
+          <Input value={aniversario} onChange={(e) => setAniversario(e.target.value)} placeholder="DD/MM" maxLength={5} />
+        </Field>
         <div className="flex gap-3">
           <Button type="submit" loading={loading}>Salvar</Button>
           <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>

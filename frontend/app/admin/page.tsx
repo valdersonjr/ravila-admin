@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { turmasService } from "@/services/admin/turmas";
 import { aulasService } from "@/services/admin/aulas";
+import { reposicoesService, type ReposicaoPendente } from "@/services/admin/reposicoes";
 import { authService } from "@/services/auth";
 import { Badge } from "@/components/ui/Badge";
 import { Table } from "@/components/ui/Table";
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, aulasHoje: 0 });
   const [aulasRecentes, setAulasRecentes] = useState<Aula[]>([]);
   const [aniversarios, setAniversarios] = useState<Aluno[]>([]);
+  const [reposicoes, setReposicoes] = useState<ReposicaoPendente[]>([]);
   const [loading, setLoading] = useState(true);
 
   const hojeStr = (() => {
@@ -47,16 +49,18 @@ export default function DashboardPage() {
       try {
         const hoje = new Date().toISOString().split("T")[0];
         if (isAdmin) {
-          const [alunos, turmas, aulasHoje, proximas, aniv] = await Promise.all([
+          const [alunos, turmas, aulasHoje, proximas, aniv, repos] = await Promise.all([
             alunosService.listar({ status: "ativo", page_size: 1 }),
             turmasService.listar({ status: "ativa" }),
             aulasService.listar({ data_inicio: hoje, data_fim: hoje, page_size: 100 }),
             aulasService.listar({ status: "agendada", page_size: 5 }),
             alunosService.aniversarios(),
+            reposicoesService.listar(),
           ]);
           setStats({ alunos: alunos.total, turmas: turmas.length, aulasHoje: aulasHoje.total });
           setAulasRecentes(proximas.items);
           setAniversarios(aniv);
+          setReposicoes(repos);
         } else {
           const [turmas, aulasHoje, proximas] = await Promise.all([
             turmasService.listar({ status: "ativa" }),
@@ -117,6 +121,26 @@ export default function DashboardPage() {
                     return `${String(dd).padStart(2, "0")} de ${mes}`;
                   },
                 },
+              ]}
+            />
+          )}
+        </div>
+      )}
+
+      {isAdmin && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-3">
+            Reposições pendentes
+            {reposicoes.length === 0 && <span className="text-sm font-normal text-muted ml-2">Nenhuma</span>}
+          </h2>
+          {reposicoes.length > 0 && (
+            <Table<ReposicaoPendente>
+              keyExtractor={(r) => r.id}
+              data={reposicoes}
+              columns={[
+                { header: "Aluno", render: (r) => r.aluno?.pessoa.nome ?? "-" },
+                { header: "Aula perdida", render: (r) => r.aula_origem ? new Date(r.aula_origem.data + "T00:00:00").toLocaleDateString("pt-BR") : "-" },
+                { header: "Horário", render: (r) => r.aula_origem ? `${r.aula_origem.hora_inicio.slice(0,5)} – ${r.aula_origem.hora_fim.slice(0,5)}` : "-" },
               ]}
             />
           )}
