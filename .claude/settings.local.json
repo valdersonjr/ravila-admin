@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python -m py_compile app/services/auth.py app/services/pessoa.py app/services/user.py app/services/nivel.py app/services/professor.py app/services/aluno.py app/services/turma.py app/services/aula.py app/services/matricula.py app/services/presenca.py app/services/pagamento.py)",
-      "Bash(python -m py_compile app/routers/auth.py app/routers/pessoas.py app/routers/users.py app/routers/niveis.py app/routers/professores.py app/routers/alunos.py app/routers/turmas.py app/routers/aulas.py app/routers/matriculas.py app/routers/presencas.py app/routers/pagamentos.py)"
+      "Bash(python -m py_compile app/routers/auth.py app/routers/pessoas.py app/routers/users.py app/routers/niveis.py app/routers/professores.py app/routers/alunos.py app/routers/turmas.py app/routers/aulas.py app/routers/matriculas.py app/routers/presencas.py app/routers/pagamentos.py)",
+      "Bash(find:*)"
     ]
   }
 }

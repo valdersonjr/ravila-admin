@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { authService } from "@/services/auth";
+import { Logo } from "@/components/ui/Logo";
 
 type NavLink = { href: string; label: string; exact: boolean; roles: string[] };
 
@@ -71,10 +72,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         "md:sticky md:top-0 md:h-screen md:translate-x-0 md:z-auto",
         open ? "translate-x-0" : "-translate-x-full",
       ].join(" ")}>
-        <div className="px-6 py-5 border-b border-border flex items-center justify-between">
-          <div>
-            <span className="font-bold text-foreground text-lg">Ravilas English</span>
-            <p className="text-xs text-muted mt-0.5">Painel Admin</p>
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Logo variant="light" width={48} />
+            <div>
+              <p className="font-black text-primary-600 text-base tracking-wide leading-none">Ravila&apos;s</p>
+              <div className="h-px bg-primary-100 my-0.5" />
+              <p className="font-bold text-primary-400 text-[10px] uppercase tracking-widest leading-none">English</p>
+              <p className="text-[10px] text-muted mt-1">Painel Admin</p>
+            </div>
           </div>
           {/* Botão fechar no mobile */}
           <button

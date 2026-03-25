@@ -4,27 +4,27 @@
 @variant dark (&:is(.dark *));
 
 @theme {
-  /* Primary — Roxo */
-  --color-primary-50:  #F7F0FE;
-  --color-primary-100: #EBD8FA;
-  --color-primary-200: #D4C9DB;
-  --color-primary-300: #BE9DD0;
-  --color-primary-400: #A58AB4;
-  --color-primary-500: #84469A;
-  --color-primary-600: #6B1A9A;
-  --color-primary-700: #53058D;
-  --color-primary-800: #3E0469;
-  --color-primary-900: #280346;
-  --color-primary-950: #130020;
+  /* Primary — Azul Ravilas */
+  --color-primary-50:  #EDF7FD;
+  --color-primary-100: #D0EAF6;
+  --color-primary-200: #A8D5EE;
+  --color-primary-300: #79BFE4;
+  --color-primary-400: #2DAAE1;
+  --color-primary-500: #2295C8;
+  --color-primary-600: #1A86BE;
+  --color-primary-700: #1470A0;
+  --color-primary-800: #0E5B82;
+  --color-primary-900: #084664;
+  --color-primary-950: #032D42;
 
-  /* Rose */
-  --color-rose-50:  #FDF6F7;
-  --color-rose-100: #FAE9EC;
-  --color-rose-200: #F5D8DE;
-  --color-rose-300: #EEBFC8;
-  --color-rose-400: #E5A7B1;
-  --color-rose-500: #D98595;
-  --color-rose-600: #C4606F;
+  /* Rose — Vermelho Ravilas */
+  --color-rose-50:  #FEECEC;
+  --color-rose-100: #FDD4D4;
+  --color-rose-200: #FBB0AF;
+  --color-rose-300: #F7807F;
+  --color-rose-400: #F15251;
+  --color-rose-500: #EF5350;
+  --color-rose-600: #E53935;
 
   /* Neutros */
   --color-neutral-50:  #fafafa;
@@ -54,23 +54,24 @@
   --color-warning-900: #713f12;
 
   /* Semânticas — Light Mode */
-  --color-background:   #FAF2F4;
-  --color-surface:      #FDFDFD;
-  --color-foreground:   #1A0430;
-  --color-muted:        #7A5585;
-  --color-border:       #E2CFE8;
-  --color-on-primary:   #FDFDFD;
+  --color-background:   #F0F2F5;
+  --color-surface:      #FFFFFF;
+  --color-foreground:   #1e3a4a;
+  --color-muted:        #4A8FAA;
+  --color-border:       #E0EEF6;
+  --color-on-primary:   #FFFFFF;
 }
 
 .dark {
-  --color-background: #0D0118;
-  --color-surface:    #1A0530;
-  --color-foreground: #F2EAFA;
-  --color-muted:      #A58AB4;
-  --color-border:     #2E0A4A;
+  --color-background: #051820;
+  --color-surface:    #0A2D3E;
+  --color-foreground: #E8F4FB;
+  --color-muted:      #4A8FAA;
+  --color-border:     #153A4E;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+  font-family: var(--font-nunito), 'Nunito', sans-serif;
 }

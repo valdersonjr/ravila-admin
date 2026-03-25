@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { authService } from "@/services/auth";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { ToastProvider } from "@/context/ToastContext";
+import { Logo } from "@/components/ui/Logo";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -57,7 +58,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="font-bold text-foreground text-base">Ravilas English</span>
+          <div className="flex items-center gap-2">
+            <Logo variant="light" width={36} />
+            <span className="font-black text-primary-600 text-sm tracking-wide">Ravila&apos;s <span className="text-primary-400">English</span></span>
+          </div>
         </div>
 
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
