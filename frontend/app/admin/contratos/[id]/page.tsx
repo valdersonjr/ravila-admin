@@ -265,7 +265,7 @@ export default function ContratoPage() {
           </div>
           <label className={`inline-flex items-center gap-2 cursor-pointer text-sm font-medium px-4 py-2 rounded-lg border transition-colors ${uploadLoading ? "opacity-50 pointer-events-none" : ""} border-border bg-background hover:bg-surface`}>
             {uploadLoading ? "Enviando..." : contrato.contrato_assinado_key ? "Substituir arquivo" : "Fazer upload"}
-            <input type="file" accept=".pdf,image/*" className="hidden" onChange={handleUpload} disabled={uploadLoading} />
+            <input type="file" accept="application/pdf,image/*" className="hidden" onChange={handleUpload} disabled={uploadLoading} />
           </label>
         </div>
       ) : contrato.contrato_assinado_key ? (
