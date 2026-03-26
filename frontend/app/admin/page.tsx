@@ -5,6 +5,7 @@ import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { turmasService } from "@/services/admin/turmas";
 import { aulasService } from "@/services/admin/aulas";
 import { reposicoesService, type ReposicaoPendente } from "@/services/admin/reposicoes";
+import { contratosService } from "@/services/admin/contratos";
 import { authService } from "@/services/auth";
 import { Badge } from "@/components/ui/Badge";
 import { Table } from "@/components/ui/Table";
@@ -16,6 +17,13 @@ export default function DashboardPage() {
   if (role === "professor") notFound();
   const isAdmin = role === "admin";
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, aulasHoje: 0 });
+  const [indicadores, setIndicadores] = useState<{
+    receita_mensal_prevista: number;
+    total_ativos: number;
+    expirando_30_dias: number;
+    sem_assinado: number;
+    rascunhos: number;
+  } | null>(null);
   const [aulasRecentes, setAulasRecentes] = useState<Aula[]>([]);
   const [aniversarios, setAniversarios] = useState<Aluno[]>([]);
   const [reposicoes, setReposicoes] = useState<ReposicaoPendente[]>([]);
@@ -49,18 +57,20 @@ export default function DashboardPage() {
       try {
         const hoje = new Date().toISOString().split("T")[0];
         if (isAdmin) {
-          const [alunos, turmas, aulasHoje, proximas, aniv, repos] = await Promise.all([
+          const [alunos, turmas, aulasHoje, proximas, aniv, repos, ind] = await Promise.all([
             alunosService.listar({ status: "ativo", page_size: 1 }),
             turmasService.listar({ status: "ativa" }),
             aulasService.listar({ data_inicio: hoje, data_fim: hoje, page_size: 100 }),
             aulasService.listar({ status: "agendada", page_size: 5 }),
             alunosService.aniversarios(),
             reposicoesService.listar(),
+            contratosService.indicadores(),
           ]);
           setStats({ alunos: alunos.total, turmas: turmas.length, aulasHoje: aulasHoje.total });
           setAulasRecentes(proximas.items);
           setAniversarios(aniv);
           setReposicoes(repos);
+          setIndicadores(ind);
         } else {
           const [turmas, aulasHoje, proximas] = await Promise.all([
             turmasService.listar({ status: "ativa" }),
@@ -89,6 +99,34 @@ export default function DashboardPage() {
         <StatCard label="Turmas ativas" value={stats.turmas} />
         <StatCard label="Aulas hoje" value={stats.aulasHoje} />
       </div>
+
+      {isAdmin && indicadores && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-foreground">Contratos</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Receita mensal prevista"
+              value={indicadores.receita_mensal_prevista.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            />
+            <StatCard
+              label="Contratos ativos"
+              value={indicadores.total_ativos}
+            />
+            <StatCard
+              label="Expirando em 30 dias"
+              value={indicadores.expirando_30_dias}
+              warning={indicadores.expirando_30_dias > 0}
+              href="/admin/contratos?status=ativo"
+            />
+            <StatCard
+              label="Rascunhos pendentes"
+              value={indicadores.rascunhos}
+              warning={indicadores.rascunhos > 0}
+              href="/admin/contratos?status=rascunho"
+            />
+          </div>
+        </div>
+      )}
 
       {isAdmin && (
         <div>
@@ -166,11 +204,13 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ label, value, warning }: { label: string; value: number; warning?: boolean }) {
-  return (
-    <div className="bg-surface border border-border rounded-xl p-5">
+function StatCard({ label, value, warning, href }: { label: string; value: number | string; warning?: boolean; href?: string }) {
+  const content = (
+    <div className={["bg-surface border rounded-xl p-5 transition-colors", href ? "hover:bg-border cursor-pointer" : "", warning ? "border-rose-200" : "border-border"].join(" ")}>
       <p className="text-sm text-muted">{label}</p>
       <p className={["text-2xl font-bold mt-1", warning ? "text-rose-600" : "text-foreground"].join(" ")}>{value}</p>
     </div>
   );
+  if (href) return <Link href={href}>{content}</Link>;
+  return content;
 }

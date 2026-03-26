@@ -15,10 +15,11 @@ def listar(
     status_filter: str | None = None,
     search: str | None = None,
     nivel_id: int | None = None,
+    sem_contrato_ativo: bool = False,
     page: int = 1,
     page_size: int = 20,
 ) -> AlunoListOut:
-    items, total = aluno_repo.listar(db, status_filter, search, nivel_id, page, page_size)
+    items, total = aluno_repo.listar(db, status_filter, search, nivel_id, sem_contrato_ativo, page, page_size)
     return AlunoListOut(items=items, total=total, page=page, page_size=page_size)
 
 

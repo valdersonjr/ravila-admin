@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict
 
@@ -31,4 +32,29 @@ class PresencaOut(BaseModel):
     aluno: Optional[AlunoOut] = None
     pessoa: Optional[PessoaSimples] = None
 
+    model_config = ConfigDict(from_attributes=True)
+
+
+class _TurmaInfo(BaseModel):
+    id: int
+    nome: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class _AulaInfo(BaseModel):
+    id: int
+    data: date
+    hora_inicio: str
+    hora_fim: str
+    tipo: str
+    turma: Optional[_TurmaInfo] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PresencaDoAlunoOut(BaseModel):
+    id: int
+    aula_id: int
+    tipo: str
+    presente: bool
+    aula: _AulaInfo
     model_config = ConfigDict(from_attributes=True)

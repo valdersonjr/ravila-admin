@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
-import { formatCpf } from "@/lib/masks";
 import Link from "next/link";
 
 const PAGE_SIZE = 10;
@@ -23,6 +22,7 @@ export default function AlunosPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [nivelId, setNivelId] = useState("");
+  const [semContrato, setSemContrato] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -33,11 +33,12 @@ export default function AlunosPage() {
       if (status) params.status = status;
       if (search) params.search = search;
       if (nivelId) params.nivel_id = Number(nivelId);
+      if (semContrato) params.sem_contrato_ativo = true;
       const result = await alunosService.listar(params);
       setAlunos(result.items);
       setTotal(result.total);
     } finally { setLoading(false); }
-  }, [status, search, nivelId, page]);
+  }, [status, search, nivelId, semContrato, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -46,7 +47,7 @@ export default function AlunosPage() {
   }, []);
 
   // Reset page when filters change
-  useEffect(() => { setPage(1); }, [status, search, nivelId]);
+  useEffect(() => { setPage(1); }, [status, search, nivelId, semContrato]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -94,6 +95,15 @@ export default function AlunosPage() {
           onChange={(e) => setNivelId(e.target.value)}
           className="w-52"
         />
+        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={semContrato}
+            onChange={(e) => setSemContrato(e.target.checked)}
+            className="rounded border-border accent-primary-600 w-4 h-4"
+          />
+          Sem contrato ativo
+        </label>
       </div>
 
       {loading ? (
@@ -104,18 +114,11 @@ export default function AlunosPage() {
             keyExtractor={(a) => a.pessoa_id}
             data={alunos}
             columns={[
-              { header: "Nome", render: (a) => a.pessoa.nome },
-              { header: "CPF", render: (a) => formatCpf(a.pessoa.cpf ?? a.responsavel?.cpf) },
-              { header: "Nível", render: (a) => a.nivel?.nome ?? "-" },
-              { header: "Responsável", render: (a) => a.responsavel?.nome ?? "-" },
-              { header: "Aniversário", render: (a) => a.aniversario ?? "-" },
-              { header: "Status", render: (a) => <Badge variant={a.status === "ativo" ? "success" : "neutral"}>{a.status}</Badge> },
-              {
-                header: "Ações",
-                render: (a) => (
-                  <Link href={`/admin/alunos/${a.pessoa_id}/editar`} className="text-primary-600 hover:underline text-sm">Editar</Link>
-                ),
-              },
+              { header: "Nome", render: (a) => <Link href={`/admin/alunos/${a.pessoa_id}`} className="text-primary-600 hover:underline">{a.pessoa.nome}</Link> },
+              { header: "Nível", render: (a) => a.nivel?.nome ?? "—" },
+              { header: "Aniversário", render: (a) => a.aniversario ?? "—" },
+              { header: "Matrícula ativa", render: (a) => <Badge variant={a.status === "ativo" ? "success" : "neutral"}>{a.status === "ativo" ? "Sim" : "Não"}</Badge> },
+              { header: "Contrato ativo", render: (a) => <Badge variant={a.tem_contrato_ativo ? "success" : "neutral"}>{a.tem_contrato_ativo ? "Sim" : "Não"}</Badge> },
             ]}
           />
 

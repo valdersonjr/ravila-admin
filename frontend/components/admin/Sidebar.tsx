@@ -16,6 +16,7 @@ const links: NavLink[] = [
   { href: "/admin/turmas",                 label: "Turmas",                 exact: false, roles: ["admin", "secretario", "professor"] },
   { href: "/admin/aulas",                  label: "Aulas",                  exact: false, roles: ["admin", "secretario", "professor"] },
   { href: "/admin/matriculas",             label: "Matrículas",             exact: false, roles: ["admin", "secretario"] },
+  { href: "/admin/contratos",              label: "Contratos",              exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/pessoas",                label: "Pessoas",                exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/livros",                 label: "Livros",                 exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/users",                  label: "Usuários",               exact: false, roles: ["admin"] },

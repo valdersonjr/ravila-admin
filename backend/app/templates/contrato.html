@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      size: A4;
+      margin: 2cm 2cm 3cm 2cm;
+    }
+    @page {
+      @bottom-center {
+        content: "Ravila's English  ·  CNPJ 42.170.459/0001-83  ·  Goianésia – GO    |    Página " counter(page) " de " counter(pages);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 7.5pt;
+        color: #555555;
+        border-top: 0.5pt solid #aaaaaa;
+        padding-top: 5pt;
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Liberation Serif", Georgia, "Times New Roman", serif;
+      font-size: 10.5pt;
+      line-height: 1.65;
+      color: #1e3a4a;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12pt;
+      margin-bottom: 18pt;
+      border-bottom: 1.5pt solid #1A86BE;
+    }
+    .logo-block {
+      display: table;
+    }
+    .logo-block svg,
+    .logo-block .wordmark {
+      display: table-cell;
+      vertical-align: middle;
+    }
+    .wordmark {
+      line-height: 1;
+      padding-left: 10pt;
+    }
+    .wordmark-main {
+      font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+      font-size: 17pt;
+      font-weight: 900;
+      color: #1A86BE;
+      letter-spacing: 0.04em;
+    }
+    .wordmark-sep {
+      height: 0.5pt;
+      background: #D0EAF6;
+      margin: 3pt 0;
+    }
+    .wordmark-sub {
+      font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+      font-size: 7pt;
+      font-weight: 700;
+      color: #1A86BE;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+    }
+    .header-meta {
+      text-align: right;
+      font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+      font-size: 8pt;
+      color: #555555;
+      line-height: 1.5;
+    }
+    .header-meta strong {
+      font-size: 9.5pt;
+      color: #1A86BE;
+      display: block;
+    }
+
+    /* ── Title ── */
+    .contract-title {
+      text-align: center;
+      font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+      font-size: 11.5pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #1e3a4a;
+      margin-bottom: 16pt;
+      padding-bottom: 10pt;
+      border-bottom: 0.5pt solid #E0EEF6;
+    }
+
+    /* ── Parties block ── */
+    .parties {
+      background: #EFEFEF;
+      border-left: 3pt solid #1A86BE;
+      padding: 10pt 14pt;
+      margin-bottom: 14pt;
+      font-size: 10pt;
+      line-height: 1.75;
+    }
+    .parties p { margin: 0; }
+
+    /* ── Intro ── */
+    .intro {
+      text-align: justify;
+      margin-bottom: 14pt;
+      font-size: 10pt;
+    }
+
+    /* ── Clauses ── */
+    .clause { margin-bottom: 12pt; }
+    .clause-title {
+      font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+      font-size: 10pt;
+      font-weight: bold;
+      color: #1A86BE;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5pt;
+    }
+    .clause-item {
+      text-align: justify;
+      margin-bottom: 5pt;
+      font-size: 10pt;
+      padding-left: 4pt;
+    }
+
+    /* ── Observations ── */
+    .obs-block {
+      background: #EFEFEF;
+      border-left: 2.5pt solid #1A86BE;
+      padding: 8pt 12pt;
+      margin-top: 10pt;
+      font-size: 9.5pt;
+    }
+
+    /* ── Location ── */
+    .location-date {
+      margin-top: 22pt;
+      margin-bottom: 32pt;
+      font-size: 10pt;
+    }
+
+    /* ── Signatures ── */
+    .signatures {
+      display: flex;
+      justify-content: space-between;
+    }
+    .sig-block {
+      text-align: center;
+      width: 44%;
+    }
+    .sig-line {
+      border-top: 0.75pt solid #1e3a4a;
+      padding-top: 6pt;
+      font-size: 9.5pt;
+      line-height: 1.5;
+    }
+    .sig-label {
+      font-size: 8pt;
+      color: #555555;
+      margin-top: 2pt;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header: logo + wordmark à esquerda, número do contrato à direita -->
+  <div class="header">
+    <div class="logo-block">
+      {{ logo_svg|safe }}
+      <div class="wordmark">
+        <div class="wordmark-main">Ravila's</div>
+        <div class="wordmark-sep"></div>
+        <div class="wordmark-sub">English</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <strong>Contrato nº {{ contrato.id }}</strong>
+      CNPJ: 42.170.459/0001-83
+    </div>
+  </div>
+
+  <!-- Título -->
+  <p class="contract-title">Contrato de Prestação de Serviços para o Ensino de Inglês</p>
+
+  <!-- Partes -->
+  <div class="parties">
+    <p><strong>CONTRATADO:</strong> Rávila Ravane Costa Silva – ME, empresa inscrita no CNPJ sob o nº 42.170.459/0001-83</p>
+    <p><strong>CONTRATANTE:</strong> {{ contratante.nome|upper }}{% if contrato.alunos|length == 1 and contrato.contratante_id != contrato.alunos[0].pessoa_id %}, agindo na qualidade de responsável legal pelo(a) aluno(a) {{ contrato.alunos[0].pessoa.nome|upper }}{% endif %}</p>
+    <p><strong>ENDEREÇO:</strong> {{ contratante.endereco or '___________________________________' }}</p>
+    <p><strong>Telefone:</strong> {{ contratante.telefone or '______________' }}</p>
+    <p><strong>Inscrito no CPF:</strong> {{ cpf_formatado }}</p>
+  </div>
+
+  <!-- Introito -->
+  <p class="intro">
+    O presente instrumento particular, as partes acima devidamente qualificadas, doravante denominados simplesmente
+    CONTRATADO e CONTRATANTE, na melhor forma de direito, ajustam e contratam a prestação de serviços educacionais,
+    segundo as cláusulas e condições adiante arroladas.
+  </p>
+
+  <!-- Cláusula 1 -->
+  <div class="clause">
+    <p class="clause-title">Cláusula 1ª – Do Objeto</p>
+    <p class="clause-item">O objeto do presente consiste na prestação pelo CONTRATADO à CONTRATANTE dos seguintes serviços educacionais:</p>
+    {% if contrato.alunos|length == 1 %}
+    <p class="clause-item">
+      <strong>1.2 Nome do aluno:</strong> {{ contrato.alunos[0].pessoa.nome|upper }}
+      &nbsp;&nbsp;&nbsp;
+      <strong>Modalidade:</strong> {{ contrato.curso|upper }}
+    </p>
+    {% else %}
+    <p class="clause-item"><strong>Modalidade:</strong> {{ contrato.curso|upper }}</p>
+    {% for aluno in contrato.alunos %}
+    <p class="clause-item"><strong>1.{{ loop.index + 1 }} Aluno:</strong> {{ aluno.pessoa.nome|upper }}</p>
+    {% endfor %}
+    {% endif %}
+    <p class="clause-item">
+      1.{{ contrato.alunos|length + 2 }} – O horário das aulas corresponde ao da turma em que o(a) aluno(a) estiver matriculado(a),
+      podendo ser alterado mediante comunicação prévia entre as partes.
+    </p>
+  </div>
+
+  <!-- Cláusula 2 -->
+  <div class="clause">
+    <p class="clause-title">Cláusula 2ª – Das Condições de Execução dos Serviços</p>
+    <p class="clause-item">Os serviços serão executados em obediência às seguintes condições:</p>
+    <p class="clause-item">2.1 – Os serviços poderão ser prestados de forma presencial, nas dependências da CONTRATADA, ou de forma remota, mediante uso de plataforma digital, conforme acordado entre as partes.</p>
+    <p class="clause-item">
+      2.2 – Reposição de aulas: para reposição de aulas perdidas por ausência do(a) CONTRATANTE, será cobrado o valor de
+      <strong>{{ valor_reposicao }}</strong> à hora. Em caso de cancelamento de aula por iniciativa do CONTRATADO, fica assegurada
+      reposição sem custo adicional ao CONTRATANTE.
+    </p>
+    <p class="clause-item">
+      2.3 – Em caso de atraso no pagamento será cobrada multa de 2% mais juros mora R$ 0,09 ao dia.
+    </p>
+  </div>
+
+  <!-- Cláusula 3 -->
+  <div class="clause">
+    <p class="clause-title">Cláusula 3ª – Dos Deveres do Contratado</p>
+    <p class="clause-item">
+      3.1 – O CONTRATADO desempenhará os serviços enumerados na cláusula 1ª com todo zelo e diligência, observada a
+      legislação vigente, resguardando os interesses do (da) CONTRATANTE, sem prejuízo da dignidade e independência profissionais.
+    </p>
+  </div>
+
+  <!-- Cláusula 4 -->
+  <div class="clause">
+    <p class="clause-title">Cláusula 4ª – Dos Deveres do Contratante</p>
+    <p class="clause-item">
+      4.1 – O(A) CONTRATANTE obriga-se a fornecer os dados cadastrais necessários à formalização deste contrato,
+      mantendo-os atualizados durante toda a vigência.
+    </p>
+    <p class="clause-item">
+      4.2 – Para a execução dos serviços constantes da cláusula 1ª, o (a) CONTRATANTE pagará à CONTRATADA os honorários
+      profissionais correspondentes a <strong>{{ valor_mensalidade }}</strong> até o dia <strong>{{ contrato.dia_vencimento }}</strong> de cada mês{% if valor_com_desconto %},
+      sendo concedido desconto de <strong>{{ desconto_label }}</strong> para pagamentos realizados até a data de vencimento, resultando no valor de
+      <strong>{{ valor_com_desconto }}</strong>. O desconto será cancelado automaticamente em caso de pagamento após o vencimento, sendo devido o valor integral de <strong>{{ valor_mensalidade }}</strong>{% endif %}.
+    </p>
+    <p class="clause-item">
+      4.3 – O (a) contratante compromete-se a ser pontual para o comparecimento às aulas, com tolerância de 10 minutos,
+      salvo casos estritamente justificados.
+    </p>
+  </div>
+
+  <!-- Cláusula 5 -->
+  <div class="clause">
+    <p class="clause-title">Cláusula 5ª – Da Vigência e Disposições Finais</p>
+    <p class="clause-item">
+      5.1 – O presente contrato vigorará a partir de <strong>{{ data_inicio }}</strong> até <strong>{{ data_fim }}</strong>.
+    </p>
+    <p class="clause-item">
+      5.2 – No caso de quebra de contrato da parte contratante, será cobrado 20% sobre o valor restante do contrato, a título de multa.
+    </p>
+  </div>
+
+  {% if contrato.observacoes %}
+  <div class="obs-block">
+    <strong>Observações:</strong> {{ contrato.observacoes }}
+  </div>
+  {% endif %}
+
+  <p class="location-date">{{ contrato.local_assinatura or 'Goianésia – GO' }}, _____ de _________________ de _________</p>
+
+  <div class="signatures">
+    <div class="sig-block">
+      <div class="sig-line">
+        Rávila Ravane Costa Silva
+        <span class="sig-label">Contratado — CNPJ 42.170.459/0001-83</span>
+      </div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-line">
+        {{ contrato.contratante.nome }}
+        <span class="sig-label">Contratante — CPF {{ cpf_formatado }}</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

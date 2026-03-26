@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     DB_NAME: Optional[str] = None
     DB_SSLMODE: str = "require"
 
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    AWS_S3_BUCKET: Optional[str] = None
+    AWS_S3_REGION: str = "us-east-2"
+
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60

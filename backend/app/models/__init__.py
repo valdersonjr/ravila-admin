@@ -10,6 +10,7 @@ from app.models.aula import Aula
 from app.models.matricula import Matricula
 from app.models.presenca import Presenca
 from app.models.reposicao import ReposicaoPendente
+from app.models.contrato import Contrato
 
 __all__ = [
     "Base",
@@ -25,4 +26,5 @@ __all__ = [
     "Matricula",
     "Presenca",
     "ReposicaoPendente",
+    "Contrato",
 ]

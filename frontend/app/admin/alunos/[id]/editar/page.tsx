@@ -5,12 +5,14 @@ import { alunosService } from "@/services/admin/alunos";
 import { getErrorMessage } from "@/lib/utils";
 import { niveisService, type Nivel } from "@/services/admin/niveis";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
+import { contratosService, type Contrato } from "@/services/admin/contratos";
 import { Combobox } from "@/components/ui/Combobox";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/context/ToastContext";
 import { Field } from "@/components/ui/Field";
+import Link from "next/link";
 
 export default function EditarAlunoPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,10 +21,10 @@ export default function EditarAlunoPage() {
 
   const [niveis, setNiveis] = useState<Nivel[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
+  const [contratoAtivo, setContratoAtivo] = useState<Contrato | null | undefined>(undefined);
   const [nivelId, setNivelId] = useState<number | string | null>(null);
   const [responsavelId, setResponsavelId] = useState<number | string | null>(null);
   const [eMenor, setEMenor] = useState(false);
-  const [status, setStatus] = useState("ativo");
   const [aniversario, setAniversario] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
   const [nomeAluno, setNomeAluno] = useState("");
@@ -34,16 +36,17 @@ export default function EditarAlunoPage() {
       alunosService.buscar(Number(id)),
       niveisService.listar(),
       pessoasService.listar({ page_size: 500 }),
-    ]).then(([aluno, ns, ps]) => {
+      contratosService.listar({ aluno_id: Number(id), status: "ativo", page_size: 1 }),
+    ]).then(([aluno, ns, ps, contratos]) => {
       setNivelId(aluno.nivel?.id ?? null);
       setResponsavelId(aluno.responsavel?.id ?? null);
       setEMenor(aluno.pessoa?.menor_de_idade ?? false);
-      setStatus(aluno.status);
       setAniversario(aluno.aniversario ?? "");
       setDataNascimento(aluno.data_nascimento ?? "");
       setNomeAluno(aluno.pessoa.nome);
       setNiveis(ns);
       setPessoas(ps.items);
+      setContratoAtivo(contratos.items[0] ?? null);
     }).finally(() => setLoadingData(false));
   }, [id]);
 
@@ -54,7 +57,6 @@ export default function EditarAlunoPage() {
       await alunosService.atualizar(Number(id), {
         nivel_id: nivelId ? Number(nivelId) : undefined,
         responsavel_id: responsavelId ? Number(responsavelId) : undefined,
-        status,
         aniversario: aniversario || undefined,
         data_nascimento: dataNascimento || undefined,
       });
@@ -75,6 +77,28 @@ export default function EditarAlunoPage() {
   return (
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Editar Aluno — {nomeAluno}</h1>
+
+      {/* Card de contrato */}
+      {contratoAtivo !== undefined && (
+        <div className={`rounded-xl border px-4 py-3 flex items-center justify-between gap-3 ${contratoAtivo ? "border-success-300 bg-success-100" : "border-warning-300 bg-warning-100"}`}>
+          {contratoAtivo ? (
+            <>
+              <div className="flex items-center gap-2 text-sm">
+                <Badge variant="success">Contrato ativo</Badge>
+                <span className="text-foreground font-medium">#{contratoAtivo.id} · {contratoAtivo.curso}</span>
+                <span className="text-muted">até {new Date(contratoAtivo.data_fim + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+              </div>
+              <Link href={`/admin/contratos/${contratoAtivo.id}`} className="text-primary-600 hover:underline text-sm shrink-0">Ver</Link>
+            </>
+          ) : (
+            <div className="flex items-center justify-between w-full">
+              <span className="text-sm text-warning-600 font-medium">Sem contrato ativo</span>
+              <Link href={`/admin/contratos/novo`} className="text-primary-600 hover:underline text-sm">+ Novo contrato</Link>
+            </div>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Nível">
           <Combobox options={nivelOptions} value={nivelId} onChange={setNivelId} placeholder="Selecionar nível..." />
@@ -89,16 +113,6 @@ export default function EditarAlunoPage() {
         </Field>
         <Field label="Data de nascimento">
           <Input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} />
-        </Field>
-        <Field label="Status">
-          <Select
-            options={[
-              { value: "ativo", label: "Ativo" },
-              { value: "inativo", label: "Inativo" },
-            ]}
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          />
         </Field>
         <div className="flex gap-3">
           <Button type="submit" loading={loading}>Salvar</Button>

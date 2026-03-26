@@ -1,11 +1,12 @@
 import re
 from datetime import date
-from typing import Optional, Literal
+from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.pessoa import PessoaOut
 from app.schemas.nivel import NivelOut
+from app.schemas.matricula import MatriculaOut
 
 _ANIVERSARIO_RE = re.compile(r"^(0[1-9]|[12]\d|3[01])/(0[1-9]|1[0-2])$")
 
@@ -14,7 +15,6 @@ class AlunoCreate(BaseModel):
     pessoa_id: int
     nivel_id: Optional[int] = None
     responsavel_id: Optional[int] = None
-    status: Literal["ativo", "inativo"] = "ativo"
     aniversario: Optional[str] = None
     data_nascimento: Optional[date] = None
 
@@ -31,7 +31,6 @@ class AlunoCreate(BaseModel):
 class AlunoUpdate(BaseModel):
     nivel_id: Optional[int] = None
     responsavel_id: Optional[int] = None
-    status: Optional[Literal["ativo", "inativo"]] = None
     aniversario: Optional[str] = None
     data_nascimento: Optional[date] = None
 
@@ -46,17 +45,19 @@ class AlunoUpdate(BaseModel):
 
 
 class AlunoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
     pessoa_id: int
     nivel_id: Optional[int] = None
     responsavel_id: Optional[int] = None
-    status: str
+    status: str = Field(validation_alias="status_calculado")
+    tem_contrato_ativo: bool = Field(validation_alias="tem_contrato_ativo")
     aniversario: Optional[str] = None
     data_nascimento: Optional[date] = None
     pessoa: PessoaOut
     nivel: Optional[NivelOut] = None
     responsavel: Optional[PessoaOut] = None
-
-    model_config = ConfigDict(from_attributes=True)
+    matriculas: list[MatriculaOut] = []
 
 
 class AlunoListOut(BaseModel):

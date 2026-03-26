@@ -79,6 +79,29 @@ async function request<T>(path: string, options?: RequestInit, isRetry = false):
   return response.json() as Promise<T>;
 }
 
+async function requestBlob(path: string, isRetry = false): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  if (_accessToken) headers["Authorization"] = `Bearer ${_accessToken}`;
+
+  const response = await fetch(`${BASE_URL}${path}`, { method: "GET", headers });
+
+  if (response.status === 401 && !isRetry) {
+    if (!_refreshPromise) {
+      _refreshPromise = attemptRefresh().finally(() => { _refreshPromise = null; });
+    }
+    const refreshed = await _refreshPromise;
+    if (refreshed) return requestBlob(path, true);
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("refresh_token");
+      window.location.href = "/admin/login";
+    }
+    throw new Error("Sessão expirada");
+  }
+
+  if (!response.ok) throw new Error(`Erro ${response.status}`);
+  return response.blob();
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: "GET" }),
   post: <T>(path: string, body: unknown) => request<T>(path, { method: "POST", body: JSON.stringify(body) }),
@@ -86,6 +109,7 @@ export const api = {
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   upload: <T>(path: string, formData: FormData) => request<T>(path, { method: "POST", body: formData }),
+  getBlob: (path: string) => requestBlob(path),
 };
 
 // Kept for compatibility — all requests now automatically include the token.
