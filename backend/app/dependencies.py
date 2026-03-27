@@ -69,3 +69,17 @@ def require_admin_or_professor(current_user: User = Depends(get_current_user)) -
             detail="Admin or professor privileges required",
         )
     return current_user
+
+
+def require_aluno(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "aluno":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito ao portal do aluno",
+        )
+    if not current_user.pessoa_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuário aluno não possui pessoa vinculada",
+        )
+    return current_user

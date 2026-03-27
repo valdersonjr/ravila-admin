@@ -7,15 +7,13 @@ from app.schemas.pessoa import PessoaOut
 class UserCreate(BaseModel):
     username: str
     senha: str
-    is_admin: bool = False
-    is_secretario: bool = False
+    role: str = "secretario"
     pessoa_id: Optional[int] = None
 
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
-    is_admin: Optional[bool] = None
-    is_secretario: Optional[bool] = None
+    role: Optional[str] = None
     senha: Optional[str] = None
     ativo: Optional[bool] = None
 
@@ -24,8 +22,7 @@ class UserOut(BaseModel):
     id: int
     username: str
     pessoa_id: Optional[int] = None
-    is_admin: bool
-    is_secretario: bool
+    role: str
     ativo: bool
     pessoa: Optional[PessoaOut] = None
 

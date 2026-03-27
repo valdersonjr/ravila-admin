@@ -52,11 +52,13 @@ export default function MatriculasPage() {
       if (filterTurmaId) params.turma_id = Number(filterTurmaId);
       if (filterStatus) params.status = filterStatus;
       setMatriculas(await matriculasService.listar(params));
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao carregar matrículas."), "error");
     } finally { setLoading(false); }
   }
 
   useEffect(() => {
-    Promise.all([turmasService.listar(), alunosService.listar({ status: "ativo", page_size: 500 })]).then(([ts, as]) => {
+    Promise.all([turmasService.listar(), alunosService.listar({ page_size: 500 })]).then(([ts, as]) => {
       setTurmas(ts);
       setAlunos(as.items);
     });

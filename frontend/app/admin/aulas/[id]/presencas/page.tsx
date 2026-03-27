@@ -8,6 +8,7 @@ import { matriculasService } from "@/services/admin/matriculas";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { reposicoesService, type ReposicaoPendente } from "@/services/admin/reposicoes";
+import { MateriaisSection } from "@/components/admin/MateriaisSection";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Combobox } from "@/components/ui/Combobox";
@@ -355,6 +356,11 @@ export default function PresencasPage() {
         </p>
       )}
       <Button onClick={handleSave} loading={saving} disabled={!aulaIniciou}>Salvar presenças</Button>
+
+      <MateriaisSection
+        aulaId={Number(id)}
+        turmaId={aula?.turma_id ?? undefined}
+      />
     </div>
   );
 }

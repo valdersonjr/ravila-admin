@@ -19,30 +19,32 @@ const FILTER_OPTIONS = [
   { value: "admin", label: "Admin" },
   { value: "secretario", label: "Secretário" },
   { value: "professor", label: "Professor" },
+  { value: "aluno", label: "Aluno" },
 ];
 
 const ROLE_OPTIONS = [
+  { value: "aluno", label: "Aluno" },
   { value: "professor", label: "Professor" },
   { value: "secretario", label: "Secretário" },
   { value: "admin", label: "Admin" },
 ];
 
 function userRole(u: User): string {
-  if (u.is_admin) return "admin";
-  if (u.is_secretario) return "secretario";
-  return "professor";
+  return u.role;
 }
 
-const roleVariant: Record<string, "primary" | "warning" | "neutral"> = {
+const roleVariant: Record<string, "primary" | "warning" | "neutral" | "success"> = {
   admin: "primary",
   secretario: "warning",
   professor: "neutral",
+  aluno: "success",
 };
 
 const roleLabel: Record<string, string> = {
   admin: "Admin",
   secretario: "Secretário",
   professor: "Professor",
+  aluno: "Aluno",
 };
 
 export default function UsersPage() {
@@ -90,14 +92,13 @@ export default function UsersPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!createUsername || !createSenha) { showToast("Preencha usuário e senha.", "error"); return; }
-    if (createRole === "professor" && !createPessoaId) { showToast("Professor precisa ter uma pessoa vinculada.", "error"); return; }
+    if ((createRole === "professor" || createRole === "aluno") && !createPessoaId) { showToast("Professor e aluno precisam ter uma pessoa vinculada.", "error"); return; }
     setCreating(true);
     try {
       await usersService.criar({
         username: createUsername.trim(),
         senha: createSenha,
-        is_admin: createRole === "admin",
-        is_secretario: createRole === "secretario",
+        role: createRole,
         pessoa_id: createPessoaId ? Number(createPessoaId) : undefined,
       });
       showToast("Usuário criado com sucesso!");
@@ -124,13 +125,12 @@ export default function UsersPage() {
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editTarget) return;
-    if (editRole === "professor" && !editPessoaId) { showToast("Professor precisa ter uma pessoa vinculada.", "error"); return; }
+    if ((editRole === "professor" || editRole === "aluno") && !editPessoaId) { showToast("Professor e aluno precisam ter uma pessoa vinculada.", "error"); return; }
     setSaving(true);
     try {
       const data: Parameters<typeof usersService.atualizar>[1] = {
         username: editUsername.trim(),
-        is_admin: editRole === "admin",
-        is_secretario: editRole === "secretario",
+        role: editRole,
         ativo: editAtivo,
         pessoa_id: editPessoaId ? Number(editPessoaId) : null,
       };
@@ -220,7 +220,7 @@ export default function UsersPage() {
               <Field label="Tipo *">
                 <Select options={ROLE_OPTIONS} value={createRole} onChange={(e) => setCreateRole(e.target.value)} />
               </Field>
-              <Field label={`Pessoa vinculada${createRole === "professor" ? " *" : " (opcional)"}`}>
+              <Field label={`Pessoa vinculada${(createRole === "professor" || createRole === "aluno") ? " *" : " (opcional)"}`}>
                 <Combobox options={pessoaOptions} value={createPessoaId} onChange={setCreatePessoaId} placeholder="Buscar pessoa..." />
               </Field>
               <div className="flex gap-3 justify-end">

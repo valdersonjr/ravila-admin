@@ -14,7 +14,6 @@ from app.repositories import pessoa as pessoa_repo
 from app.core.security import hash_password
 from app.services import s3 as s3_service
 from app.services import auth as auth_service
-from app.services.auth import _derive_role
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +38,7 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)):
     user = user_repo.buscar_por_username(db, username)
     if user is None or not user.ativo:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário inativo ou não encontrado")
-    role = _derive_role(user, db)
-    access_token = create_access_token({"sub": username, "role": role, "pessoa_id": user.pessoa_id})
+    access_token = create_access_token({"sub": username, "role": user.role, "pessoa_id": user.pessoa_id})
     return {"access_token": access_token, "token_type": "bearer"}
 
 

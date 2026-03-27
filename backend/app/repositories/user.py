@@ -5,12 +5,8 @@ from app.models.user import User
 
 def listar(db: Session, role: str | None = None) -> list[User]:
     query = db.query(User)
-    if role == "admin":
-        query = query.filter(User.is_admin == True)
-    elif role == "secretario":
-        query = query.filter(User.is_secretario == True, User.is_admin == False)
-    elif role == "professor":
-        query = query.filter(User.is_admin == False, User.is_secretario == False)
+    if role:
+        query = query.filter(User.role == role)
     return query.all()
 
 

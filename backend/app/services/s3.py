@@ -81,6 +81,35 @@ def baixar_arquivo(key: str) -> bytes:
         )
 
 
+def upload_material(file_bytes: bytes, material_id: int, filename: str) -> str:
+    """Faz upload de material didático e retorna a key no S3."""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+    key = f"materiais/{material_id}/arquivo.{ext}"
+    content_type_map = {
+        "pdf": "application/pdf",
+        "mp4": "video/mp4",
+        "mov": "video/quicktime",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "gif": "image/gif",
+    }
+    content_type = content_type_map.get(ext, "application/octet-stream")
+    try:
+        _client().put_object(
+            Bucket=settings.AWS_S3_BUCKET,
+            Key=key,
+            Body=file_bytes,
+            ContentType=content_type,
+        )
+    except ClientError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Erro ao enviar arquivo para S3: {e}",
+        )
+    return key
+
+
 def deletar_arquivo(key: str) -> None:
     try:
         _client().delete_object(Bucket=settings.AWS_S3_BUCKET, Key=key)

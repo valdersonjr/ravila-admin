@@ -16,8 +16,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     pessoa_id: Mapped[Optional[int]] = mapped_column(ForeignKey("pessoas.id"), nullable=True, unique=True)
     senha_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    is_secretario: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="secretario")
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     foto_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 

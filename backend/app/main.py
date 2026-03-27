@@ -24,6 +24,8 @@ from app.routers import (
     presencas,
     reposicoes,
     contratos,
+    materiais,
+    portal,
 )
 
 app = FastAPI(
@@ -56,6 +58,8 @@ app.include_router(matriculas.router)
 app.include_router(presencas.router)
 app.include_router(reposicoes.router)
 app.include_router(contratos.router)
+app.include_router(materiais.router)
+app.include_router(portal.router)
 
 
 @app.get("/", tags=["health"])
