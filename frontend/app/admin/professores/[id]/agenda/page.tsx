@@ -5,6 +5,7 @@ import { aulasService, type Aula } from "@/services/admin/aulas";
 import { professoresService } from "@/services/admin/professores";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { GerarSemanaModal } from "@/components/admin/GerarSemanaModal";
 import Link from "next/link";
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -48,7 +49,9 @@ export default function AgendaProfessorPage() {
   weekEnd.setDate(weekEnd.getDate() + 6);
 
   useEffect(() => {
-    professoresService.buscar(Number(id)).then((p) => setNomeProfessor(p.pessoa.nome));
+    professoresService.buscar(Number(id)).then((p) => {
+      setNomeProfessor(p.pessoa.nome);
+    });
   }, [id]);
 
   useEffect(() => {
@@ -89,6 +92,11 @@ export default function AgendaProfessorPage() {
 
   const labelSemana = `${days[0].toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} – ${days[6].toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`;
 
+  async function recarregarAulas() {
+    const res = await aulasService.listar({ professor_id: Number(id), data_inicio: toISO(weekStart), data_fim: toISO(weekEnd), page_size: 500 });
+    setAulas(res.items);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -97,7 +105,10 @@ export default function AgendaProfessorPage() {
           <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
           {nomeProfessor && <p className="text-sm text-muted mt-1">{nomeProfessor}</p>}
         </div>
-        <Button variant="outline" onClick={() => router.back()}>Voltar</Button>
+        <div className="flex gap-2">
+          <GerarSemanaModal professorId={Number(id)} onGerado={recarregarAulas} />
+          <Button variant="outline" onClick={() => router.back()}>Voltar</Button>
+        </div>
       </div>
 
       {/* Navegação */}

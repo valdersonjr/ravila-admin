@@ -41,13 +41,18 @@ def buscar(db: Session, id: int) -> Aula:
     return aula
 
 
-def criar(db: Session, dados: AulaCreate, pendente_aprovacao: bool = False) -> Aula:
+def criar(db: Session, dados: AulaCreate, pendente_aprovacao: bool = False, professor_pessoa_id: int | None = None) -> Aula:
     turma = turma_repo.buscar_por_id(db, dados.turma_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
     professor = professor_repo.buscar_por_pessoa_id(db, dados.professor_id)
     if not professor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professor não encontrado")
+    if professor_pessoa_id is not None and turma.professor_id != professor.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você só pode criar aulas para suas próprias turmas",
+        )
     if aula_repo.professor_tem_aula_no_dia(db, dados.professor_id, dados.data):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

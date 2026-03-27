@@ -33,7 +33,10 @@ const PAGE_SIZE = 10;
 export default function AulasPage() {
   const { showToast } = useToast();
   const searchParams = useSearchParams();
-  const isAdmin = authService.getRole() === "admin";
+  const role = authService.getRole();
+  const isAdmin = role === "admin";
+  const isProfessor = role === "professor";
+  const pessoaId = authService.getPessoaId();
 
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [total, setTotal] = useState(0);
@@ -149,12 +152,10 @@ export default function AulasPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Aulas</h1>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <Link href="/admin/aulas/nova"><Button variant="outline">+ Aula de turma</Button></Link>
-            <Link href="/admin/aulas/avulsa/nova"><Button>+ Aula particular</Button></Link>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Link href="/admin/aulas/nova"><Button variant="outline">+ Aula de turma</Button></Link>
+          {isAdmin && <Link href="/admin/aulas/avulsa/nova"><Button>+ Aula particular</Button></Link>}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3 items-end bg-surface border border-border rounded-xl p-4">
@@ -240,17 +241,21 @@ export default function AulasPage() {
               header: "Presenças",
               render: (a) => <Link href={`/admin/aulas/${a.id}/presencas`} className="text-primary-600 hover:underline text-sm">Ver detalhes</Link>,
             },
-            ...(isAdmin ? [{
+            ...((isAdmin || isProfessor) ? [{
               header: "",
-              render: (a: Aula) => a.status === "agendada" ? (
-                <button
-                  onClick={() => handleDeletar(a)}
-                  disabled={deletingId === a.id}
-                  className="text-xs text-red-600 hover:text-red-700 disabled:opacity-40"
-                >
-                  {deletingId === a.id ? "..." : "Excluir"}
-                </button>
-              ) : null,
+              render: (a: Aula) => {
+                const podeExcluir = isAdmin || (isProfessor && a.professor_id === pessoaId);
+                if (!podeExcluir || a.status !== "agendada") return null;
+                return (
+                  <button
+                    onClick={() => handleDeletar(a)}
+                    disabled={deletingId === a.id}
+                    className="text-xs text-red-600 hover:text-red-700 disabled:opacity-40"
+                  >
+                    {deletingId === a.id ? "..." : "Excluir"}
+                  </button>
+                );
+              },
             }] : []),
           ]}
         />

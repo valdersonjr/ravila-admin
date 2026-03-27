@@ -12,11 +12,11 @@ type NavLink = { href: string; label: string; exact: boolean; roles: string[] };
 const links: NavLink[] = [
   { href: "/admin",                        label: "Dashboard",              exact: true,  roles: ["admin", "secretario"] },
   { href: "/admin/alunos",                 label: "Alunos",                 exact: false, roles: ["admin", "secretario"] },
-  { href: "/admin/professores",            label: "Professores",            exact: false, roles: ["admin", "secretario"] },
+  { href: "/admin/contratos",              label: "Contratos",              exact: false, roles: ["admin", "secretario"] },
+  { href: "/admin/matriculas",             label: "Matrículas",             exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/turmas",                 label: "Turmas",                 exact: false, roles: ["admin", "secretario", "professor"] },
   { href: "/admin/aulas",                  label: "Aulas",                  exact: false, roles: ["admin", "secretario", "professor"] },
-  { href: "/admin/matriculas",             label: "Matrículas",             exact: false, roles: ["admin", "secretario"] },
-  { href: "/admin/contratos",              label: "Contratos",              exact: false, roles: ["admin", "secretario"] },
+  { href: "/admin/professores",            label: "Professores",            exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/pessoas",                label: "Pessoas",                exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/livros",                 label: "Livros",                 exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/users",                  label: "Usuários",               exact: false, roles: ["admin"] },
@@ -48,10 +48,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const extraProfessorLinks: NavLink[] = pessoaId ? [
     { href: `/admin/professores/${pessoaId}/dashboard`, label: "Dashboard",    exact: false, roles: ["professor"] },
-    { href: `/admin/professores/${pessoaId}/agenda`,    label: "Minha Agenda", exact: false, roles: ["professor"] },
+    { href: `/admin/professores/${pessoaId}/agenda`,    label: "Agenda",       exact: false, roles: ["professor"] },
   ] : [];
 
-  const allLinks = [...links, ...extraProfessorLinks];
+  const allLinks = [...extraProfessorLinks, ...links];
   const visibleLinks = role ? allLinks.filter((l) => l.roles.includes(role)) : [];
 
   function isActive(href: string, exact: boolean) {
@@ -116,6 +116,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 {theme === "dark" ? "☀ Tema claro" : "☾ Tema escuro"}
               </button>
             )}
+            <Link
+              href="/admin/perfil"
+              className={["flex items-center px-3 py-2 rounded-md text-sm transition-colors", isActive("/admin/perfil", false) ? "bg-primary-600 text-on-primary font-medium" : "text-foreground hover:bg-border"].join(" ")}
+            >
+              Meu perfil
+            </Link>
             <button onClick={logout} className="w-full flex items-center px-3 py-2 rounded-md text-sm text-foreground hover:bg-border transition-colors">
               Sair
             </button>

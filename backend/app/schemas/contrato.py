@@ -11,6 +11,7 @@ from app.schemas.pessoa import PessoaOut
 class ContratoCreate(BaseModel):
     aluno_ids: list[int]
     contratante_id: int
+    tipo: Literal["formal", "informal"] = "formal"
     curso: str
     valor_mensalidade: Decimal
     desconto_percentual: Optional[Decimal] = None
@@ -46,6 +47,7 @@ class ContratoCreate(BaseModel):
 
 class ContratoUpdate(BaseModel):
     aluno_ids: Optional[list[int]] = None
+    tipo: Optional[Literal["formal", "informal"]] = None
     curso: Optional[str] = None
     valor_mensalidade: Optional[Decimal] = None
     desconto_percentual: Optional[Decimal] = None
@@ -80,6 +82,7 @@ class ContratoStatusUpdate(BaseModel):
 class ContratoOut(BaseModel):
     id: int
     contratante_id: int
+    tipo: str = "formal"
     curso: str
     valor_mensalidade: Decimal
     desconto_percentual: Optional[Decimal] = None

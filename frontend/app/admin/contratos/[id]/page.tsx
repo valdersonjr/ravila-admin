@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { contratosService, type Contrato } from "@/services/admin/contratos";
+import { authService } from "@/services/auth";
 import { getErrorMessage } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -44,11 +45,13 @@ export default function ContratoPage() {
   const router = useRouter();
   const { showToast } = useToast();
 
+  const isAdmin = authService.getRole() === "admin";
   const [contrato, setContrato] = useState<Contrato | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState<{ status: Contrato["status"]; label: string } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [instrucoesLoading, setInstrucoesLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
@@ -58,6 +61,24 @@ export default function ContratoPage() {
       .catch(() => router.push("/admin/contratos"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleDownloadInstrucoes() {
+    setInstrucoesLoading(true);
+    try {
+      const blob = await contratosService.instrucoesGerais(contrato!.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const nome = contrato!.contratante.nome.replace(/\s+/g, "_");
+      a.download = `instrucoes_gerais_${contrato!.id}_${nome}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao gerar instruções gerais."), "error");
+    } finally {
+      setInstrucoesLoading(false);
+    }
+  }
 
   async function handleDownloadPdf() {
     setPdfLoading(true);
@@ -148,6 +169,7 @@ export default function ContratoPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold text-foreground">Contrato #{contrato.id}</h1>
+          <Badge variant={contrato.tipo === "informal" ? "warning" : "neutral"}>{contrato.tipo}</Badge>
           <Badge variant={statusVariant[contrato.status] ?? "neutral"}>{contrato.status}</Badge>
           {dias !== null && (
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${dias <= 30 ? "bg-red-100 text-red-600" : dias <= 90 ? "bg-amber-100 text-amber-600" : "bg-surface text-muted border border-border"}`}>
@@ -156,8 +178,13 @@ export default function ContratoPage() {
           )}
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" loading={pdfLoading} onClick={handleDownloadPdf}>
-            Baixar PDF
+          {contrato.tipo === "formal" && (
+            <Button variant="outline" size="sm" loading={pdfLoading} onClick={handleDownloadPdf}>
+              Baixar PDF
+            </Button>
+          )}
+          <Button variant="outline" size="sm" loading={instrucoesLoading} onClick={handleDownloadInstrucoes}>
+            Baixar Instruções Gerais
           </Button>
           {contrato.status === "rascunho" && (
             <>
@@ -210,21 +237,31 @@ export default function ContratoPage() {
         </div>
 
         {/* Serviço & Valores */}
-        <div className="bg-surface border border-border rounded-xl p-6 space-y-3">
-          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Serviço & Valores</h2>
-          <div className="space-y-3">
-            <InfoRow label="Modalidade" value={contrato.curso} />
-            <InfoRow label="Mensalidade" value={formatBRL(contrato.valor_mensalidade)} />
-            {(contrato.desconto_percentual || contrato.desconto_valor) && (
-              <>
-                <InfoRow label="Desconto" value={contrato.desconto_percentual ? `${contrato.desconto_percentual}%` : formatBRL(contrato.desconto_valor!)} />
-                <InfoRow label="Com desconto" value={<span className="font-medium text-primary-600">{formatBRL(valorComDesconto!)}</span>} />
-              </>
-            )}
-            <InfoRow label="Vencimento" value={`Todo dia ${contrato.dia_vencimento}`} />
-            <InfoRow label="Reposição / hora" value={formatBRL(contrato.valor_reposicao_hora)} />
+        {isAdmin ? (
+          <div className="bg-surface border border-border rounded-xl p-6 space-y-3">
+            <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Serviço & Valores</h2>
+            <div className="space-y-3">
+              <InfoRow label="Modalidade" value={contrato.curso} />
+              <InfoRow label="Mensalidade" value={formatBRL(contrato.valor_mensalidade)} />
+              {(contrato.desconto_percentual || contrato.desconto_valor) && (
+                <>
+                  <InfoRow label="Desconto" value={contrato.desconto_percentual ? `${contrato.desconto_percentual}%` : formatBRL(contrato.desconto_valor!)} />
+                  <InfoRow label="Com desconto" value={<span className="font-medium text-primary-600">{formatBRL(valorComDesconto!)}</span>} />
+                </>
+              )}
+              <InfoRow label="Vencimento" value={`Todo dia ${contrato.dia_vencimento}`} />
+              <InfoRow label="Reposição / hora" value={formatBRL(contrato.valor_reposicao_hora)} />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-surface border border-border rounded-xl p-6 space-y-3">
+            <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Serviço</h2>
+            <div className="space-y-3">
+              <InfoRow label="Modalidade" value={contrato.curso} />
+              <InfoRow label="Vencimento" value={`Todo dia ${contrato.dia_vencimento}`} />
+            </div>
+          </div>
+        )}
 
         {/* Vigência & Assinatura */}
         <div className="bg-surface border border-border rounded-xl p-6 space-y-3">
@@ -245,8 +282,8 @@ export default function ContratoPage() {
         )}
       </div>
 
-      {/* Contrato assinado — rascunho: upload + download; outros status: só download se existir */}
-      {(contrato.status === "rascunho" || contrato.status === "encerrado" || contrato.status === "rescindido") ? (
+      {/* Contrato assinado — apenas para contratos formais */}
+      {contrato.tipo === "formal" && (contrato.status === "rascunho" || contrato.status === "encerrado" || contrato.status === "rescindido") ? (
         <div className={`border rounded-xl p-6 space-y-3 ${contrato.contrato_assinado_key ? "bg-surface border-border" : "bg-amber-50 border-amber-200"}`}>
           <div className="flex items-center justify-between">
             <div>

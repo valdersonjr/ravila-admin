@@ -107,7 +107,7 @@ def atualizar_status(db: Session, contrato_id: int, dados: ContratoStatusUpdate)
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Transição de '{contrato.status}' para '{dados.status}' não permitida",
         )
-    if dados.status == "ativo" and not contrato.contrato_assinado_key:
+    if dados.status == "ativo" and contrato.tipo == "formal" and not contrato.contrato_assinado_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="É necessário fazer o upload do contrato assinado antes de ativá-lo",
@@ -174,6 +174,60 @@ def gerar_pdf(db: Session, contrato_id: int) -> bytes:
         valor_reposicao=_fmt_brl(contrato.valor_reposicao_hora),
         data_inicio=fmt_date(contrato.data_inicio),
         data_fim=fmt_date(contrato.data_fim),
+    )
+
+    return WeasyHTML(string=html_str).write_pdf()
+
+
+def gerar_instrucoes_gerais(db: Session, contrato_id: int) -> bytes:
+    contrato = buscar(db, contrato_id)
+
+    static_dir = Path(__file__).parent.parent / "static"
+    logo_path = static_dir / "logo.svg"
+    logo_svg = ""
+    if logo_path.exists():
+        raw = logo_path.read_text(encoding="utf-8")
+        raw = re.sub(r'width="\d+"', 'width="50"', raw)
+        raw = re.sub(r'height="\d+"', 'height="26"', raw)
+        logo_svg = raw
+
+    def fmt_date(d):
+        return d.strftime("%d/%m/%Y") if d else "___/___/______"
+
+    cpf = contrato.contratante.cpf or ""
+    cpf_formatado = (
+        f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+        if len(cpf) == 11
+        else cpf or "___.___.___-__"
+    )
+
+    valor_com_desconto = None
+    desconto_label = None
+    if contrato.desconto_percentual:
+        v = float(contrato.valor_mensalidade) * (1 - float(contrato.desconto_percentual) / 100)
+        valor_com_desconto = _fmt_brl(v)
+        desconto_label = f"{contrato.desconto_percentual}%"
+    elif contrato.desconto_valor:
+        v = float(contrato.valor_mensalidade) - float(contrato.desconto_valor)
+        valor_com_desconto = _fmt_brl(max(v, 0))
+        desconto_label = _fmt_brl(contrato.desconto_valor)
+
+    template_dir = Path(__file__).parent.parent / "templates"
+    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=False)
+    template = env.get_template("instrucoes_gerais.html")
+
+    html_str = template.render(
+        contrato=contrato,
+        contratante=contrato.contratante,
+        logo_svg=logo_svg,
+        cpf_formatado=cpf_formatado,
+        valor_mensalidade=_fmt_brl(contrato.valor_mensalidade),
+        valor_com_desconto=valor_com_desconto,
+        desconto_label=desconto_label,
+        valor_reposicao=_fmt_brl(contrato.valor_reposicao_hora),
+        data_inicio=fmt_date(contrato.data_inicio),
+        data_fim=fmt_date(contrato.data_fim),
+        data_emissao=fmt_date(date.today()),
     )
 
     return WeasyHTML(string=html_str).write_pdf()

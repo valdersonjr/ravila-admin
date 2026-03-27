@@ -19,5 +19,6 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_secretario: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    foto_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     pessoa: Mapped[Optional["Pessoa"]] = relationship("Pessoa", back_populates="user")

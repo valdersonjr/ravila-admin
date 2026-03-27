@@ -90,6 +90,7 @@ export default function UsersPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!createUsername || !createSenha) { showToast("Preencha usuário e senha.", "error"); return; }
+    if (createRole === "professor" && !createPessoaId) { showToast("Professor precisa ter uma pessoa vinculada.", "error"); return; }
     setCreating(true);
     try {
       await usersService.criar({
@@ -123,6 +124,7 @@ export default function UsersPage() {
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editTarget) return;
+    if (editRole === "professor" && !editPessoaId) { showToast("Professor precisa ter uma pessoa vinculada.", "error"); return; }
     setSaving(true);
     try {
       const data: Parameters<typeof usersService.atualizar>[1] = {
@@ -218,7 +220,7 @@ export default function UsersPage() {
               <Field label="Tipo *">
                 <Select options={ROLE_OPTIONS} value={createRole} onChange={(e) => setCreateRole(e.target.value)} />
               </Field>
-              <Field label="Pessoa vinculada (opcional)">
+              <Field label={`Pessoa vinculada${createRole === "professor" ? " *" : " (opcional)"}`}>
                 <Combobox options={pessoaOptions} value={createPessoaId} onChange={setCreatePessoaId} placeholder="Buscar pessoa..." />
               </Field>
               <div className="flex gap-3 justify-end">

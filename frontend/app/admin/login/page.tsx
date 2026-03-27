@@ -18,8 +18,8 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await authService.login(username.trim(), senha);
-      router.replace("/admin");
+      const data = await authService.login(username.trim(), senha);
+      router.replace(data.role === "professor" ? "/admin/aulas" : "/admin");
     } catch {
       setError("Usuário ou senha incorretos.");
     } finally {

@@ -1,6 +1,7 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, decode_refresh_token
@@ -8,7 +9,10 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.repositories import user as user_repo
-from app.schemas.auth import LoginRequest, RefreshRequest, RefreshResponse, TokenResponse
+from app.schemas.auth import LoginRequest, MeUpdate, RefreshRequest, RefreshResponse, TokenResponse
+from app.repositories import pessoa as pessoa_repo
+from app.core.security import hash_password
+from app.services import s3 as s3_service
 from app.services import auth as auth_service
 from app.services.auth import _derive_role
 
@@ -46,5 +50,60 @@ def me(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "pessoa_id": current_user.pessoa_id,
         "nome": current_user.pessoa.nome if current_user.pessoa else current_user.username,
+        "email": current_user.pessoa.email if current_user.pessoa else None,
+        "telefone": current_user.pessoa.telefone if current_user.pessoa else None,
+        "tem_foto": bool(current_user.foto_key or (current_user.pessoa and current_user.pessoa.foto_key)),
         "ativo": current_user.ativo,
+    }
+
+
+@router.post("/me/foto")
+def upload_foto(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Apenas imagens são permitidas")
+    file_bytes = file.file.read()
+    key = s3_service.upload_foto(file_bytes, current_user.id, file.filename or "foto.jpg")
+    current_user.foto_key = key
+    db.add(current_user)
+    db.commit()
+    return {"tem_foto": True}
+
+
+@router.get("/me/foto")
+def ver_foto(
+    current_user: User = Depends(get_current_user),
+):
+    key = current_user.foto_key or (current_user.pessoa.foto_key if current_user.pessoa else None)
+    if not key:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Foto não encontrada")
+    url = s3_service.gerar_url_temporaria(key, expires_in=300)
+    return {"url": url}
+
+
+@router.patch("/me")
+def atualizar_me(
+    body: MeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = body.model_dump(exclude_unset=True)
+
+    if "senha" in data:
+        current_user.senha_hash = hash_password(data.pop("senha"))
+        db.add(current_user)
+
+    if data and current_user.pessoa_id:
+        pessoa = pessoa_repo.buscar_por_id(db, current_user.pessoa_id)
+        if pessoa:
+            pessoa_repo.atualizar(db, pessoa, data)
+
+    db.commit()
+    return {
+        "nome": current_user.pessoa.nome if current_user.pessoa else current_user.username,
+        "email": current_user.pessoa.email if current_user.pessoa else None,
+        "telefone": current_user.pessoa.telefone if current_user.pessoa else None,
     }

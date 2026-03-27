@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { contratosService, type Contrato } from "@/services/admin/contratos";
+import { authService } from "@/services/auth";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -8,7 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 const statusVariant: Record<string, "success" | "warning" | "neutral"> = {
   ativo: "success",
@@ -22,6 +23,7 @@ function formatBRL(valor: string | number) {
 }
 
 export default function ContratosPage() {
+  const isAdmin = authService.getRole() === "admin";
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -60,7 +62,12 @@ export default function ContratosPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Contratos</h1>
-        <Link href="/admin/contratos/novo"><Button>+ Novo Contrato</Button></Link>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Link href="/admin/contratos/novo?tipo=formal"><Button variant="outline">+ Contrato Formal</Button></Link>
+            <Link href="/admin/contratos/novo?tipo=informal"><Button>+ Contrato Informal</Button></Link>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3 items-center">
@@ -112,7 +119,7 @@ export default function ContratosPage() {
               },
               { header: "Contratante", render: (c) => c.contratante.nome },
               { header: "Modalidade", render: (c) => c.curso },
-              { header: "Mensalidade", render: (c) => formatBRL(c.valor_mensalidade) },
+              ...(isAdmin ? [{ header: "Mensalidade", render: (c: Contrato) => formatBRL(c.valor_mensalidade) }] : []),
               {
                 header: "Vigência",
                 render: (c) => {
@@ -120,15 +127,16 @@ export default function ContratosPage() {
                   return `${fmt(c.data_inicio)} – ${fmt(c.data_fim)}`;
                 },
               },
+              { header: "Tipo", render: (c) => <Badge variant={c.tipo === "formal" ? "neutral" : "warning"}>{c.tipo}</Badge> },
               { header: "Status", render: (c) => <Badge variant={statusVariant[c.status] ?? "neutral"}>{c.status}</Badge> },
-              {
+              ...(isAdmin ? [{
                 header: "Ações",
-                render: (c) => (
+                render: (c: Contrato) => (
                   <Link href={`/admin/contratos/${c.id}`} className="text-primary-600 hover:underline text-sm">
                     Ver
                   </Link>
                 ),
-              },
+              }] : []),
             ]}
           />
           <div className="flex items-center justify-between text-sm text-muted">

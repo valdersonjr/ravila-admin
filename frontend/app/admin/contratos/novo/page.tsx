@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { contratosService } from "@/services/admin/contratos";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
@@ -13,6 +13,8 @@ import { useToast } from "@/context/ToastContext";
 
 export default function NovoContratoPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tipo = (searchParams.get("tipo") ?? "formal") as "formal" | "informal";
   const { showToast } = useToast();
 
   const [alunos, setAlunos] = useState<Aluno[]>([]);
@@ -99,6 +101,7 @@ export default function NovoContratoPage() {
       const contrato = await contratosService.criar({
         aluno_ids: alunosSelecionados,
         contratante_id: Number(contratanteId),
+        tipo,
         curso: curso.trim(),
         valor_mensalidade: parseFloat(valorMensalidade),
         desconto_percentual: tipoDesconto === "percentual" && descontoPercentual ? parseFloat(descontoPercentual) : undefined,
@@ -126,7 +129,7 @@ export default function NovoContratoPage() {
 
   return (
     <div className="max-w-xl space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Novo Contrato</h1>
+      <h1 className="text-2xl font-bold text-foreground">Novo Contrato {tipo === "informal" ? "Informal" : "Formal"}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
 
         {/* Multi-aluno */}

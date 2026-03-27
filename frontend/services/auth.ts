@@ -1,4 +1,4 @@
-import { api, setAccessToken } from "./api";
+import { api, apiAuth, setAccessToken } from "./api";
 
 const REFRESH_KEY = "refresh_token";
 const ROLE_KEY = "user_role";
@@ -68,6 +68,29 @@ export const authService = {
     if (typeof window === "undefined") return null;
     const v = sessionStorage.getItem(PESSOA_ID_KEY);
     return v ? Number(v) : null;
+  },
+
+  async me(): Promise<{ nome: string; email: string | null; telefone: string | null; tem_foto: boolean }> {
+    return apiAuth.get("/auth/me");
+  },
+
+  async uploadFoto(file: File): Promise<void> {
+    const form = new FormData();
+    form.append("file", file);
+    await apiAuth.upload<{ tem_foto: boolean }>("/auth/me/foto", form);
+  },
+
+  async fotoUrl(): Promise<string> {
+    const res = await apiAuth.get<{ url: string }>("/auth/me/foto");
+    return res.url;
+  },
+
+  async atualizarPerfil(dados: { nome?: string; email?: string; telefone?: string; senha?: string }): Promise<{ nome: string; email: string | null; telefone: string | null }> {
+    const result = await apiAuth.patch<{ nome: string; email: string | null; telefone: string | null }>("/auth/me", dados);
+    if (result.nome && typeof window !== "undefined") {
+      sessionStorage.setItem(NOME_KEY, result.nome);
+    }
+    return result;
   },
 
   isAuthenticated(): boolean {

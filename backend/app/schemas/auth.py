@@ -16,6 +16,13 @@ class TokenResponse(BaseModel):
     nome: str
 
 
+class MeUpdate(BaseModel):
+    nome: Optional[str] = None
+    email: Optional[str] = None
+    telefone: Optional[str] = None
+    senha: Optional[str] = None
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 

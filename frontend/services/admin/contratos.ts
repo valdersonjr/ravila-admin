@@ -4,6 +4,7 @@ import type { Aluno } from "./alunos";
 export interface Contrato {
   id: number;
   contratante_id: number;
+  tipo: "formal" | "informal";
   curso: string;
   valor_mensalidade: string;
   desconto_percentual: string | null;
@@ -32,6 +33,7 @@ export interface ContratoListOut {
 export interface ContratoCreate {
   aluno_ids: number[];
   contratante_id: number;
+  tipo?: "formal" | "informal";
   curso: string;
   valor_mensalidade: number;
   desconto_percentual?: number;
@@ -61,6 +63,7 @@ export const contratosService = {
   atualizarStatus: (id: number, status: Contrato["status"]) =>
     apiAuth.patch<Contrato>(`/contratos/${id}/status`, { status }),
   pdf: (id: number) => apiAuth.getBlob(`/contratos/${id}/pdf`),
+  instrucoesGerais: (id: number) => apiAuth.getBlob(`/contratos/${id}/instrucoes-gerais`),
   uploadAssinado: (id: number, file: File) => {
     const form = new FormData();
     form.append("file", file);

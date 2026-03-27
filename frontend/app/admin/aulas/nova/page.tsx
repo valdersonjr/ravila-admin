@@ -5,6 +5,7 @@ import { aulasService, type Aula } from "@/services/admin/aulas";
 import { getErrorMessage } from "@/lib/utils";
 import { turmasService, type Turma, type HorarioTurma } from "@/services/admin/turmas";
 import { professoresService, type Professor } from "@/services/admin/professores";
+import { authService } from "@/services/auth";
 import { Input } from "@/components/ui/Input";
 import { Combobox } from "@/components/ui/Combobox";
 import { Select } from "@/components/ui/Select";
@@ -42,6 +43,10 @@ export default function NovaAulaPage() {
   const router = useRouter();
   const { showToast } = useToast();
 
+  const isAdmin = authService.getRole() === "admin";
+  const isProfessor = authService.getRole() === "professor";
+  const pessoaId = authService.getPessoaId();
+
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [turmaId, setTurmaId] = useState<number | string | null>(null);
@@ -57,10 +62,15 @@ export default function NovaAulaPage() {
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   useEffect(() => {
-    Promise.all([turmasService.listar(), professoresService.listar()]).then(([ts, ps]) => {
-      setTurmas(ts);
-      setProfessores(ps.filter((p) => p.ativo));
-    });
+    if (isProfessor && pessoaId) {
+      setProfessorId(pessoaId);
+      turmasService.listar({ professor_id: pessoaId }).then(setTurmas);
+    } else {
+      Promise.all([turmasService.listar(), professoresService.listar()]).then(([ts, ps]) => {
+        setTurmas(ts);
+        setProfessores(ps.filter((p) => p.ativo));
+      });
+    }
   }, []);
 
   async function atualizarSlots(tId: number | string | null, pId: number | string | null) {
@@ -134,9 +144,11 @@ export default function NovaAulaPage() {
         <Field label="Turma *">
           <Combobox options={turmaOptions} value={turmaId} onChange={handleTurmaChange} placeholder="Selecionar turma..." />
         </Field>
-        <Field label="Professor *">
-          <Combobox options={profOptions} value={professorId} onChange={handleProfessorChange} placeholder="Selecionar professor..." />
-        </Field>
+        {!isProfessor && (
+          <Field label="Professor *">
+            <Combobox options={profOptions} value={professorId} onChange={handleProfessorChange} placeholder="Selecionar professor..." />
+          </Field>
+        )}
 
         {temHorarios && professorId && (
           <Field label="Próximas datas disponíveis">

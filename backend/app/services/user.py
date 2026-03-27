@@ -28,6 +28,12 @@ def criar(db: Session, dados: UserCreate) -> User:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username já está em uso",
         )
+    is_professor = not dados.is_admin and not dados.is_secretario
+    if is_professor and not dados.pessoa_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário do tipo professor precisa ter uma pessoa vinculada",
+        )
     if dados.pessoa_id is not None:
         if user_repo.buscar_por_pessoa_id(db, dados.pessoa_id):
             raise HTTPException(
@@ -70,6 +76,17 @@ def atualizar(
             )
     if pessoa_id_in_body:
         data["pessoa_id"] = pessoa_id_value
+
+    is_admin_final = data.get("is_admin", user.is_admin)
+    is_secretario_final = data.get("is_secretario", user.is_secretario)
+    is_professor_final = not is_admin_final and not is_secretario_final
+    pessoa_id_final = data.get("pessoa_id", user.pessoa_id) if pessoa_id_in_body else user.pessoa_id
+    if is_professor_final and not pessoa_id_final:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário do tipo professor precisa ter uma pessoa vinculada",
+        )
+
     return user_repo.atualizar(db, user, data)
 
 

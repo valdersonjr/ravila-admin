@@ -6,6 +6,7 @@ import { contratosService, type Contrato } from "@/services/admin/contratos";
 import { presencasService, type PresencaDoAluno } from "@/services/admin/presencas";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { authService } from "@/services/auth";
 import Link from "next/link";
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -77,6 +78,7 @@ export default function AlunoPage() {
   }
   if (!aluno) return null;
 
+  const isAdmin = authService.getRole() === "admin";
   const matriculasAtivas = (aluno.matriculas ?? []).filter(
     (m) => m.status === "ativa" && m.turma
   );
@@ -148,21 +150,36 @@ export default function AlunoPage() {
               <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Contrato em vigor</h2>
               <Badge variant="success">ativo</Badge>
             </div>
-            <Link href={`/admin/contratos/${contratoAtivo.id}`} className="text-primary-600 hover:underline text-sm shrink-0">
-              Ver contrato
-            </Link>
+            {isAdmin && (
+              <Link href={`/admin/contratos/${contratoAtivo.id}`} className="text-primary-600 hover:underline text-sm shrink-0">
+                Ver contrato
+              </Link>
+            )}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
             <div>
               <p className="text-xs text-muted font-medium">Modalidade</p>
               <p className="text-sm text-foreground font-medium mt-0.5">{contratoAtivo.curso}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted font-medium">Mensalidade</p>
-              <p className="text-sm text-foreground font-medium mt-0.5">
-                {Number(contratoAtivo.valor_mensalidade).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-              </p>
-            </div>
+            {isAdmin && (
+              <div>
+                <p className="text-xs text-muted font-medium">Mensalidade</p>
+                <p className="text-sm text-foreground font-medium mt-0.5">
+                  {Number(contratoAtivo.valor_mensalidade).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </p>
+                {(contratoAtivo.desconto_percentual || contratoAtivo.desconto_valor) && (() => {
+                  const v = Number(contratoAtivo.valor_mensalidade);
+                  const comDesconto = contratoAtivo.desconto_percentual
+                    ? v * (1 - Number(contratoAtivo.desconto_percentual) / 100)
+                    : Math.max(v - Number(contratoAtivo.desconto_valor), 0);
+                  return (
+                    <p className="text-xs text-primary-600 font-medium mt-0.5">
+                      Com desconto: {comDesconto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
             <div>
               <p className="text-xs text-muted font-medium">Início</p>
               <p className="text-sm text-foreground font-medium mt-0.5">{formatDate(contratoAtivo.data_inicio)}</p>

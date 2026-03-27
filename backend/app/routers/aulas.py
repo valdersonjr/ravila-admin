@@ -64,7 +64,8 @@ def criar(
     current_user: User = Depends(require_staff_or_professor),
 ):
     pendente = current_user.role == "professor"
-    return aula_service.criar(db, body, pendente_aprovacao=pendente)
+    professor_pessoa_id = current_user.pessoa_id if current_user.role == "professor" else None
+    return aula_service.criar(db, body, pendente_aprovacao=pendente, professor_pessoa_id=professor_pessoa_id)
 
 
 @router.post("/avulsa", response_model=AulaOut, status_code=status.HTTP_201_CREATED)
@@ -80,8 +81,11 @@ def criar_avulsa(
 def deletar(
     aula_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff_or_professor),
 ):
+    aula = aula_service.buscar(db, aula_id)
+    if current_user.role == "professor" and aula.professor_id != current_user.pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
     aula_service.deletar(db, aula_id)
 
 

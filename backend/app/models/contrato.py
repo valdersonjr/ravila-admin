@@ -37,6 +37,7 @@ class Contrato(Base):
     data_assinatura: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     local_assinatura: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, default="Goianésia GO")
     observacoes: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    tipo: Mapped[str] = mapped_column(String(10), nullable=False, default="formal")
     status: Mapped[str] = mapped_column(String(15), nullable=False, default="rascunho")
     contrato_assinado_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)

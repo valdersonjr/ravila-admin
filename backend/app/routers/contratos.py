@@ -132,6 +132,20 @@ def download_assinado(
     )
 
 
+@router.get("/{contrato_id}/instrucoes-gerais")
+def baixar_instrucoes_gerais(
+    contrato_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_staff),
+):
+    pdf_bytes = contrato_service.gerar_instrucoes_gerais(db, contrato_id)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="instrucoes_gerais_{contrato_id}.pdf"'},
+    )
+
+
 @router.get("/{contrato_id}/pdf")
 def baixar_pdf(
     contrato_id: int,
