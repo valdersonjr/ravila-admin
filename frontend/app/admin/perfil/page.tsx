@@ -77,7 +77,6 @@ export default function PerfilPage() {
     try {
       await authService.atualizarPerfil({ senha: novaSenha });
       showToast("Senha alterada com sucesso!");
-      setSenhaAtual("");
       setNovaSenha("");
       setConfirmarSenha("");
     } catch (err) {
