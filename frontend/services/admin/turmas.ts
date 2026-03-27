@@ -5,7 +5,7 @@ export interface Turma {
   id: number;
   nome: string;
   status: "ativa" | "encerrada";
-  livro: { id: number; titulo: string; serie: string | null } | null;
+  livro: string | null;
   professor: { pessoa_id: number; pessoa: { nome: string } } | null;
   horarios: HorarioTurma[];
 }
@@ -34,8 +34,8 @@ export const turmasService = {
     return apiAuth.get<Turma[]>(`/turmas/${qs.toString() ? `?${qs}` : ""}`);
   },
   buscar: (id: number) => apiAuth.get<Turma>(`/turmas/${id}`),
-  criar: (data: { nome: string; livro_id?: number; professor_id: number }) => apiAuth.post<Turma>("/turmas/", data),
-  atualizar: (id: number, data: { nome?: string; livro_id?: number; professor_id?: number; status?: string }) => apiAuth.put<Turma>(`/turmas/${id}`, data),
+  criar: (data: { nome: string; livro?: string; professor_id: number }) => apiAuth.post<Turma>("/turmas/", data),
+  atualizar: (id: number, data: { nome?: string; livro?: string; professor_id?: number; status?: string }) => apiAuth.put<Turma>(`/turmas/${id}`, data),
   adicionarHorario: (turmaId: number, data: { dia_semana: number; hora_inicio: string; hora_fim: string }) => apiAuth.post<HorarioTurma>(`/turmas/${turmaId}/horarios`, data),
   removerHorario: (turmaId: number, horarioId: number) => apiAuth.delete<void>(`/turmas/${turmaId}/horarios/${horarioId}`),
   gerarAulas: (turmaId: number, data: { data_inicio: string; data_fim: string }) => apiAuth.post<{ criadas: number }>(`/turmas/${turmaId}/gerar-aulas`, data),

@@ -2,7 +2,6 @@ from app.models.base import Base
 from app.models.pessoa import Pessoa
 from app.models.user import User
 from app.models.nivel import Nivel
-from app.models.livro import Livro
 from app.models.professor import Professor
 from app.models.aluno import Aluno
 from app.models.turma import Turma, HorarioTurma
@@ -17,7 +16,6 @@ __all__ = [
     "Pessoa",
     "User",
     "Nivel",
-    "Livro",
     "Professor",
     "Aluno",
     "Turma",

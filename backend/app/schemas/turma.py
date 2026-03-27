@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional, Literal
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.livro import LivroOut
 from app.schemas.professor import ProfessorOut
 
 
@@ -24,14 +23,14 @@ class HorarioTurmaOut(BaseModel):
 
 class TurmaCreate(BaseModel):
     nome: str
-    livro_id: Optional[int] = None
+    livro: Optional[str] = None
     professor_id: int
     status: Literal["ativa", "encerrada"] = "ativa"
 
 
 class TurmaUpdate(BaseModel):
     nome: Optional[str] = None
-    livro_id: Optional[int] = None
+    livro: Optional[str] = None
     professor_id: Optional[int] = None
     status: Optional[Literal["ativa", "encerrada"]] = None
 
@@ -39,11 +38,10 @@ class TurmaUpdate(BaseModel):
 class TurmaOut(BaseModel):
     id: int
     nome: str
-    livro_id: Optional[int] = None
+    livro: Optional[str] = None
     professor_id: int
     status: str
     created_at: datetime
-    livro: Optional[LivroOut] = None
     professor: ProfessorOut
     horarios: list[HorarioTurmaOut] = []
 

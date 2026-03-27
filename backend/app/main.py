@@ -15,7 +15,6 @@ from app.routers import (
     pessoas,
     users,
     niveis,
-    livros,
     professores,
     alunos,
     turmas,
@@ -49,7 +48,6 @@ app.include_router(auth.router)
 app.include_router(pessoas.router)
 app.include_router(users.router)
 app.include_router(niveis.router)
-app.include_router(livros.router)
 app.include_router(professores.router)
 app.include_router(alunos.router)
 app.include_router(turmas.router)

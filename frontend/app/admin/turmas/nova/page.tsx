@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { turmasService } from "@/services/admin/turmas";
 import { getErrorMessage } from "@/lib/utils";
-import { livrosService, type Livro } from "@/services/admin/livros";
 import { professoresService, type Professor } from "@/services/admin/professores";
 import { Input } from "@/components/ui/Input";
 import { Combobox } from "@/components/ui/Combobox";
@@ -16,17 +15,13 @@ export default function NovaTurmaPage() {
   const { showToast } = useToast();
 
   const [nome, setNome] = useState("");
-  const [livros, setLivros] = useState<Livro[]>([]);
+  const [livro, setLivro] = useState("");
   const [professores, setProfessores] = useState<Professor[]>([]);
-  const [livroId, setLivroId] = useState<number | string | null>(null);
   const [professorId, setProfessorId] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    Promise.all([livrosService.listar(), professoresService.listar()]).then(([ls, ps]) => {
-      setLivros(ls);
-      setProfessores(ps.filter((p) => p.ativo));
-    });
+    professoresService.listar().then((ps) => setProfessores(ps.filter((p) => p.ativo)));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -36,7 +31,7 @@ export default function NovaTurmaPage() {
     try {
       const turma = await turmasService.criar({
         nome: nome.trim(),
-        livro_id: livroId ? Number(livroId) : undefined,
+        livro: livro.trim() || undefined,
         professor_id: Number(professorId),
       });
       showToast("Turma criada! Adicione horários e gere aulas.");
@@ -46,7 +41,6 @@ export default function NovaTurmaPage() {
     } finally { setLoading(false); }
   }
 
-  const livroOptions = livros.map((l) => ({ value: l.id, label: l.titulo }));
   const professorOptions = professores.map((p) => ({ value: p.pessoa_id, label: p.pessoa.nome }));
 
   return (
@@ -57,7 +51,7 @@ export default function NovaTurmaPage() {
           <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Turma Manhã A1" required />
         </Field>
         <Field label="Livro">
-          <Combobox options={livroOptions} value={livroId} onChange={setLivroId} placeholder="Selecionar livro..." />
+          <Input value={livro} onChange={(e) => setLivro(e.target.value)} placeholder="Ex: Interchange 1" />
         </Field>
         <Field label="Professor *">
           <Combobox options={professorOptions} value={professorId} onChange={setProfessorId} placeholder="Selecionar professor..." />
