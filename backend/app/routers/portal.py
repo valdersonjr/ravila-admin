@@ -2,7 +2,8 @@
 Portal do aluno — endpoints exclusivos para usuários com role='aluno'.
 Retorna apenas dados do próprio aluno autenticado.
 """
-from datetime import date, timedelta
+import random
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -19,7 +20,19 @@ from app.models.material import Material
 from app.models.matricula import Matricula
 from app.models.presenca import Presenca
 from app.models.user import User
+from app.models.aluno import Aluno as AlunoModel
+from app.models.questao import Questao, QuestaoAlunoDia, QuestaoResposta
+from app.models.questao import NIVEIS_CEFR
 from app.schemas.material import MaterialPortalOut
+from app.schemas.questao import (
+    QuestaoAlunoDiaOut,
+    QuestaoPortalOut,
+    QuestaoRespostaCreate,
+    QuestaoRespostaOut,
+)
+from app.repositories import questao as questao_repo
+from app.services import questao as questao_svc
+from app.services.questao import verificar_resposta
 from app.services import s3 as s3_service
 
 router = APIRouter(prefix="/portal", tags=["portal"])
@@ -58,8 +71,10 @@ class AulaListPortalOut(BaseModel):
 
 
 class ResumoPortalOut(BaseModel):
-    streak_semanas: int
     proxima_aula: Optional[AulaPortalOut]
+    streak_dias: int
+    questao_respondida_hoje: bool
+    nivel_atual: Optional[str]
 
 
 class ContratoPortalOut(BaseModel):
@@ -108,41 +123,6 @@ def _aula_to_out(aula: Aula) -> AulaPortalOut:
         status=aula.status,
         tipo=aula.tipo,
     )
-
-
-def _calcular_streak(db: Session, aluno_id: int) -> int:
-    """Conta semanas ISO consecutivas com pelo menos 1 presença confirmada."""
-    presencas = (
-        db.query(Presenca)
-        .options(joinedload(Presenca.aula))
-        .filter(Presenca.aluno_id == aluno_id, Presenca.presente == True)
-        .all()
-    )
-
-    semanas_com_presenca: set[tuple[int, int]] = set()
-    for p in presencas:
-        if p.aula:
-            iso = p.aula.data.isocalendar()
-            semanas_com_presenca.add((iso.year, iso.week))
-
-    if not semanas_com_presenca:
-        return 0
-
-    streak = 0
-    hoje = date.today()
-    ano, semana, _ = hoje.isocalendar()
-
-    # Se a semana atual ainda não tem presença, começa pela anterior
-    if (ano, semana) not in semanas_com_presenca:
-        d = date.fromisocalendar(ano, semana, 1) - timedelta(weeks=1)
-        ano, semana, _ = d.isocalendar()
-
-    while (ano, semana) in semanas_com_presenca:
-        streak += 1
-        d = date.fromisocalendar(ano, semana, 1) - timedelta(weeks=1)
-        ano, semana, _ = d.isocalendar()
-
-    return streak
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -375,22 +355,233 @@ def download_material(
     return {"url": url}
 
 
+@router.get("/questao-diaria", response_model=QuestaoAlunoDiaOut)
+def questao_diaria(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    """Retorna (ou sorteia) a questão do dia do aluno."""
+    aluno = db.query(AlunoModel).filter(AlunoModel.pessoa_id == current_user.pessoa_id).first()
+    diaria = questao_svc.obter_questao_diaria(db, current_user.pessoa_id, aluno.nivel_questao if aluno else None)
+    # Carrega a questão para o relacionamento estar disponível
+    db.refresh(diaria)
+    return QuestaoAlunoDiaOut(
+        data=diaria.data,
+        respondida=diaria.respondida,
+        questao=QuestaoPortalOut.model_validate(diaria.questao),
+    )
+
+
+@router.post("/questao-diaria/responder", response_model=QuestaoRespostaOut)
+def responder_questao_diaria(
+    dados: QuestaoRespostaCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    aluno = db.query(AlunoModel).filter(AlunoModel.pessoa_id == current_user.pessoa_id).first()
+    return questao_svc.responder_questao_diaria(
+        db,
+        current_user.pessoa_id,
+        aluno.nivel_questao if aluno else None,
+        dados.resposta_dada,
+    )
+
+
+@router.get("/questoes", response_model=list[QuestaoPortalOut])
+def banco_questoes(
+    nivel: Optional[str] = Query(None),
+    estilo: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=50),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_aluno),
+):
+    """Banco de questões para prática livre."""
+    from app.repositories.questao import listar_para_portal
+    items = listar_para_portal(
+        db, nivel=nivel, estilo=estilo,
+        skip=(page - 1) * page_size, limit=page_size,
+    )
+    return [QuestaoPortalOut.model_validate(q) for q in items]
+
+
+@router.post("/questoes/{questao_id}/responder", response_model=QuestaoRespostaOut)
+def responder_banco(
+    questao_id: int,
+    dados: QuestaoRespostaCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    return questao_svc.responder_banco(db, current_user.pessoa_id, questao_id, dados.resposta_dada)
+
+
+# ── Teste de proficiência ─────────────────────────────────────────────────────
+
+class RespostaLoteItem(BaseModel):
+    questao_id: int
+    resposta_dada: str
+
+class AvaliarCompletoIn(BaseModel):
+    respostas: list[RespostaLoteItem]
+
+
+@router.get("/teste-proficiencia/status")
+def status_teste_proficiencia(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    aluno = db.query(AlunoModel).filter(AlunoModel.pessoa_id == current_user.pessoa_id).first()
+    concluido = aluno is not None and aluno.nivel_questao_avaliado_em is not None
+    return {
+        "concluido": concluido,
+        "nivel": aluno.nivel_questao if concluido else None,
+        "avaliado_em": aluno.nivel_questao_avaliado_em,
+    }
+
+
+@router.get("/teste-proficiencia/questoes", response_model=list[QuestaoPortalOut])
+def questoes_proficiencia(
+    nivel: str = Query(...),
+    excluir_ids: str = Query(""),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_aluno),
+):
+    excluir = [int(x) for x in excluir_ids.split(",") if x.strip().isdigit()]
+    q = db.query(Questao).filter(Questao.nivel == nivel, Questao.ativo == True)
+    if excluir:
+        q = q.filter(~Questao.id.in_(excluir))
+    candidatas = q.all()
+    sample = random.sample(candidatas, min(3, len(candidatas)))
+    return [QuestaoPortalOut.model_validate(q) for q in sample]
+
+
+@router.post("/teste-proficiencia/avaliar-completo")
+def avaliar_completo_proficiencia(
+    dados: AvaliarCompletoIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    from fastapi import HTTPException
+    aluno = db.query(AlunoModel).filter(AlunoModel.pessoa_id == current_user.pessoa_id).first()
+    if not aluno:
+        raise HTTPException(status_code=404)
+    if aluno.nivel_questao_avaliado_em is not None:
+        raise HTTPException(status_code=409, detail="Teste já realizado")
+
+    # Registrar respostas e agrupar acertos por nível
+    nivel_acertos: dict[str, int] = {}
+    nivel_total: dict[str, int] = {}
+
+    for r in dados.respostas:
+        questao = db.query(Questao).filter(Questao.id == r.questao_id).first()
+        if not questao:
+            continue
+        acertou = verificar_resposta(questao, r.resposta_dada)
+        questao_repo.registrar_resposta(
+            db, current_user.pessoa_id, r.questao_id, r.resposta_dada, acertou, "proficiencia"
+        )
+        nivel_acertos[questao.nivel] = nivel_acertos.get(questao.nivel, 0) + (1 if acertou else 0)
+        nivel_total[questao.nivel] = nivel_total.get(questao.nivel, 0) + 1
+
+    # Encontrar o maior nível consecutivo aprovado (≥2 acertos) a partir do A1
+    nivel_final = NIVEIS_CEFR[0]
+    for nivel in NIVEIS_CEFR:
+        if nivel_total.get(nivel, 0) == 0:
+            break
+        if nivel_acertos.get(nivel, 0) >= 2:
+            nivel_final = nivel
+        else:
+            break
+
+    aluno.nivel_questao = nivel_final
+    aluno.nivel_questao_avaliado_em = datetime.utcnow()
+    db.commit()
+
+    return {"nivel": nivel_final}
+
+
+
+# ── Progressão de nível ───────────────────────────────────────────────────────
+
+@router.get("/nivel-progresso")
+def nivel_progresso(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    aluno = db.query(AlunoModel).filter(AlunoModel.pessoa_id == current_user.pessoa_id).first()
+    nivel_atual = aluno.nivel_questao if aluno else None
+
+    if not nivel_atual:
+        return {"nivel_atual": None, "elegivel_upgrade": False, "proximo_nivel": None,
+                "total_respondidas": 0, "acertos": 0, "percentual": 0}
+
+    respostas = (
+        db.query(QuestaoResposta)
+        .join(Questao, QuestaoResposta.questao_id == Questao.id)
+        .filter(
+            QuestaoResposta.aluno_id == current_user.pessoa_id,
+            QuestaoResposta.origem == "banco",
+            Questao.nivel == nivel_atual,
+        )
+        .order_by(QuestaoResposta.respondida_em.desc())
+        .limit(20)
+        .all()
+    )
+
+    # Primeira ocorrência de cada questão = peso 1.0; repetições = peso 0.25
+    vistas: set[int] = set()
+    peso_total = 0.0
+    acertos_ponderados = 0.0
+    for r in respostas:
+        peso = 1.0 if r.questao_id not in vistas else 0.25
+        vistas.add(r.questao_id)
+        peso_total += peso
+        if r.acertou:
+            acertos_ponderados += peso
+
+    total = len(respostas)
+    acertos = sum(1 for r in respostas if r.acertou)
+    percentual = round(acertos_ponderados / peso_total * 100) if peso_total > 0 else 0
+    elegivel = peso_total >= 10 and percentual >= 75
+
+    idx = NIVEIS_CEFR.index(nivel_atual) if nivel_atual in NIVEIS_CEFR else -1
+    proximo_nivel = NIVEIS_CEFR[idx + 1] if idx >= 0 and idx < len(NIVEIS_CEFR) - 1 else None
+
+    return {
+        "nivel_atual": nivel_atual,
+        "total_respondidas": total,
+        "acertos": acertos,
+        "percentual": percentual,
+        "elegivel_upgrade": elegivel,
+        "proximo_nivel": proximo_nivel,
+    }
+
+
 @router.get("/resumo", response_model=ResumoPortalOut)
 def resumo(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_aluno),
 ):
-    """Dados para a home: streak + próxima aula. Uma única chamada."""
-    streak = _calcular_streak(db, current_user.pessoa_id)
+    """Dados para a home: próxima aula, streak de questões, questão do dia e nível."""
+    aluno_id = current_user.pessoa_id
 
     proxima = (
-        _query_aulas_do_aluno(db, current_user.pessoa_id)
+        _query_aulas_do_aluno(db, aluno_id)
         .filter(Aula.data >= date.today(), Aula.status == "agendada")
         .order_by(Aula.data.asc(), Aula.hora_inicio.asc())
         .first()
     )
 
+    streak_dias = questao_repo.calcular_streak(db, aluno_id)
+
+    diaria_hoje = questao_repo.buscar_diaria_hoje(db, aluno_id, date.today())
+    questao_respondida_hoje = diaria_hoje.respondida if diaria_hoje else False
+
+    aluno = db.query(AlunoModel).filter(AlunoModel.pessoa_id == aluno_id).first()
+
     return ResumoPortalOut(
-        streak_semanas=streak,
         proxima_aula=_aula_to_out(proxima) if proxima else None,
+        streak_dias=streak_dias,
+        questao_respondida_hoje=questao_respondida_hoje,
+        nivel_atual=aluno.nivel_questao if aluno else None,
     )

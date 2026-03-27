@@ -46,8 +46,10 @@ export interface AulaListPortal {
 }
 
 export interface ResumoPortal {
-  streak_semanas: number;
   proxima_aula: AulaPortal | null;
+  streak_dias: number;
+  questao_respondida_hoje: boolean;
+  nivel_atual: string | null;
 }
 
 export interface MaterialPortal {
@@ -58,6 +60,46 @@ export interface MaterialPortal {
   categoria: string;
   aula_id: number | null;
   tem_arquivo: boolean;
+}
+
+export interface QuestaoPortal {
+  id: number;
+  enunciado: string;
+  nivel: string;
+  subtipo: string;
+  estilo: string;
+  texto_apoio: string | null;
+  midia_url: string | null;
+  alternativas: string[] | null;
+}
+
+export interface QuestaoAlunoDia {
+  data: string;
+  respondida: boolean;
+  questao: QuestaoPortal;
+}
+
+export interface QuestaoRespostaPortal {
+  acertou: boolean;
+  resposta_correta: string;
+  explicacao: string | null;
+  streak: number;
+}
+
+export interface StatusTeste {
+  concluido: boolean;
+  nivel: string | null;
+  avaliado_em: string | null;
+}
+
+
+export interface NivelProgresso {
+  nivel_atual: string | null;
+  total_respondidas: number;
+  acertos: number;
+  percentual: number;
+  elegivel_upgrade: boolean;
+  proximo_nivel: string | null;
 }
 
 export interface ContratoPortal {
@@ -127,5 +169,53 @@ export const portalService = {
 
   downloadMaterial(id: number): Promise<{ url: string }> {
     return request(`/portal/materiais/${id}/download`);
+  },
+
+  questaoDiaria(): Promise<QuestaoAlunoDia> {
+    return request("/portal/questao-diaria");
+  },
+
+  responderDiaria(resposta_dada: string): Promise<QuestaoRespostaPortal> {
+    return request("/portal/questao-diaria/responder", {
+      method: "POST",
+      body: JSON.stringify({ resposta_dada }),
+    });
+  },
+
+  bancoquestoes(params?: { nivel?: string; estilo?: string; page?: number }): Promise<QuestaoPortal[]> {
+    const qs = new URLSearchParams();
+    if (params?.nivel) qs.set("nivel", params.nivel);
+    if (params?.estilo) qs.set("estilo", params.estilo);
+    if (params?.page) qs.set("page", String(params.page));
+    const q = qs.toString();
+    return request(`/portal/questoes${q ? `?${q}` : ""}`);
+  },
+
+  responderBanco(questaoId: number, resposta_dada: string): Promise<QuestaoRespostaPortal> {
+    return request(`/portal/questoes/${questaoId}/responder`, {
+      method: "POST",
+      body: JSON.stringify({ resposta_dada }),
+    });
+  },
+
+  statusTeste(): Promise<StatusTeste> {
+    return request("/portal/teste-proficiencia/status");
+  },
+
+  questoesProficiencia(nivel: string, excluirIds: number[] = []): Promise<QuestaoPortal[]> {
+    const qs = new URLSearchParams({ nivel });
+    if (excluirIds.length) qs.set("excluir_ids", excluirIds.join(","));
+    return request(`/portal/teste-proficiencia/questoes?${qs}`);
+  },
+
+  avaliarCompleto(respostas: { questao_id: number; resposta_dada: string }[]): Promise<{ nivel: string }> {
+    return request("/portal/teste-proficiencia/avaliar-completo", {
+      method: "POST",
+      body: JSON.stringify({ respostas }),
+    });
+  },
+
+  nivelProgresso(): Promise<NivelProgresso> {
+    return request("/portal/nivel-progresso");
   },
 };

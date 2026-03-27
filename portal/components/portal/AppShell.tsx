@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { House, CalendarDays, UserRound } from "lucide-react";
+import { House, CalendarDays, UserRound, BookOpen, Flame } from "lucide-react";
 import { authService } from "@/services/auth";
 import { Logo } from "@/components/ui/Logo";
 
@@ -13,6 +13,7 @@ interface AppShellProps {
 const NAV = [
   { href: "/home", label: "Início", Icon: House },
   { href: "/atividade", label: "Atividade", Icon: CalendarDays },
+  { href: "/pratica", label: "Prática", Icon: BookOpen },
   { href: "/perfil", label: "Perfil", Icon: UserRound },
 ];
 
@@ -55,8 +56,8 @@ export function AppShell({ children, streak = 0 }: AppShellProps) {
           <div className="flex items-center gap-2">
             {streak > 0 && (
               <div className="flex items-center gap-1 bg-primary-50 border border-primary-100 rounded-full px-3 py-1">
-                <span className="text-xs">🔥</span>
-                <span className="text-xs font-bold text-primary-700">{streak} sem.</span>
+                <Flame size={12} className="text-orange-500" />
+                <span className="text-xs font-bold text-primary-700">{streak} {streak === 1 ? "dia" : "dias"}</span>
               </div>
             )}
             <Logo variant="light" width={30} />
