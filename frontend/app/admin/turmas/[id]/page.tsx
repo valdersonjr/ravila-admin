@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { turmasService, type Turma, type HorarioTurma } from "@/services/admin/turmas";
+import { professoresService, type Professor } from "@/services/admin/professores";
 import { formatCpf } from "@/lib/masks";
 import { getErrorMessage } from "@/lib/utils";
 import { aulasService, type Aula } from "@/services/admin/aulas";
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { Field } from "@/components/ui/Field";
 import { useToast } from "@/context/ToastContext";
 import { authService } from "@/services/auth";
 import Link from "next/link";
@@ -27,7 +29,13 @@ export default function TurmaDetailPage() {
   const [turma, setTurma] = useState<Turma | null>(null);
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
+  const [professores, setProfessores] = useState<Professor[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Editar turma
+  const [editando, setEditando] = useState(false);
+  const [editForm, setEditForm] = useState({ nome: "", livro: "", professor_id: "", status: "" });
+  const [salvandoEdit, setSalvandoEdit] = useState(false);
 
   // Horário form
   const [diaSemana, setDiaSemana] = useState("1");
@@ -44,15 +52,45 @@ export default function TurmaDetailPage() {
   async function load() {
     setLoading(true);
     try {
-      const [t, as, ms] = await Promise.all([
+      const [t, as, ms, profs] = await Promise.all([
         turmasService.buscar(Number(id)),
         aulasService.listar({ turma_id: Number(id), page_size: 500 }),
         matriculasService.listar({ turma_id: Number(id) }),
+        professoresService.listar(),
       ]);
       setTurma(t);
       setAulas(as.items);
       setMatriculas(ms);
+      setProfessores(profs);
     } finally { setLoading(false); }
+  }
+
+  function abrirEdicao() {
+    if (!turma) return;
+    setEditForm({
+      nome: turma.nome,
+      livro: turma.livro ?? "",
+      professor_id: String(turma.professor_id),
+      status: turma.status,
+    });
+    setEditando(true);
+  }
+
+  async function salvarEdicao() {
+    setSalvandoEdit(true);
+    try {
+      await turmasService.atualizar(Number(id), {
+        nome: editForm.nome,
+        livro: editForm.livro || undefined,
+        professor_id: Number(editForm.professor_id),
+        status: editForm.status,
+      });
+      showToast("Turma atualizada!");
+      setEditando(false);
+      await load();
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao salvar."), "error");
+    } finally { setSalvandoEdit(false); }
   }
 
   useEffect(() => { load(); }, [id]);
@@ -125,7 +163,12 @@ export default function TurmaDetailPage() {
             {turma.livro ?? "Sem livro"} · {turma.professor?.pessoa.nome ?? "Sem professor"}
           </p>
         </div>
-        <Badge variant={turma.status === "ativa" ? "success" : "neutral"}>{turma.status}</Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant={turma.status === "ativa" ? "success" : "neutral"}>{turma.status}</Badge>
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={abrirEdicao}>Editar turma</Button>
+          )}
+        </div>
       </div>
 
       {/* Horários */}
@@ -231,6 +274,44 @@ export default function TurmaDetailPage() {
           onClose={() => setDeleteHorario(null)}
           loading={deletingHorario}
         />
+      )}
+
+      {editando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-foreground/40" onClick={() => setEditando(false)} />
+          <div className="relative z-10 w-full max-w-md mx-4 rounded-xl bg-background border border-border p-6 shadow-xl space-y-4">
+            <h2 className="text-lg font-semibold text-foreground">Editar turma</h2>
+            <Field label="Nome">
+              <Input value={editForm.nome} onChange={(e) => setEditForm((p) => ({ ...p, nome: e.target.value }))} />
+            </Field>
+            <Field label="Livro">
+              <Input value={editForm.livro} onChange={(e) => setEditForm((p) => ({ ...p, livro: e.target.value }))} placeholder="Opcional" />
+            </Field>
+            <Field label="Professor">
+              <Select
+                value={editForm.professor_id}
+                onChange={(e) => setEditForm((p) => ({ ...p, professor_id: e.target.value }))}
+                options={professores.map((p) => ({ value: String(p.pessoa_id), label: p.pessoa.nome }))}
+              />
+            </Field>
+            <Field label="Status">
+              <Select
+                value={editForm.status}
+                onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value }))}
+                options={[
+                  { value: "ativa", label: "Ativa" },
+                  { value: "encerrada", label: "Encerrada" },
+                ]}
+              />
+            </Field>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditando(false)}>Cancelar</Button>
+              <Button onClick={salvarEdicao} disabled={salvandoEdit}>
+                {salvandoEdit ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
