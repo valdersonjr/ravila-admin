@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_staff, get_current_user
+from app.dependencies import require_staff, require_staff_or_professor, get_current_user
 from app.models.aluno import Aluno
 from app.models.matricula import Matricula
 from app.models.pessoa import Pessoa
@@ -128,7 +128,7 @@ def _buscar_respostas_por_aluno(db: Session, aluno_ids: list[int]) -> dict[int, 
 @router.get("/nivel-ingles/stats", response_model=NivelInglesStats)
 def stats_nivel_ingles(
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    _: User = Depends(require_staff_or_professor),
 ):
     todos = db.query(Aluno).join(Pessoa, Pessoa.id == Aluno.pessoa_id).all()
     total = len(todos)
@@ -158,7 +158,7 @@ def listar_nivel_ingles(
     search: Optional[str] = Query(None),
     nivel: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    _: User = Depends(require_staff_or_professor),
 ):
     query = db.query(Aluno).join(Pessoa, Pessoa.id == Aluno.pessoa_id)
     if search:
@@ -242,7 +242,7 @@ def atualizar_nivel_ingles(
     pessoa_id: int,
     body: AtualizarNivelIn,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    _: User = Depends(require_staff_or_professor),
 ):
     if body.nivel not in NIVEIS_CEFR:
         raise HTTPException(status_code=422, detail=f"Nível inválido. Use: {NIVEIS_CEFR}")
@@ -259,7 +259,7 @@ def atualizar_nivel_ingles(
 def liberar_reavaliacao(
     pessoa_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    _: User = Depends(require_staff_or_professor),
 ):
     aluno = db.query(Aluno).filter(Aluno.pessoa_id == pessoa_id).first()
     if not aluno:
