@@ -79,7 +79,26 @@ export const authService = {
     return request("/auth/me");
   },
 
-  async atualizarPerfil(dados: { nome?: string; email?: string; telefone?: string; senha?: string }): Promise<{ nome: string; email: string | null; telefone: string | null }> {
+  async uploadFoto(file: File): Promise<void> {
+    const token = typeof window !== "undefined" ? sessionStorage.getItem(ACCESS_KEY) : null;
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${BASE_URL}/auth/me/foto`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail ?? `Erro ${res.status}`);
+    }
+  },
+
+  getFotoUrl(): Promise<{ url: string }> {
+    return request("/auth/me/foto");
+  },
+
+  async atualizarPerfil(dados: { nome?: string; email?: string; telefone?: string; senha?: string; senha_antiga?: string }): Promise<{ nome: string; email: string | null; telefone: string | null }> {
     const result = await request<{ nome: string; email: string | null; telefone: string | null }>(
       "/auth/me",
       { method: "PATCH", body: JSON.stringify(dados) }

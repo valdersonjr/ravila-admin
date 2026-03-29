@@ -211,13 +211,13 @@ export default function NivelInglesPage() {
                 ),
               },
               {
-                header: "Nível certificado",
+                header: "Nível de Inglês",
                 render: (a) => a.nivel_atual
                   ? <Badge variant="primary">{a.nivel_atual}</Badge>
                   : <span className="text-xs text-muted font-medium">Sem avaliação</span>,
               },
               {
-                header: "Acurácia no nível atual",
+                header: "Progresso",
                 render: (a) => <DesempenhoCell pct={a.percentual} total={a.total_respondidas} nivel={a.nivel_atual} />,
               },
               {
@@ -271,7 +271,7 @@ export default function NivelInglesPage() {
 
               {editando.total_respondidas > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-xs text-muted uppercase tracking-widest">Acurácia no nível atual</p>
+                  <p className="text-xs text-muted uppercase tracking-widest">Progresso</p>
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-foreground">{editando.percentual}%</span>
                     <span className="text-sm text-muted">{editando.acertos} de {editando.total_respondidas} questões</span>

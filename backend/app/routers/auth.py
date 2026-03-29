@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token, decode_refresh_token
+from app.core.security import create_access_token, decode_refresh_token, verify_password
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
@@ -91,8 +91,13 @@ def atualizar_me(
     data = body.model_dump(exclude_unset=True)
 
     if "senha" in data:
+        senha_antiga = data.pop("senha_antiga", None)
+        if not senha_antiga or not verify_password(senha_antiga, current_user.senha_hash):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Senha atual incorreta")
         current_user.senha_hash = hash_password(data.pop("senha"))
         db.add(current_user)
+
+    data.pop("senha_antiga", None)
 
     if data and current_user.pessoa_id:
         pessoa = pessoa_repo.buscar_por_id(db, current_user.pessoa_id)

@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Save, Camera } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { authService } from "@/services/auth";
 
@@ -17,22 +17,16 @@ export default function MeusDadosPage() {
 
   const [data, setData] = useState<MeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [uploadandoFoto, setUploadandoFoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Dados pessoais
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [successDados, setSuccessDados] = useState(false);
   const [erroDados, setErroDados] = useState("");
-
-  // Senha
-  const [novaSenha, setNovaSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
-  const [showSenha, setShowSenha] = useState(false);
-  const [salvandoSenha, setSalvandoSenha] = useState(false);
-  const [successSenha, setSuccessSenha] = useState(false);
-  const [erroSenha, setErroSenha] = useState("");
 
   useEffect(() => {
     authService.me()
@@ -41,10 +35,30 @@ export default function MeusDadosPage() {
         setNome(me.nome ?? "");
         setEmail(me.email ?? "");
         setTelefone(me.telefone ?? "");
+        if (me.tem_foto) {
+          authService.getFotoUrl().then((r) => setFotoUrl(r.url)).catch(() => {});
+        }
       })
       .catch(() => router.replace("/perfil"))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadandoFoto(true);
+    try {
+      await authService.uploadFoto(file);
+      const r = await authService.getFotoUrl();
+      setFotoUrl(r.url);
+      setData((d) => d ? { ...d, tem_foto: true } : d);
+    } catch {
+      // silencia — não crítico
+    } finally {
+      setUploadandoFoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   async function handleSalvarDados(e: React.FormEvent) {
     e.preventDefault();
@@ -57,9 +71,7 @@ export default function MeusDadosPage() {
         email: email.trim() || undefined,
         telefone: telefone.trim() || undefined,
       });
-      if (result.nome && typeof window !== "undefined") {
-        setData((d) => d ? { ...d, nome: result.nome, email: result.email, telefone: result.telefone } : d);
-      }
+      setData((d) => d ? { ...d, nome: result.nome, email: result.email, telefone: result.telefone } : d);
       setSuccessDados(true);
       setTimeout(() => setSuccessDados(false), 3000);
     } catch (err) {
@@ -69,25 +81,7 @@ export default function MeusDadosPage() {
     }
   }
 
-  async function handleSalvarSenha(e: React.FormEvent) {
-    e.preventDefault();
-    setErroSenha("");
-    setSuccessSenha(false);
-    if (novaSenha.length < 6) { setErroSenha("A senha deve ter pelo menos 6 caracteres."); return; }
-    if (novaSenha !== confirmarSenha) { setErroSenha("As senhas não coincidem."); return; }
-    setSalvandoSenha(true);
-    try {
-      await authService.atualizarPerfil({ senha: novaSenha });
-      setNovaSenha("");
-      setConfirmarSenha("");
-      setSuccessSenha(true);
-      setTimeout(() => setSuccessSenha(false), 3000);
-    } catch (err) {
-      setErroSenha(err instanceof Error ? err.message : "Erro ao alterar senha.");
-    } finally {
-      setSalvandoSenha(false);
-    }
-  }
+  const initials = (data?.nome ?? "A").split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 
   if (loading) {
     return (
@@ -109,6 +103,38 @@ export default function MeusDadosPage() {
             <ArrowLeft size={20} strokeWidth={1.75} />
           </button>
           <h1 className="text-xl font-black text-foreground">Meus dados</h1>
+        </div>
+
+        {/* Avatar */}
+        <div className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadandoFoto}
+            className="relative group"
+          >
+            <div className="w-20 h-20 rounded-full bg-primary-600 flex items-center justify-center text-white text-2xl font-black overflow-hidden">
+              {fotoUrl ? (
+                <img src={fotoUrl} alt="Foto" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
+            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {uploadandoFoto
+                ? <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                : <Camera size={18} className="text-white" strokeWidth={1.75} />
+              }
+            </div>
+          </button>
+          <p className="text-xs text-muted">Toque para alterar a foto</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFotoChange}
+          />
         </div>
 
         {/* Dados pessoais */}
@@ -154,49 +180,6 @@ export default function MeusDadosPage() {
           >
             <Save size={16} strokeWidth={2} />
             {salvando ? "Salvando..." : "Salvar dados"}
-          </button>
-        </form>
-
-        {/* Senha */}
-        <form onSubmit={handleSalvarSenha} className="space-y-4">
-          <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Alterar senha</h2>
-
-          <div className="bg-surface border border-border rounded-2xl divide-y divide-border overflow-hidden">
-            <Field label="Nova senha">
-              <div className="flex items-center px-4">
-                <input
-                  type={showSenha ? "text" : "password"}
-                  value={novaSenha}
-                  onChange={(e) => setNovaSenha(e.target.value)}
-                  className="flex-1 text-sm text-foreground bg-transparent focus:outline-none py-3"
-                  placeholder="Mínimo 6 caracteres"
-                />
-                <button type="button" onClick={() => setShowSenha((v) => !v)} className="text-muted ml-2">
-                  {showSenha ? <EyeOff size={16} strokeWidth={1.75} /> : <Eye size={16} strokeWidth={1.75} />}
-                </button>
-              </div>
-            </Field>
-            <Field label="Confirmar senha">
-              <input
-                type={showSenha ? "text" : "password"}
-                value={confirmarSenha}
-                onChange={(e) => setConfirmarSenha(e.target.value)}
-                className="w-full text-sm text-foreground bg-transparent focus:outline-none py-3 px-4"
-                placeholder="Repita a senha"
-              />
-            </Field>
-          </div>
-
-          {erroSenha && <p className="text-xs text-rose-600">{erroSenha}</p>}
-          {successSenha && <p className="text-xs text-emerald-600">Senha alterada com sucesso!</p>}
-
-          <button
-            type="submit"
-            disabled={salvandoSenha || !novaSenha}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-primary-200 bg-primary-50 py-3.5 text-sm font-semibold text-primary-700 transition-colors hover:bg-primary-100 disabled:opacity-60"
-          >
-            <Lock size={16} strokeWidth={2} />
-            {salvandoSenha ? "Alterando..." : "Alterar senha"}
           </button>
         </form>
 

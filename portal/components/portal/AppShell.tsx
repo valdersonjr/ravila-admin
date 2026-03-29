@@ -13,7 +13,7 @@ interface AppShellProps {
 const NAV = [
   { href: "/home", label: "Início", Icon: House },
   { href: "/atividade", label: "Atividade", Icon: CalendarDays },
-  { href: "/pratica", label: "Prática", Icon: BookOpen },
+  { href: "/pratica", label: "Aprender", Icon: BookOpen },
   { href: "/perfil", label: "Perfil", Icon: UserRound },
 ];
 

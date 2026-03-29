@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, UserRound, FileText, Bell } from "lucide-react";
+import { ChevronRight, UserRound, FileText, Bell, KeyRound } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { authService } from "@/services/auth";
 
@@ -33,6 +33,7 @@ export default function PerfilPage() {
         <div className="bg-surface border border-border rounded-2xl divide-y divide-border overflow-hidden">
           <MenuItem label="Meus dados" Icon={UserRound} onClick={() => router.push("/meus-dados")} />
           <MenuItem label="Meu contrato" Icon={FileText} onClick={() => router.push("/meu-contrato")} />
+          <MenuItem label="Alterar senha" Icon={KeyRound} onClick={() => router.push("/alterar-senha")} />
           <MenuItem label="Notificações" Icon={Bell} onClick={() => {}} comingSoon />
         </div>
 

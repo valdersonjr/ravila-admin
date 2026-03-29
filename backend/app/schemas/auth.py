@@ -21,6 +21,7 @@ class MeUpdate(BaseModel):
     email: Optional[str] = None
     telefone: Optional[str] = None
     senha: Optional[str] = None
+    senha_antiga: Optional[str] = None
 
 
 class RefreshRequest(BaseModel):

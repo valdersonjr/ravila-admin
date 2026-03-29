@@ -86,7 +86,7 @@ export default function ProficienciaPage() {
           <p className="text-xs text-muted">Para mudar de nível, pratique no banco de questões.</p>
           <button onClick={() => router.push("/pratica")}
             className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold">
-            Ir para Prática
+            Ir para Aprender
           </button>
         </div>
       </AppShell>
@@ -210,7 +210,7 @@ export default function ProficienciaPage() {
           </p>
           <button onClick={() => router.push("/pratica")}
             className="w-full py-4 rounded-xl bg-primary-600 text-white text-base font-black">
-            Começar a praticar
+            Começar a aprender
           </button>
         </div>
       </AppShell>

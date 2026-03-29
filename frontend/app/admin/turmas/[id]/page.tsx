@@ -52,16 +52,18 @@ export default function TurmaDetailPage() {
   async function load() {
     setLoading(true);
     try {
-      const [t, as, ms, profs] = await Promise.all([
+      const [t, as, ms] = await Promise.all([
         turmasService.buscar(Number(id)),
         aulasService.listar({ turma_id: Number(id), page_size: 500 }),
         matriculasService.listar({ turma_id: Number(id) }),
-        professoresService.listar(),
       ]);
       setTurma(t);
       setAulas(as.items);
       setMatriculas(ms);
-      setProfessores(profs);
+      if (isAdmin) {
+        const profs = await professoresService.listar();
+        setProfessores(profs);
+      }
     } finally { setLoading(false); }
   }
 
