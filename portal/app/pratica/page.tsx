@@ -69,7 +69,7 @@ export default function PraticaPage() {
         </div>
       </div>
 
-      {tab === "diaria" ? <QuesataoDiariaTab /> : <BancoLivreTab temNivel={!!progresso?.nivel_atual} />}
+      {tab === "diaria" ? <QuesataoDiariaTab /> : <BancoLivreTab temNivel={!!progresso?.nivel_atual} nivelAluno={progresso?.nivel_atual ?? null} />}
     </AppShell>
   );
 }
@@ -212,7 +212,7 @@ function QuesataoDiariaTab() {
 
 // ── Banco livre ───────────────────────────────────────────────────────────────
 
-function BancoLivreTab({ temNivel }: { temNivel: boolean }) {
+function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno: string | null }) {
   const router = useRouter();
 
   if (!temNivel) {
@@ -321,6 +321,16 @@ function BancoLivreTab({ temNivel }: { temNivel: boolean }) {
           </div>
         </div>
       </div>
+
+      {/* Aviso fora do nível */}
+      {nivel && nivelAluno && nivel !== nivelAluno && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
+          <p className="text-xs text-amber-800 leading-relaxed">
+            Você está praticando no nível <strong>{nivel}</strong>, mas seu nível é <strong>{nivelAluno}</strong>. Apenas questões do seu nível contam para o seu progresso.
+          </p>
+        </div>
+      )}
 
       {/* Conteúdo */}
       {!nivel ? (
