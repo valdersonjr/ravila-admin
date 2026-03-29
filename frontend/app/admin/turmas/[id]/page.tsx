@@ -70,7 +70,7 @@ export default function TurmaDetailPage() {
     setEditForm({
       nome: turma.nome,
       livro: turma.livro ?? "",
-      professor_id: String(turma.professor_id),
+      professor_id: String(turma.professor?.pessoa_id ?? ""),
       status: turma.status,
     });
     setEditando(true);
