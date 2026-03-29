@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 1.5cm 1.8cm 2.4cm 1.8cm;
+    }
+    @page {
+      @bottom-center {
+        content: "Ravila's English  ·  CNPJ 42.170.459/0001-83  ·  Goianésia – GO    |    Página " counter(page) " de " counter(pages);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 7pt;
+        color: #888888;
+        border-top: 0.5pt solid #cccccc;
+        padding-top: 4pt;
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+      font-size: 9pt;
+      line-height: 1.45;
+      color: #1e3a4a;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding-bottom: 10pt;
+      margin-bottom: 14pt;
+      border-bottom: 1.5pt solid #1A86BE;
+    }
+    .logo-block { display: table; }
+    .logo-block svg, .logo-block .wordmark { display: table-cell; vertical-align: middle; }
+    .wordmark { line-height: 1; padding-left: 10pt; }
+    .wordmark-main { font-size: 16pt; font-weight: 900; color: #1A86BE; letter-spacing: 0.04em; }
+    .wordmark-sep { height: 0.5pt; background: #D0EAF6; margin: 3pt 0; }
+    .wordmark-sub { font-size: 6.5pt; font-weight: 700; color: #1A86BE; letter-spacing: 0.35em; text-transform: uppercase; }
+    .header-right { text-align: right; }
+    .doc-title { font-size: 13pt; font-weight: 700; color: #1e3a4a; }
+    .doc-subtitle { font-size: 8pt; color: #888888; margin-top: 2pt; }
+    .doc-ref { font-size: 8pt; color: #1A86BE; font-weight: 600; margin-top: 2pt; }
+    .doc-mes {
+      display: inline-block; margin-top: 5pt;
+      background: #1A86BE; color: #fff;
+      font-size: 9pt; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3pt 10pt; border-radius: 20pt;
+    }
+
+    /* ── KPI row ── */
+    .kpi-row {
+      display: flex; gap: 0;
+      margin-bottom: 12pt;
+      border: 0.75pt solid #E0EEF6;
+      border-radius: 6pt; overflow: hidden;
+    }
+    .kpi-card { flex: 1; padding: 7pt 10pt; text-align: center; border-right: 0.75pt solid #E0EEF6; }
+    .kpi-card:last-child { border-right: none; }
+    .kpi-card.alert { background: #fff7ed; }
+    .kpi-label { font-size: 6pt; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
+    .kpi-value { font-size: 12pt; font-weight: 700; color: #1e3a4a; margin-top: 1pt; line-height: 1.1; }
+    .kpi-value.green  { color: #15803d; }
+    .kpi-value.blue   { color: #1A86BE; }
+    .kpi-value.red    { color: #b91c1c; }
+    .kpi-value.amber  { color: #b45309; }
+    .kpi-note { font-size: 6.5pt; color: #888; margin-top: 2pt; }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: #1A86BE;
+      margin: 12pt 0 5pt 0;
+      padding-bottom: 3pt; border-bottom: 0.5pt solid #E0EEF6;
+    }
+
+    /* ── Generic table base ── */
+    .tbl {
+      width: 100%; border-collapse: collapse; font-size: 8pt;
+    }
+    .tbl thead tr { background: #1e3a4a; color: #fff; }
+    .tbl thead th {
+      padding: 4pt 7pt; text-align: left;
+      font-weight: 600; font-size: 7.5pt;
+      text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+    }
+    .tbl thead th.right { text-align: right; }
+    .tbl thead th.center { text-align: center; }
+    .tbl tbody tr:nth-child(even) td { background: #F8FBFD; }
+    .tbl tbody tr.expiring td { background: #fff7ed; }
+    .tbl tbody td { padding: 4pt 7pt; border-bottom: 0.4pt solid #E0EEF6; vertical-align: middle; }
+    .tbl tbody td.right { text-align: right; font-variant-numeric: tabular-nums; }
+    .tbl tbody td.center { text-align: center; }
+    .tbl tbody td.muted { color: #888; }
+    .tbl tfoot td {
+      padding: 5pt 7pt; border-top: 1.5pt solid #1e3a4a;
+      font-weight: 700; font-size: 8.5pt; background: #F0F2F5;
+    }
+    .tbl tfoot td.right { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ── Projeção ── */
+    .proj-row {
+      display: flex; gap: 8pt; margin-bottom: 12pt;
+    }
+    .proj-card {
+      flex: 1; padding: 8pt 10pt;
+      border: 0.75pt solid #E0EEF6; border-radius: 5pt;
+      text-align: center;
+    }
+    .proj-card.ref { border-color: #1A86BE; border-width: 1.5pt; }
+    .proj-mes { font-size: 7.5pt; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    .proj-valor { font-size: 12pt; font-weight: 700; color: #1e3a4a; margin: 3pt 0 1pt 0; }
+    .proj-n { font-size: 7pt; color: #888; }
+    .proj-delta { font-size: 7.5pt; font-weight: 700; margin-top: 3pt; }
+    .proj-delta.neg { color: #b91c1c; }
+    .proj-delta.pos { color: #15803d; }
+    .proj-delta.neu { color: #888; }
+
+    /* ── Modalidades + Pareto side by side ── */
+    .two-col { display: flex; gap: 10pt; margin-bottom: 12pt; }
+    .two-col .left { flex: 2; }
+    .two-col .right { flex: 1; }
+
+    /* ── Pareto ── */
+    .pareto-box {
+      border: 0.75pt solid #E0EEF6; border-radius: 5pt;
+      overflow: hidden;
+    }
+    .pareto-header {
+      background: #F0F2F5; padding: 5pt 10pt;
+      font-size: 7.5pt; font-weight: 700; color: #1e3a4a;
+    }
+    .pareto-body { padding: 8pt 10pt; }
+    .pareto-stat {
+      font-size: 20pt; font-weight: 700;
+      color: #b45309; line-height: 1;
+    }
+    .pareto-stat.safe { color: #15803d; }
+    .pareto-desc { font-size: 7.5pt; color: #555; margin: 4pt 0 8pt 0; line-height: 1.4; }
+    .pareto-item { font-size: 7.5pt; padding: 3pt 0; border-bottom: 0.4pt solid #E0EEF6; }
+    .pareto-item:last-child { border-bottom: none; }
+    .pareto-name { font-weight: 600; }
+    .pareto-val { float: right; color: #1A86BE; font-weight: 700; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: 1.5pt 5pt;
+      border-radius: 20pt; font-size: 6.5pt; font-weight: 700;
+    }
+    .badge-discount { background: #dcfce7; color: #14532d; }
+    .badge-expiring { background: #fee2e2; color: #7f1d1d; }
+
+    /* ── Churn table ── */
+    .churn-critico td { background: #fff1f2 !important; }
+    .churn-atencao td { background: #fffbeb !important; }
+    .churn-ok td { background: #f0fdf4 !important; }
+
+    .nivel-badge {
+      display: inline-block; padding: 2pt 6pt; border-radius: 20pt;
+      font-size: 6.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .nivel-critico  { background: #fee2e2; color: #7f1d1d; }
+    .nivel-atencao  { background: #fef3c7; color: #92400e; }
+    .nivel-ok       { background: #dcfce7; color: #14532d; }
+
+    /* ── Expiring section ── */
+    .alert-section { margin-top: 10pt; border: 0.75pt solid #fca5a5; border-radius: 5pt; overflow: hidden; page-break-inside: avoid; }
+    .alert-header { background: #fee2e2; padding: 5pt 10pt; font-size: 7.5pt; font-weight: 700; color: #7f1d1d; text-transform: uppercase; letter-spacing: 0.05em; }
+    .alert-table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+    .alert-table td { padding: 4pt 10pt; border-bottom: 0.4pt solid #fecaca; }
+    .alert-table tr:last-child td { border-bottom: none; }
+    .alert-table td.right { text-align: right; }
+    .alert-table td.muted { color: #b91c1c; font-size: 7.5pt; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-block">
+      {{ logo_svg|safe }}
+      <div class="wordmark">
+        <div class="wordmark-main">Ravila's</div>
+        <div class="wordmark-sep"></div>
+        <div class="wordmark-sub">English</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="doc-title">Relatório de Receita Mensal</div>
+      <div class="doc-subtitle">Contratos ativos — situação em {{ gerado_em }}</div>
+      <div class="doc-ref">{{ total_ativos }} contrato{{ "s" if total_ativos != 1 else "" }} ativo{{ "s" if total_ativos != 1 else "" }}</div>
+      <div class="doc-mes">Competência: {{ mes_referencia }}</div>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Receita bruta</div>
+      <div class="kpi-value blue">{{ receita_bruta }}</div>
+      <div class="kpi-note">sem descontos</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Descontos concedidos</div>
+      <div class="kpi-value amber">{{ total_descontos }}</div>
+      <div class="kpi-note">{{ num_com_desconto }} contrato{{ "s" if num_com_desconto != 1 else "" }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Receita líquida prevista</div>
+      <div class="kpi-value green">{{ receita_liquida }}</div>
+      <div class="kpi-note">valor real esperado</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Ticket médio líquido</div>
+      <div class="kpi-value">{{ ticket_medio }}</div>
+      <div class="kpi-note">por contrato ativo</div>
+    </div>
+    {% if expirando_30 > 0 %}
+    <div class="kpi-card alert">
+      <div class="kpi-label">Expiram em 30 dias</div>
+      <div class="kpi-value red">{{ expirando_30 }}</div>
+      <div class="kpi-note">requer renovação</div>
+    </div>
+    {% endif %}
+    {% if churn_rows %}
+    <div class="kpi-card alert">
+      <div class="kpi-label">Risco de churn</div>
+      <div class="kpi-value red">{{ churn_rows | selectattr("nivel_css", "equalto", "critico") | list | length }}</div>
+      <div class="kpi-note">alunos críticos (60 dias)</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Projeção 3 meses -->
+  <div class="section-title">Projeção de receita — próximos 3 meses</div>
+  <div class="proj-row">
+    <div class="proj-card ref">
+      <div class="proj-mes">{{ mes_referencia }} · atual</div>
+      <div class="proj-valor">{{ receita_liquida }}</div>
+      <div class="proj-n">{{ total_ativos }} contratos</div>
+    </div>
+    {% for p in projecao %}
+    <div class="proj-card">
+      <div class="proj-mes">{{ p.mes }}</div>
+      <div class="proj-valor">{{ p.receita }}</div>
+      <div class="proj-n">{{ p.n_contratos }} contratos</div>
+      <div class="proj-delta {{ 'neg' if p.delta_negativo else 'pos' if not p.delta_negativo else 'neu' }}">
+        {{ p.delta }} vs. atual
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Modalidades + Pareto -->
+  <div class="two-col">
+    <div class="left">
+      <div class="section-title">Receita por modalidade</div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Modalidade</th>
+            <th class="center">Contratos</th>
+            <th class="right">Receita bruta</th>
+            <th class="right">Receita líquida</th>
+            <th class="right">% do total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in modalidades %}
+          <tr>
+            <td><strong>{{ m.curso }}</strong></td>
+            <td class="center">{{ m.contratos }}</td>
+            <td class="right muted">{{ m.bruta_fmt }}</td>
+            <td class="right"><strong>{{ m.liquida_fmt }}</strong></td>
+            <td class="right">{{ m.pct }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="right">
+      <div class="section-title">Concentração de receita</div>
+      <div class="pareto-box">
+        <div class="pareto-header">Top 3 contratos</div>
+        <div class="pareto-body">
+          <div class="pareto-stat {{ '' if pareto.risco_alto else 'safe' }}">{{ pareto.top3_pct }}</div>
+          <div class="pareto-desc">
+            {% if pareto.risco_alto %}
+            Os 3 maiores contratos concentram {{ pareto.top3_pct }} da receita.
+            Perder qualquer um tem impacto relevante.
+            {% else %}
+            Receita bem distribuída. Os 3 maiores representam {{ pareto.top3_pct }}.
+            {% endif %}
+          </div>
+          {% for c in pareto.top3 %}
+          <div class="pareto-item">
+            <span class="pareto-name">{{ c.alunos }}</span>
+            <span class="pareto-val">{{ c.valor_liquido }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contratos ativos (tabela completa) -->
+  <div class="section-title">Contratos ativos — detalhamento</div>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th style="width:20pt">Nº</th>
+        <th>Aluno(s)</th>
+        <th>Modalidade</th>
+        <th class="center">Vencimento</th>
+        <th>Vigência</th>
+        <th class="right">Valor integral</th>
+        <th class="right">Desconto</th>
+        <th class="right">Valor líquido</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in contratos %}
+      <tr class="{{ 'expiring' if c.expirando else '' }}">
+        <td class="muted">{{ c.id }}</td>
+        <td>
+          {{ c.alunos }}
+          {% if c.expirando %}<br><span class="badge badge-expiring">expira {{ c.data_fim }}</span>{% endif %}
+        </td>
+        <td>{{ c.curso }}</td>
+        <td class="center muted">dia {{ c.dia_vencimento }}</td>
+        <td class="muted">{{ c.data_inicio }} – {{ c.data_fim }}</td>
+        <td class="right">{{ c.valor_integral }}</td>
+        <td class="right">
+          {% if c.desconto_label %}<span class="badge badge-discount">{{ c.desconto_label }}</span>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td class="right"><strong>{{ c.valor_liquido }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5">Total ({{ total_ativos }} contrato{{ "s" if total_ativos != 1 else "" }})</td>
+        <td class="right">{{ receita_bruta }}</td>
+        <td class="right">− {{ total_descontos }}</td>
+        <td class="right">{{ receita_liquida }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <!-- Churn Risk -->
+  {% if churn_rows %}
+  <div class="section-title" style="margin-top:14pt">Análise de risco de churn — contratos expirando em 60 dias</div>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Aluno</th>
+        <th>Modalidade</th>
+        <th class="center">Expira em</th>
+        <th class="center">Data fim</th>
+        <th class="center">Presença (28 dias)</th>
+        <th class="center">Risco</th>
+        <th class="right">Valor/mês</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in churn_rows %}
+      <tr class="churn-{{ r.nivel_css }}">
+        <td><strong>{{ r.aluno }}</strong></td>
+        <td>{{ r.curso }}</td>
+        <td class="center">{{ r.dias_restantes }} dias</td>
+        <td class="center muted">{{ r.data_fim }}</td>
+        <td class="center">{{ r.presenca }}</td>
+        <td class="center">
+          <span class="nivel-badge nivel-{{ r.nivel_css }}">{{ r.nivel }}</span>
+        </td>
+        <td class="right"><strong>{{ r.valor_liquido }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p style="font-size:6.5pt; color:#888; margin-top:4pt">
+    * Presença calculada sobre aulas realizadas nos últimos 28 dias, apenas do tipo "matriculado".
+    Alunos sem dados podem ter turma sem aulas geradas no período.
+  </p>
+  {% endif %}
+
+  <!-- Expiring contracts summary -->
+  {% if expirando_lista %}
+  <div class="alert-section" style="margin-top: 12pt">
+    <div class="alert-header">Contratos expirando nos próximos 30 dias — receita em risco</div>
+    <table class="alert-table">
+      {% for c in expirando_lista %}
+      <tr>
+        <td><strong>{{ c.alunos }}</strong></td>
+        <td>{{ c.curso }}</td>
+        <td class="muted">expira {{ c.data_fim }}</td>
+        <td class="right"><strong>{{ c.valor_liquido }}/mês</strong></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+</body>
+</html>

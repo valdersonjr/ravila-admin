@@ -31,6 +31,7 @@ export default function ContratosPage() {
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [exportandoRelatorio, setExportandoRelatorio] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -58,12 +59,30 @@ export default function ContratosPage() {
     setSearch(searchInput);
   }
 
+  async function exportarRelatorio() {
+    setExportandoRelatorio(true);
+    try {
+      const blob = await contratosService.relatorioReceitaPdf();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `receita_mensal_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportandoRelatorio(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Contratos</h1>
         {isAdmin && (
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" loading={exportandoRelatorio} onClick={exportarRelatorio}>
+              Relatório de Receita
+            </Button>
             <Link href="/admin/contratos/novo?tipo=formal"><Button variant="outline">+ Contrato Formal</Button></Link>
             <Link href="/admin/contratos/novo?tipo=informal"><Button>+ Contrato Informal</Button></Link>
           </div>

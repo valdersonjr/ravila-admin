@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      size: A4;
+      margin: 1.8cm 2cm 2.8cm 2cm;
+    }
+    @page {
+      @bottom-center {
+        content: "Ravila's English  ·  CNPJ 42.170.459/0001-83  ·  Goianésia – GO    |    Página " counter(page) " de " counter(pages);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 7.5pt;
+        color: #888888;
+        border-top: 0.5pt solid #cccccc;
+        padding-top: 5pt;
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.5;
+      color: #1e3a4a;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding-bottom: 12pt;
+      margin-bottom: 20pt;
+      border-bottom: 1.5pt solid #1A86BE;
+    }
+    .logo-block {
+      display: table;
+    }
+    .logo-block svg,
+    .logo-block .wordmark {
+      display: table-cell;
+      vertical-align: middle;
+    }
+    .wordmark {
+      line-height: 1;
+      padding-left: 10pt;
+    }
+    .wordmark-main {
+      font-size: 17pt;
+      font-weight: 900;
+      color: #1A86BE;
+      letter-spacing: 0.04em;
+    }
+    .wordmark-sep {
+      height: 0.5pt;
+      background: #D0EAF6;
+      margin: 3pt 0;
+    }
+    .wordmark-sub {
+      font-size: 7pt;
+      font-weight: 700;
+      color: #1A86BE;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+    }
+
+    /* ── Header right ── */
+    .header-right {
+      text-align: right;
+    }
+    .header-doc-type {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #1e3a4a;
+      letter-spacing: 0.03em;
+    }
+    .header-professor {
+      font-size: 9.5pt;
+      color: #1A86BE;
+      font-weight: 600;
+      margin-top: 3pt;
+    }
+    .header-semana {
+      font-size: 8.5pt;
+      color: #666666;
+      margin-top: 2pt;
+    }
+
+    /* ── Summary bar ── */
+    .summary-bar {
+      display: flex;
+      gap: 0;
+      margin-bottom: 18pt;
+      border: 0.75pt solid #E0EEF6;
+      border-radius: 6pt;
+      overflow: hidden;
+    }
+    .summary-item {
+      flex: 1;
+      padding: 7pt 10pt;
+      text-align: center;
+      border-right: 0.75pt solid #E0EEF6;
+    }
+    .summary-item:last-child { border-right: none; }
+    .summary-label {
+      font-size: 6.5pt;
+      font-weight: 700;
+      color: #888888;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .summary-value {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #1e3a4a;
+      margin-top: 1pt;
+    }
+    .summary-value.green  { color: #15803d; }
+    .summary-value.amber  { color: #b45309; }
+    .summary-value.gray   { color: #6b7280; }
+    .summary-value.red    { color: #b91c1c; }
+
+    /* ── Day section ── */
+    .day-section {
+      margin-bottom: 14pt;
+      page-break-inside: avoid;
+    }
+    .day-header {
+      background: #1A86BE;
+      color: #ffffff;
+      font-size: 9pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 5pt 10pt;
+      border-radius: 4pt 4pt 0 0;
+    }
+
+    /* ── Aula table ── */
+    .aula-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 0.75pt solid #E0EEF6;
+      border-top: none;
+      border-radius: 0 0 4pt 4pt;
+    }
+    .aula-table tr:last-child td { border-bottom: none; }
+    .aula-table tr:nth-child(even) td { background: #F8FBFD; }
+    .aula-table td {
+      padding: 6pt 10pt;
+      border-bottom: 0.5pt solid #E0EEF6;
+      vertical-align: middle;
+    }
+
+    .col-time {
+      width: 90pt;
+      font-size: 9pt;
+      font-weight: 600;
+      color: #1e3a4a;
+      white-space: nowrap;
+    }
+    .col-turma {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #1e3a4a;
+    }
+    .col-turma .aluno-snapshot {
+      font-size: 8pt;
+      font-weight: 400;
+      color: #888888;
+      margin-top: 1pt;
+    }
+    .col-tipo {
+      width: 70pt;
+      text-align: center;
+    }
+    .col-status {
+      width: 80pt;
+      text-align: right;
+    }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 2pt 7pt;
+      border-radius: 20pt;
+      font-size: 7.5pt;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-agendada       { background: #fef3c7; color: #92400e; }
+    .badge-realizada      { background: #dcfce7; color: #14532d; }
+    .badge-cancelada      { background: #f3f4f6; color: #4b5563; }
+    .badge-pendente       { background: #fee2e2; color: #7f1d1d; }
+    .badge-substitutiva   { background: #ede9fe; color: #4c1d95; }
+
+    /* ── Empty week ── */
+    .empty-week {
+      text-align: center;
+      padding: 30pt 0;
+      color: #888888;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-block">
+      {{ logo_svg|safe }}
+      <div class="wordmark">
+        <div class="wordmark-main">Ravila's</div>
+        <div class="wordmark-sep"></div>
+        <div class="wordmark-sub">English</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-doc-type">Agenda Semanal</div>
+      <div class="header-professor">{{ professor_nome }}</div>
+      <div class="header-semana">{{ label_semana }}</div>
+    </div>
+  </div>
+
+  <!-- Summary bar -->
+  <div class="summary-bar">
+    <div class="summary-item">
+      <div class="summary-label">Total de aulas</div>
+      <div class="summary-value">{{ total }}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Realizadas</div>
+      <div class="summary-value green">{{ realizadas }}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Agendadas</div>
+      <div class="summary-value amber">{{ agendadas }}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Canceladas</div>
+      <div class="summary-value gray">{{ canceladas }}</div>
+    </div>
+    {% if pendentes > 0 %}
+    <div class="summary-item">
+      <div class="summary-label">Pendentes</div>
+      <div class="summary-value red">{{ pendentes }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Days -->
+  {% if dias %}
+    {% for dia in dias %}
+    <div class="day-section">
+      <div class="day-header">{{ dia.label }}</div>
+      <table class="aula-table">
+        {% for aula in dia.aulas %}
+        <tr>
+          <td class="col-time">{{ aula.hora_inicio }} – {{ aula.hora_fim }}</td>
+          <td class="col-turma">
+            {{ aula.turma_nome }}
+            {% if aula.aluno_snapshot %}
+            <div class="aluno-snapshot">{{ aula.aluno_snapshot }}</div>
+            {% endif %}
+          </td>
+          <td class="col-tipo">
+            {% if aula.tipo == "substitutiva" %}
+            <span class="badge badge-substitutiva">Reposição</span>
+            {% endif %}
+          </td>
+          <td class="col-status">
+            {% if aula.status == "agendada" %}
+              <span class="badge badge-agendada">Agendada</span>
+            {% elif aula.status == "realizada" %}
+              <span class="badge badge-realizada">Realizada</span>
+            {% elif aula.status == "cancelada" %}
+              <span class="badge badge-cancelada">Cancelada</span>
+            {% else %}
+              <span class="badge badge-pendente">Pendente</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-week">Nenhuma aula registrada para esta semana.</div>
+  {% endif %}
+
+</body>
+</html>

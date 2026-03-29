@@ -70,6 +70,7 @@ export const contratosService = {
     return apiAuth.upload<Contrato>(`/contratos/${id}/upload-assinado`, form);
   },
   downloadAssinado: (id: number) => apiAuth.getBlob(`/contratos/${id}/download-assinado`),
+  relatorioReceitaPdf: () => apiAuth.getBlob("/contratos/relatorio-receita/pdf"),
   indicadores: () => apiAuth.get<{
     receita_mensal_prevista: number;
     total_ativos: number;

@@ -44,6 +44,7 @@ export default function AgendaProfessorPage() {
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
+  const [exportando, setExportando] = useState(false);
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
@@ -97,6 +98,21 @@ export default function AgendaProfessorPage() {
     setAulas(res.items);
   }
 
+  async function exportarPdf() {
+    setExportando(true);
+    try {
+      const blob = await professoresService.exportarAgendaPdf(Number(id), toISO(weekStart));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `agenda_${toISO(weekStart)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportando(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -107,6 +123,9 @@ export default function AgendaProfessorPage() {
         </div>
         <div className="flex gap-2">
           <GerarSemanaModal professorId={Number(id)} onGerado={recarregarAulas} />
+          <Button variant="outline" size="sm" loading={exportando} onClick={exportarPdf}>
+            Exportar PDF
+          </Button>
           <Button variant="outline" onClick={() => router.back()}>Voltar</Button>
         </div>
       </div>

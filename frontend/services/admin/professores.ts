@@ -1,4 +1,4 @@
-import { apiAuth } from "../api";
+import { apiAuth, api } from "../api";
 import type { GerarSemanaRelatorio } from "./turmas";
 
 export interface Professor {
@@ -40,4 +40,6 @@ export const professoresService = {
   atualizar: (pessoaId: number, data: { ativo?: boolean }) => apiAuth.put<Professor>(`/professores/${pessoaId}`, data),
   dashboard: (pessoaId: number) => apiAuth.get<ProfessorDashboard>(`/professores/${pessoaId}/dashboard`),
   gerarSemana: (pessoaId: number, dry_run: boolean) => apiAuth.post<GerarSemanaRelatorio>(`/professores/${pessoaId}/gerar-semana`, { dry_run }),
+  exportarAgendaPdf: (pessoaId: number, semanaInicio: string) =>
+    api.getBlob(`/professores/${pessoaId}/agenda/pdf?semana_inicio=${semanaInicio}`),
 };
