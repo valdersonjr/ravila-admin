@@ -24,7 +24,8 @@ const DIAS_OPTIONS = DIAS.map((d, i) => ({ value: String(i), label: d }));
 export default function TurmaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { showToast } = useToast();
-  const isAdmin = authService.getRole() === "admin";
+  const role = authService.getRole();
+  const isAdmin = role === "admin" || role === "secretario";
 
   const [turma, setTurma] = useState<Turma | null>(null);
   const [aulas, setAulas] = useState<Aula[]>([]);
@@ -45,8 +46,8 @@ export default function TurmaDetailPage() {
 
 
   // Delete horario modal
-  const [deleteHorario, setDeleteHorario] = useState<HorarioTurma | null>(null);
-  const [deletingHorario, setDeletingHorario] = useState(false);
+  const [horarioParaDeletar, setDeleteHorario] = useState<HorarioTurma | null>(null);
+  const [deletandoHorario, setDeletingHorario] = useState(false);
   const [aprovando, setAprovando] = useState<number | null>(null);
 
   async function load() {
@@ -114,10 +115,10 @@ export default function TurmaDetailPage() {
   }
 
   async function handleRemoveHorario() {
-    if (!deleteHorario) return;
+    if (!horarioParaDeletar) return;
     setDeletingHorario(true);
     try {
-      await turmasService.removerHorario(Number(id), deleteHorario.id);
+      await turmasService.removerHorario(Number(id), horarioParaDeletar.id);
       showToast("Horário removido!");
       setDeleteHorario(null);
       await load();
@@ -267,14 +268,14 @@ export default function TurmaDetailPage() {
         />
       </section>
 
-      {deleteHorario && (
+      {horarioParaDeletar && (
         <Modal
           title="Remover horário"
-          message={`Remover ${DIAS[deleteHorario.dia_semana]} ${deleteHorario.hora_inicio.slice(0,5)} – ${deleteHorario.hora_fim.slice(0,5)}?`}
+          message={`Remover ${DIAS[horarioParaDeletar.dia_semana]} ${horarioParaDeletar.hora_inicio.slice(0,5)} – ${horarioParaDeletar.hora_fim.slice(0,5)}?`}
           confirmLabel="Remover"
           onConfirm={handleRemoveHorario}
           onClose={() => setDeleteHorario(null)}
-          loading={deletingHorario}
+          loading={deletandoHorario}
         />
       )}
 

@@ -6,11 +6,12 @@ import random
 from datetime import date, datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.limiter import limiter
 from app.database import get_db
 from app.dependencies import require_aluno
 from app.models.aluno import Aluno
@@ -373,7 +374,9 @@ def questao_diaria(
 
 
 @router.post("/questao-diaria/responder", response_model=QuestaoRespostaOut)
+@limiter.limit("20/minute")
 def responder_questao_diaria(
+    request: Request,
     dados: QuestaoRespostaCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_aluno),
@@ -406,7 +409,9 @@ def banco_questoes(
 
 
 @router.post("/questoes/{questao_id}/responder", response_model=QuestaoRespostaOut)
+@limiter.limit("60/minute")
 def responder_banco(
+    request: Request,
     questao_id: int,
     dados: QuestaoRespostaCreate,
     db: Session = Depends(get_db),

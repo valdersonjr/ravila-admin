@@ -52,8 +52,8 @@ export default function MeusDadosPage() {
       const r = await authService.getFotoUrl();
       setFotoUrl(r.url);
       setData((d) => d ? { ...d, tem_foto: true } : d);
-    } catch {
-      // silencia — não crítico
+    } catch (err) {
+      console.error("Erro no upload de foto:", err);
     } finally {
       setUploadandoFoto(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

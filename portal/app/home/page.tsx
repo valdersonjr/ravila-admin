@@ -17,17 +17,23 @@ function getRaviGreeting() {
   return RAVI_GREETINGS[new Date().getDay() % RAVI_GREETINGS.length];
 }
 
-function formatData(iso: string) {
-  const [ano, mes, dia] = iso.split("-");
-  const semana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const d = new Date(Number(ano), Number(mes) - 1, Number(dia));
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const amanha = new Date(hoje);
-  amanha.setDate(amanha.getDate() + 1);
-  if (d.getTime() === hoje.getTime()) return "Hoje";
-  if (d.getTime() === amanha.getTime()) return "Amanhã";
-  return `${semana[d.getDay()]}, ${dia}/${mes}`;
+const FORMATO_DIA_SEMANA = new Intl.DateTimeFormat("pt-BR", { weekday: "short" });
+const FORMATO_DATA_CURTA = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
+
+function parseDateLocal(iso: string): Date {
+  const [ano, mes, dia] = iso.split("-").map(Number);
+  return new Date(ano, mes - 1, dia);
+}
+
+function formatData(iso: string): string {
+  const data = parseDateLocal(iso);
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
+  if (data.getTime() === hoje.getTime()) return "Hoje";
+  if (data.getTime() === amanha.getTime()) return "Amanhã";
+  const diaSemana = FORMATO_DIA_SEMANA.format(data);
+  const dataFormatada = FORMATO_DATA_CURTA.format(data);
+  return `${diaSemana}, ${dataFormatada}`;
 }
 
 export default function HomePage() {
@@ -55,7 +61,7 @@ export default function HomePage() {
           {loading ? <SkeletonCard /> : (
             resumo?.nivel_atual ? (
               <button
-                onClick={() => router.push("/pratica")}
+                onClick={() => router.push("/pratica/questoes")}
                 className="w-full bg-surface border border-border rounded-2xl p-5 flex items-center gap-4 text-left"
               >
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${resumo.questao_respondida_hoje ? "bg-green-100" : "bg-primary-600"}`}>
@@ -110,7 +116,7 @@ export default function HomePage() {
                   <div className="w-12 h-12 rounded-xl bg-primary-600 flex flex-col items-center justify-center text-white shrink-0">
                     <span className="text-xs font-bold leading-none">{resumo.proxima_aula.data.split("-")[2]}</span>
                     <span className="text-xs leading-none opacity-80">
-                      {["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][Number(resumo.proxima_aula.data.split("-")[1]) - 1]}
+                      {new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(parseDateLocal(resumo.proxima_aula.data))}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -142,7 +148,7 @@ export default function HomePage() {
           <section>
             <h2 className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Seu nível</h2>
             <button
-              onClick={() => router.push("/pratica")}
+              onClick={() => router.push("/pratica/questoes")}
               className="w-full bg-surface border border-border rounded-2xl p-5 flex items-center gap-4 text-left"
             >
               <div className="w-11 h-11 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">

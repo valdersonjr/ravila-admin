@@ -1,17 +1,17 @@
 import logging
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token, decode_refresh_token, verify_password
+from app.core.limiter import limiter
+from app.core.security import create_access_token, decode_refresh_token, hash_password, verify_password
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
+from app.repositories import pessoa as pessoa_repo
 from app.repositories import user as user_repo
 from app.schemas.auth import LoginRequest, MeUpdate, RefreshRequest, RefreshResponse, TokenResponse
-from app.repositories import pessoa as pessoa_repo
-from app.core.security import hash_password
 from app.services import s3 as s3_service
 from app.services import auth as auth_service
 
@@ -21,14 +21,16 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(body: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
     result = auth_service.login(db, body.username, body.senha)
     logger.info("login username=%s role=%s", body.username, result["role"])
     return result
 
 
 @router.post("/refresh", response_model=RefreshResponse)
-def refresh(body: RefreshRequest, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def refresh(request: Request, body: RefreshRequest, db: Session = Depends(get_db)):
     payload = decode_refresh_token(body.refresh_token)
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido ou expirado")

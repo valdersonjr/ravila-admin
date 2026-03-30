@@ -84,24 +84,31 @@ class NivelInglesStats(BaseModel):
     com_dificuldade: int
 
 
-def _calcular_stats_aluno(respostas: list[tuple[int, bool]]) -> tuple[int, int, int]:
-    """Retorna (total, acertos, percentual) com peso ponderado."""
+PESO_NOVA_RESPOSTA = 1.0
+PESO_RESPOSTA_REPETIDA = 0.25
+HISTORICO_RESPOSTAS_LIMITE = 20
+PERCENTUAL_PRONTO_PARA_AVANCAR = 75
+PERCENTUAL_COM_DIFICULDADE = 40
+MIN_RESPOSTAS_PARA_AVALIACAO = 10
+
+
+def calcular_stats_ponderadas(respostas: list[tuple[int, bool]]) -> tuple[int, int, int]:
     vistas: set[int] = set()
     peso_total = 0.0
-    acertos_pond = 0.0
+    acertos_ponderados = 0.0
     for questao_id, acertou in respostas:
-        peso = 1.0 if questao_id not in vistas else 0.25
+        peso = PESO_NOVA_RESPOSTA if questao_id not in vistas else PESO_RESPOSTA_REPETIDA
         vistas.add(questao_id)
         peso_total += peso
         if acertou:
-            acertos_pond += peso
+            acertos_ponderados += peso
     total = len(respostas)
-    acertos = sum(1 for _, a in respostas if a)
-    percentual = round(acertos_pond / peso_total * 100) if peso_total > 0 else 0
+    acertos = sum(1 for _, acertou in respostas if acertou)
+    percentual = round(acertos_ponderados / peso_total * 100) if peso_total > 0 else 0
     return total, acertos, percentual
 
 
-def _buscar_respostas_por_aluno(db: Session, aluno_ids: list[int]) -> dict[int, list[tuple[int, bool]]]:
+def buscar_respostas_recentes_por_aluno(db: Session, aluno_ids: list[int]) -> dict[int, list[tuple[int, bool]]]:
     if not aluno_ids:
         return {}
     rows = db.execute(text("""
@@ -116,13 +123,13 @@ def _buscar_respostas_por_aluno(db: Session, aluno_ids: list[int]) -> dict[int, 
               SELECT id FROM questao_respostas r2
               WHERE r2.aluno_id = r.aluno_id AND r2.origem = 'banco'
               ORDER BY r2.respondida_em DESC
-              LIMIT 20
+              LIMIT :limite
           )
-    """), {"ids": aluno_ids}).fetchall()
-    result: dict[int, list[tuple[int, bool]]] = {}
+    """), {"ids": aluno_ids, "limite": HISTORICO_RESPOSTAS_LIMITE}).fetchall()
+    resultado: dict[int, list[tuple[int, bool]]] = {}
     for row in rows:
-        result.setdefault(row.aluno_id, []).append((row.questao_id, row.acertou))
-    return result
+        resultado.setdefault(row.aluno_id, []).append((row.questao_id, row.acertou))
+    return resultado
 
 
 @router.get("/nivel-ingles/stats", response_model=NivelInglesStats)
@@ -135,14 +142,14 @@ def stats_nivel_ingles(
     sem_nivel = sum(1 for a in todos if not a.nivel_questao)
 
     ids = [a.pessoa_id for a in todos if a.nivel_questao]
-    respostas_map = _buscar_respostas_por_aluno(db, ids)
+    respostas_map = buscar_respostas_recentes_por_aluno(db, ids)
 
     pronto = 0
     dificuldade = 0
     for aluno in todos:
         if not aluno.nivel_questao:
             continue
-        t, _, pct = _calcular_stats_aluno(respostas_map.get(aluno.pessoa_id, []))
+        t, _, pct = calcular_stats_ponderadas(respostas_map.get(aluno.pessoa_id, []))
         if t >= 10 and pct >= 75:
             pronto += 1
         elif t >= 10 and pct < 40:
@@ -174,11 +181,11 @@ def listar_nivel_ingles(
     if not alunos:
         return NivelInglesListOut(items=[], total=total, page=page, page_size=page_size)
 
-    respostas_map = _buscar_respostas_por_aluno(db, [a.pessoa_id for a in alunos])
+    respostas_map = buscar_respostas_recentes_por_aluno(db, [a.pessoa_id for a in alunos])
 
     resultado = []
     for aluno in alunos:
-        total_r, acertos, percentual = _calcular_stats_aluno(respostas_map.get(aluno.pessoa_id, []))
+        total_r, acertos, percentual = calcular_stats_ponderadas(respostas_map.get(aluno.pessoa_id, []))
         resultado.append(NivelInglesOut(
             pessoa_id=aluno.pessoa_id,
             nome=aluno.pessoa.nome,
@@ -237,7 +244,7 @@ def atualizar(
     return aluno_service.atualizar(db, pessoa_id, body)
 
 
-@router.patch("/{pessoa_id}/nivel-ingles")
+@router.patch("/{pessoa_id}/nivel-ingles", response_model=AlunoOut)
 def atualizar_nivel_ingles(
     pessoa_id: int,
     body: AtualizarNivelIn,
@@ -252,7 +259,8 @@ def atualizar_nivel_ingles(
     aluno.nivel_questao = body.nivel
     aluno.nivel_questao_avaliado_em = datetime.utcnow()
     db.commit()
-    return {"nivel_questao": body.nivel}
+    db.refresh(aluno)
+    return aluno_service.buscar(db, pessoa_id)
 
 
 @router.post("/{pessoa_id}/nivel-ingles/liberar-reavaliacao")

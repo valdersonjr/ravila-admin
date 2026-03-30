@@ -14,25 +14,27 @@ import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/context/ToastContext";
 
 const PAGE_SIZE = 10;
-const MIN_RESPOSTAS = 10;
+const MIN_RESPOSTAS_PARA_AVALIACAO = 10;
+const PERCENTUAL_PRONTO_PARA_AVANCAR = 75;
+const PERCENTUAL_COM_DIFICULDADE = 40;
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function getSinal(pct: number, total: number): "pronto" | "dificuldade" | null {
-  if (total < MIN_RESPOSTAS) return null;
-  if (pct >= 75) return "pronto";
-  if (pct < 40) return "dificuldade";
+function getStatusDesempenho(pct: number, total: number): "pronto" | "dificuldade" | null {
+  if (total < MIN_RESPOSTAS_PARA_AVALIACAO) return null;
+  if (pct >= PERCENTUAL_PRONTO_PARA_AVANCAR) return "pronto";
+  if (pct < PERCENTUAL_COM_DIFICULDADE) return "dificuldade";
   return null;
 }
 
 function DesempenhoCell({ pct, total, nivel }: { pct: number; total: number; nivel: string | null }) {
   if (!nivel) return <span className="text-muted text-sm">—</span>;
   if (total === 0) return <span className="text-muted text-sm">Sem respostas em {nivel}</span>;
-  const sinal = getSinal(pct, total);
-  const barColor = pct >= 75 ? "bg-green-500" : pct >= 50 ? "bg-yellow-400" : "bg-red-400";
+  const sinal = getStatusDesempenho(pct, total);
+  const barColor = pct >= PERCENTUAL_PRONTO_PARA_AVANCAR ? "bg-green-500" : pct >= 50 ? "bg-yellow-400" : "bg-red-400";
   return (
     <div className="space-y-1 min-w-[140px]">
       <div className="flex items-center justify-between gap-2">
@@ -69,7 +71,11 @@ export default function NivelInglesPage() {
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function loadStats() {
-    try { setStats(await nivelInglesService.stats()); } catch { /* silent */ }
+    try {
+      setStats(await nivelInglesService.stats());
+    } catch (err) {
+      console.warn("Erro ao carregar stats de nível:", err);
+    }
   }
 
   async function load(p = page) {
@@ -131,7 +137,7 @@ export default function NivelInglesPage() {
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const sinalEditando = editando ? getSinal(editando.percentual, editando.total_respondidas) : null;
+  const statusDesempenhoEditando = editando ? getStatusDesempenho(editando.percentual, editando.total_respondidas) : null;
 
   return (
     <div className="space-y-6">
@@ -278,12 +284,12 @@ export default function NivelInglesPage() {
                   </div>
                   <div className="h-2 w-full bg-border rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${editando.percentual >= 75 ? "bg-green-500" : editando.percentual >= 50 ? "bg-yellow-400" : "bg-red-400"}`}
+                      className={`h-full rounded-full ${editando.percentual >= PERCENTUAL_PRONTO_PARA_AVANCAR ? "bg-green-500" : editando.percentual >= 50 ? "bg-yellow-400" : "bg-red-400"}`}
                       style={{ width: `${editando.percentual}%` }}
                     />
                   </div>
-                  {sinalEditando === "pronto" && <p className="text-sm text-green-600 font-medium">Pronto para avançar.</p>}
-                  {sinalEditando === "dificuldade" && <p className="text-sm text-red-500 font-medium">Com dificuldade no nível atual.</p>}
+                  {statusDesempenhoEditando === "pronto" && <p className="text-sm text-green-600 font-medium">Pronto para avançar.</p>}
+                  {statusDesempenhoEditando === "dificuldade" && <p className="text-sm text-red-500 font-medium">Com dificuldade no nível atual.</p>}
                 </div>
               ) : (
                 <p className="text-sm text-muted">Ainda sem respostas no banco de questões.</p>

@@ -1,15 +1,17 @@
+import asyncio
 import re
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, UploadFile, File, status
+from fastapi import APIRouter, Depends, Query, Request, UploadFile, File, status
 from fastapi.responses import Response
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy.orm import Session
 from weasyprint import HTML as WeasyHTML
 
+from app.core.limiter import limiter
 from app.database import get_db
 from app.dependencies import require_staff
 from app.models.contrato import Contrato
@@ -76,7 +78,9 @@ def _desconto_label(c: Contrato) -> str | None:
 
 
 @router.get("/relatorio-receita/pdf")
-def relatorio_receita_pdf(
+@limiter.limit("5/minute")
+async def relatorio_receita_pdf(
+    request: Request,
     db: Session = Depends(get_db),
     _: User = Depends(require_staff),
 ):
@@ -297,7 +301,7 @@ def relatorio_receita_pdf(
         churn_rows=churn_rows,
     )
 
-    pdf_bytes = WeasyHTML(string=html_str).write_pdf()
+    pdf_bytes = await asyncio.to_thread(lambda: WeasyHTML(string=html_str).write_pdf())
     filename = f"receita_mensal_{hoje}.pdf"
     return Response(
         content=pdf_bytes,
@@ -394,12 +398,14 @@ def download_assinado(
 
 
 @router.get("/{contrato_id}/instrucoes-gerais")
-def baixar_instrucoes_gerais(
+@limiter.limit("10/minute")
+async def baixar_instrucoes_gerais(
+    request: Request,
     contrato_id: int,
     db: Session = Depends(get_db),
     _: User = Depends(require_staff),
 ):
-    pdf_bytes = contrato_service.gerar_instrucoes_gerais(db, contrato_id)
+    pdf_bytes = await asyncio.to_thread(contrato_service.gerar_instrucoes_gerais, db, contrato_id)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -408,12 +414,14 @@ def baixar_instrucoes_gerais(
 
 
 @router.get("/{contrato_id}/pdf")
-def baixar_pdf(
+@limiter.limit("10/minute")
+async def baixar_pdf(
+    request: Request,
     contrato_id: int,
     db: Session = Depends(get_db),
     _: User = Depends(require_staff),
 ):
-    pdf_bytes = contrato_service.gerar_pdf(db, contrato_id)
+    pdf_bytes = await asyncio.to_thread(contrato_service.gerar_pdf, db, contrato_id)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

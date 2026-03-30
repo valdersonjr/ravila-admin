@@ -17,8 +17,17 @@ const ESTILOS = [
   { value: "vestibular", label: "Vestibular" },
   { value: "toefl_ielts", label: "TOEFL / IELTS" },
 ];
+const IMAGE_EXTS = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i;
 
 type Tab = "diaria" | "banco";
+const TABS: { value: Tab; label: string }[] = [
+  { value: "diaria", label: "Questão do dia" },
+  { value: "banco", label: "Banco livre" },
+];
+
+function shuffleArray<T>(arr: T[]): T[] {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
 
 export default function QuestoesPage() {
   const router = useRouter();
@@ -26,7 +35,9 @@ export default function QuestoesPage() {
   const [progresso, setProgresso] = useState<NivelProgresso | null>(null);
 
   useEffect(() => {
-    portalService.nivelProgresso().then(setProgresso).catch(() => {});
+    portalService.nivelProgresso().then(setProgresso).catch((err) => {
+      console.error("Erro ao carregar progresso:", err);
+    });
   }, []);
 
   return (
@@ -52,24 +63,24 @@ export default function QuestoesPage() {
 
       <div className="px-5 pb-4">
         <div className="flex gap-2 bg-surface border border-border rounded-xl p-1">
-          {(["diaria", "banco"] as Tab[]).map((t) => (
+          {TABS.map((t) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={t.value}
+              onClick={() => setTab(t.value)}
               className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
-                tab === t
+                tab === t.value
                   ? "bg-primary-600 text-white shadow-sm"
                   : "text-muted hover:text-foreground"
               }`}
             >
-              {t === "diaria" ? "Questão do dia" : "Banco livre"}
+              {t.label}
             </button>
           ))}
         </div>
       </div>
 
       {tab === "diaria"
-        ? <QuesataoDiariaTab />
+        ? <QuestaoDiariaTab />
         : <BancoLivreTab temNivel={!!progresso?.nivel_atual} nivelAluno={progresso?.nivel_atual ?? null} />}
     </AppShell>
   );
@@ -77,7 +88,7 @@ export default function QuestoesPage() {
 
 // ── Questão do dia ────────────────────────────────────────────────────────────
 
-function QuesataoDiariaTab() {
+function QuestaoDiariaTab() {
   const router = useRouter();
   const [estado, setEstado] = useState<"loading" | "sem_nivel" | "questao" | "resultado">("loading");
   const [diaria, setDiaria] = useState<QuestaoAlunoDia | null>(null);
@@ -92,9 +103,8 @@ function QuesataoDiariaTab() {
       setDiaria(d);
       setEstado(d.respondida ? "resultado" : "questao");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg === "nivel_nao_configurado") setEstado("sem_nivel");
-      else setEstado("sem_nivel");
+      console.error("Erro ao carregar questão diária:", err);
+      setEstado("sem_nivel");
     }
   }
 
@@ -116,30 +126,14 @@ function QuesataoDiariaTab() {
 
   if (estado === "sem_nivel") {
     return (
-      <div className="px-5 space-y-4">
-        <div className="bg-surface border border-border rounded-2xl p-5 space-y-4 text-center">
-          <ClipboardList size={32} className="text-primary-600 mx-auto" />
-          <div>
-            <p className="text-sm font-bold text-foreground">Faça o teste de proficiência</p>
-            <p className="text-xs text-muted mt-1">Precisamos saber seu nível para enviar a questão certa para você.</p>
-          </div>
-          <button
-            onClick={() => router.push("/pratica/proficiencia")}
-            className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold"
-          >
-            Fazer o teste agora
-          </button>
-        </div>
+      <div className="px-5">
+        <ProficiencyTestPrompt onPress={() => router.push("/pratica/proficiencia")} />
       </div>
     );
   }
 
   if (estado === "resultado" && diaria) {
-    const acertou = resultado?.acertou;
-    const streak = resultado?.streak ?? 0;
-    const respostaCorreta = resultado?.resposta_correta ?? null;
     const jaRespondida = diaria.respondida && !resultado;
-
     return (
       <div className="px-5 space-y-4">
         {jaRespondida ? (
@@ -149,38 +143,10 @@ function QuesataoDiariaTab() {
             <p className="text-xs text-muted">Volte amanhã para uma nova questão.</p>
           </div>
         ) : (
-          <div className={`rounded-2xl p-5 border space-y-3 ${acertou ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-            <div className="flex items-center gap-2">
-              {acertou
-                ? <CheckCircle size={22} className="text-green-600 shrink-0" />
-                : <XCircle size={22} className="text-red-500 shrink-0" />}
-              <p className={`text-base font-black ${acertou ? "text-green-700" : "text-red-600"}`}>
-                {acertou ? "Acertou!" : "Errou!"}
-              </p>
-            </div>
-            <p className="text-xs text-muted">Resposta correta:</p>
-            <p className="text-sm font-bold text-foreground">{respostaCorreta}</p>
-            {resultado?.explicacao && (
-              <div className="border-t border-current/20 pt-3">
-                <p className="text-xs font-semibold text-muted mb-1">Explicação</p>
-                <p className="text-sm text-foreground leading-relaxed">{resultado.explicacao}</p>
-              </div>
-            )}
-          </div>
+          <QuestaoResultadoCard resultado={resultado!} />
         )}
 
-        {streak > 0 && (
-          <div className="bg-surface border border-primary-100 rounded-2xl p-4 flex items-center gap-3">
-            <Flame size={28} className="text-primary-500 shrink-0" />
-            <div>
-              <p className="text-foreground">
-                <span className="text-xl font-black text-primary-600">{streak}</span>
-                <span className="text-sm font-bold text-primary-600"> dias</span>
-              </p>
-              <p className="text-xs text-muted">de sequência nas questões</p>
-            </div>
-          </div>
-        )}
+        {(resultado?.streak ?? 0) > 0 && <StreakCard streak={resultado!.streak} />}
 
         <div className="bg-surface border border-border rounded-2xl p-4 space-y-2">
           <p className="text-xs font-bold text-muted uppercase tracking-widest">Questão de hoje</p>
@@ -211,29 +177,6 @@ function QuesataoDiariaTab() {
 
 function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno: string | null }) {
   const router = useRouter();
-
-  if (!temNivel) {
-    return (
-      <div className="px-5">
-        <div className="bg-surface border border-border rounded-2xl p-6 text-center space-y-4">
-          <ClipboardList size={32} className="text-primary-600 mx-auto" />
-          <div>
-            <p className="text-sm font-bold text-foreground">Faça o teste de proficiência primeiro</p>
-            <p className="text-xs text-muted mt-1 leading-relaxed">
-              O banco de questões é liberado após o teste para garantir que você pratique no nível certo.
-            </p>
-          </div>
-          <button
-            onClick={() => router.push("/pratica/proficiencia")}
-            className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold"
-          >
-            Fazer o teste agora
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const [nivel, setNivel] = useState("");
   const [estilo, setEstilo] = useState("");
   const [fila, setFila] = useState<QuestaoPortal[]>([]);
@@ -243,14 +186,27 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
   const [loading, setLoading] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
+  if (!temNivel) {
+    return (
+      <div className="px-5">
+        <ProficiencyTestPrompt
+          descricao="O banco de questões é liberado após o teste para garantir que você pratique no nível certo."
+          onPress={() => router.push("/pratica/proficiencia")}
+        />
+      </div>
+    );
+  }
+
   async function carregarFila(n: string, e: string) {
     setLoading(true);
     setResultado(null);
     setResposta("");
     try {
       const items = await portalService.bancoquestoes({ nivel: n, estilo: e || undefined });
-      setFila([...items].sort(() => Math.random() - 0.5));
+      setFila(shuffleArray(items));
       setIndice(0);
+    } catch (err) {
+      console.error("Erro ao carregar fila de questões:", err);
     } finally {
       setLoading(false);
     }
@@ -270,7 +226,7 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
     }
   }
 
-  async function proxima() {
+  async function handleProxima() {
     const proximoIndice = indice + 1;
     if (proximoIndice < fila.length) {
       setIndice(proximoIndice);
@@ -326,19 +282,8 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
         </div>
       ) : resultado ? (
         <div className="space-y-3">
-          <div className={`rounded-2xl p-5 border space-y-3 ${resultado.acertou ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-            <div className={`flex items-center gap-2 font-bold text-sm ${resultado.acertou ? "text-green-700" : "text-red-600"}`}>
-              {resultado.acertou
-                ? <CheckCircle size={16} className="text-green-600" />
-                : <XCircle size={16} className="text-red-500" />}
-              {resultado.acertou ? "Correto!" : "Errou"}
-            </div>
-            <p className="text-xs text-muted">Resposta correta: <span className="font-semibold text-foreground">{resultado.resposta_correta}</span></p>
-            {resultado.explicacao && (
-              <p className="text-xs text-foreground leading-relaxed border-t border-current/10 pt-2">{resultado.explicacao}</p>
-            )}
-          </div>
-          <button onClick={proxima} className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold">
+          <QuestaoResultadoCard resultado={resultado} />
+          <button onClick={handleProxima} className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold">
             Próxima questão
           </button>
         </div>
@@ -355,9 +300,67 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
   );
 }
 
-// ── Shared ────────────────────────────────────────────────────────────────────
+// ── Componentes compartilhados ────────────────────────────────────────────────
 
-const IMAGE_EXTS = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i;
+function ProficiencyTestPrompt({
+  descricao = "Precisamos saber seu nível para enviar a questão certa para você.",
+  onPress,
+}: {
+  descricao?: string;
+  onPress: () => void;
+}) {
+  return (
+    <div className="bg-surface border border-border rounded-2xl p-5 space-y-4 text-center">
+      <ClipboardList size={32} className="text-primary-600 mx-auto" />
+      <div>
+        <p className="text-sm font-bold text-foreground">Faça o teste de proficiência</p>
+        <p className="text-xs text-muted mt-1">{descricao}</p>
+      </div>
+      <button onClick={onPress} className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold">
+        Fazer o teste agora
+      </button>
+    </div>
+  );
+}
+
+function QuestaoResultadoCard({ resultado }: { resultado: QuestaoRespostaPortal }) {
+  const { acertou, resposta_correta, explicacao } = resultado;
+  return (
+    <div className={`rounded-2xl p-5 border space-y-3 ${acertou ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+      <div className="flex items-center gap-2">
+        {acertou
+          ? <CheckCircle size={22} className="text-green-600 shrink-0" />
+          : <XCircle size={22} className="text-red-500 shrink-0" />}
+        <p className={`text-base font-black ${acertou ? "text-green-700" : "text-red-600"}`}>
+          {acertou ? "Acertou!" : "Errou!"}
+        </p>
+      </div>
+      <p className="text-xs text-muted">Resposta correta:</p>
+      <p className="text-sm font-bold text-foreground">{resposta_correta}</p>
+      {explicacao && (
+        <div className="border-t border-current/20 pt-3">
+          <p className="text-xs font-semibold text-muted mb-1">Explicação</p>
+          <p className="text-sm text-foreground leading-relaxed">{explicacao}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StreakCard({ streak }: { streak: number }) {
+  return (
+    <div className="bg-surface border border-primary-100 rounded-2xl p-4 flex items-center gap-3">
+      <Flame size={28} className="text-primary-500 shrink-0" />
+      <div>
+        <p className="text-foreground">
+          <span className="text-xl font-black text-primary-600">{streak}</span>
+          <span className="text-sm font-bold text-primary-600"> dias</span>
+        </p>
+        <p className="text-xs text-muted">de sequência nas questões</p>
+      </div>
+    </div>
+  );
+}
 
 function QuestaoCard({ questao, resposta, setResposta, onSubmit, loading }: {
   questao: QuestaoPortal;
@@ -368,9 +371,9 @@ function QuestaoCard({ questao, resposta, setResposta, onSubmit, loading }: {
 }) {
   return (
     <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
-      <div className="flex flex-wrap gap-1">
-        <span className="px-2 py-0.5 rounded-md bg-primary-100 text-primary-700 text-[11px] font-bold">{questao.nivel}</span>
-      </div>
+      <span className="px-2 py-0.5 rounded-md bg-primary-100 text-primary-700 text-[11px] font-bold">
+        {questao.nivel}
+      </span>
       {questao.texto_apoio && (
         <div className="bg-background border-l-4 border-primary-300 rounded-r-lg px-3 py-2 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
           {questao.texto_apoio}
@@ -389,14 +392,19 @@ function QuestaoCard({ questao, resposta, setResposta, onSubmit, loading }: {
           {questao.alternativas.map((alt) => (
             <button key={alt} onClick={() => setResposta(alt)}
               className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
-                resposta === alt ? "bg-primary-600 text-white border-primary-600" : "bg-background text-foreground border-border hover:border-primary-300"
+                resposta === alt
+                  ? "bg-primary-600 text-white border-primary-600"
+                  : "bg-background text-foreground border-border hover:border-primary-300"
               }`}>
               {alt}
             </button>
           ))}
         </div>
       ) : (
-        <input type="text" value={resposta} onChange={(e) => setResposta(e.target.value)}
+        <input
+          type="text"
+          value={resposta}
+          onChange={(e) => setResposta(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
           placeholder="Digite sua resposta..."
           className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-500"

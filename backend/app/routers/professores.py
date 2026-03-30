@@ -1,13 +1,15 @@
+import asyncio
 import re
 from datetime import date, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy.orm import Session
 from weasyprint import HTML as WeasyHTML
 
+from app.core.limiter import limiter
 from app.database import get_db
 from app.dependencies import require_admin, require_staff, get_current_user
 from app.models.user import User
@@ -69,12 +71,14 @@ def dashboard(
     return professor_service.dashboard(db, pessoa_id)
 
 
-_DIAS_PT = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"]
-_MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+DIAS_PT = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"]
+MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
 
 
 @router.get("/{pessoa_id}/agenda/pdf")
-def agenda_pdf(
+@limiter.limit("10/minute")
+async def agenda_pdf(
+    request: Request,
     pessoa_id: int,
     semana_inicio: date = Query(...),
     db: Session = Depends(get_db),
@@ -105,7 +109,7 @@ def agenda_pdf(
     for d in sorted(dias_map.keys()):
         dow = d.weekday()  # Monday=0 … Sunday=6; convert to Sun=0 … Sat=6
         dia_semana_idx = (dow + 1) % 7
-        label = f"{_DIAS_PT[dia_semana_idx].capitalize()}, {d.day} de {_MESES_PT[d.month - 1]} de {d.year}"
+        label = f"{DIAS_PT[dia_semana_idx].capitalize()}, {d.day} de {MESES_PT[d.month - 1]} de {d.year}"
         aulas_dia = []
         for a in dias_map[d]:
             turma_nome = a.turma.nome if a.turma else (f"Turma {a.turma_id}" if a.turma_id else "Aula avulsa")
@@ -121,7 +125,7 @@ def agenda_pdf(
 
     # Label da semana
     def fmt(d: date) -> str:
-        return f"{d.day} de {_MESES_PT[d.month - 1]}"
+        return f"{d.day} de {MESES_PT[d.month - 1]}"
     label_semana = f"{fmt(semana_inicio)} – {fmt(semana_fim)} de {semana_fim.year}"
 
     # Stats
@@ -144,7 +148,7 @@ def agenda_pdf(
         pendentes=contadores["pendente_aprovacao"],
     )
 
-    pdf_bytes = WeasyHTML(string=html_str).write_pdf()
+    pdf_bytes = await asyncio.to_thread(lambda: WeasyHTML(string=html_str).write_pdf())
     filename = f"agenda_{semana_inicio}.pdf"
     return Response(
         content=pdf_bytes,

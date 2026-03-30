@@ -15,6 +15,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+function buildQueryString(params?: Record<string, string | number | undefined>): string {
+  if (!params) return "";
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) qs.set(key, String(value));
+  }
+  const q = qs.toString();
+  return q ? `?${q}` : "";
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface AulaPortal {
@@ -130,22 +140,11 @@ export const portalService = {
     page?: number;
     page_size?: number;
   }): Promise<AulaListPortal> {
-    const qs = new URLSearchParams();
-    if (params?.data_inicio) qs.set("data_inicio", params.data_inicio);
-    if (params?.data_fim) qs.set("data_fim", params.data_fim);
-    if (params?.status) qs.set("status", params.status);
-    if (params?.page) qs.set("page", String(params.page));
-    if (params?.page_size) qs.set("page_size", String(params.page_size));
-    const q = qs.toString();
-    return request(`/portal/aulas${q ? `?${q}` : ""}`);
+    return request(`/portal/aulas${buildQueryString(params)}`);
   },
 
   presencas(params?: { page?: number; page_size?: number }): Promise<PresencaPortal[]> {
-    const qs = new URLSearchParams();
-    if (params?.page) qs.set("page", String(params.page));
-    if (params?.page_size) qs.set("page_size", String(params.page_size));
-    const q = qs.toString();
-    return request(`/portal/presencas${q ? `?${q}` : ""}`);
+    return request(`/portal/presencas${buildQueryString(params)}`);
   },
 
   contratos(): Promise<ContratoPortal[]> {
@@ -161,10 +160,7 @@ export const portalService = {
   },
 
   biblioteca(params?: { categoria?: string }): Promise<MaterialPortal[]> {
-    const qs = new URLSearchParams();
-    if (params?.categoria) qs.set("categoria", params.categoria);
-    const q = qs.toString();
-    return request(`/portal/biblioteca${q ? `?${q}` : ""}`);
+    return request(`/portal/biblioteca${buildQueryString(params)}`);
   },
 
   downloadMaterial(id: number): Promise<{ url: string }> {
@@ -183,12 +179,7 @@ export const portalService = {
   },
 
   bancoquestoes(params?: { nivel?: string; estilo?: string; page?: number }): Promise<QuestaoPortal[]> {
-    const qs = new URLSearchParams();
-    if (params?.nivel) qs.set("nivel", params.nivel);
-    if (params?.estilo) qs.set("estilo", params.estilo);
-    if (params?.page) qs.set("page", String(params.page));
-    const q = qs.toString();
-    return request(`/portal/questoes${q ? `?${q}` : ""}`);
+    return request(`/portal/questoes${buildQueryString(params)}`);
   },
 
   responderBanco(questaoId: number, resposta_dada: string): Promise<QuestaoRespostaPortal> {

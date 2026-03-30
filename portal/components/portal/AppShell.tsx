@@ -30,7 +30,6 @@ export function AppShell({ children, streak = 0 }: AppShellProps) {
     setNome(authService.getNome() ?? "Aluno");
   }, []);
 
-  const primeiroNome = nome.split(" ")[0] || "";
   const initials = nome
     .split(" ")
     .map((n) => n[0])
@@ -49,7 +48,7 @@ export function AppShell({ children, streak = 0 }: AppShellProps) {
             </div>
             <div>
               <p className="text-xs text-muted leading-none">Olá,</p>
-              <p className="text-sm font-bold text-foreground leading-snug">{primeiroNome}</p>
+              <p className="text-sm font-bold text-foreground leading-snug">{nome.split(" ")[0]}</p>
             </div>
           </div>
 

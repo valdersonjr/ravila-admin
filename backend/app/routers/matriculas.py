@@ -1,9 +1,7 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-
-from fastapi import HTTPException
 from app.database import get_db
 from app.dependencies import require_staff, get_current_user
 from app.models.turma import Turma

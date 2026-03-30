@@ -27,9 +27,15 @@ const CATEGORIA_LABEL: Record<string, string> = {
   outro:       "Outro",
 };
 
+const FORMATO_MES_CURTO = new Intl.DateTimeFormat("pt-BR", { month: "short" });
+
+function parseDateLocal(iso: string): Date {
+  const [ano, mes, dia] = iso.split("-").map(Number);
+  return new Date(ano, mes - 1, dia);
+}
+
 function formatData(iso: string) {
-  const [ano, mes, dia] = iso.split("-");
-  return new Date(Number(ano), Number(mes) - 1, Number(dia))
+  return parseDateLocal(iso)
     .toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
 }
 
@@ -123,7 +129,7 @@ function AulaItem({ aula }: { aula: AulaPortal }) {
         <div className="w-11 h-11 rounded-xl bg-primary-600 flex flex-col items-center justify-center text-white shrink-0">
           <span className="text-sm font-black leading-none">{aula.data.split("-")[2]}</span>
           <span className="text-xs leading-none opacity-80">
-            {["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][Number(aula.data.split("-")[1]) - 1]}
+            {FORMATO_MES_CURTO.format(parseDateLocal(aula.data))}
           </span>
         </div>
         <div className="flex-1 min-w-0">
