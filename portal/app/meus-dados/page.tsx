@@ -52,6 +52,7 @@ export default function MeusDadosPage() {
       const r = await authService.getFotoUrl();
       setFotoUrl(r.url);
       setData((d) => d ? { ...d, tem_foto: true } : d);
+      window.dispatchEvent(new CustomEvent("foto-atualizada", { detail: { url: r.url } }));
     } catch (err) {
       console.error("Erro no upload de foto:", err);
     } finally {

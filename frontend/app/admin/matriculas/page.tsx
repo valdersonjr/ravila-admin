@@ -28,6 +28,7 @@ export default function MatriculasPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingOptions, setLoadingOptions] = useState(true);
 
   const [filterTurmaId, setFilterTurmaId] = useState<number | string | null>(null);
   const [filterStatus, setFilterStatus] = useState("");
@@ -61,7 +62,7 @@ export default function MatriculasPage() {
     Promise.all([turmasService.listar({ page_size: 500 }), alunosService.listar({ page_size: 500 })]).then(([ts, as]) => {
       setTurmas(ts.items);
       setAlunos(as.items);
-    });
+    }).finally(() => setLoadingOptions(false));
     load();
   }, []);
 
@@ -121,7 +122,7 @@ export default function MatriculasPage() {
       <div className="flex flex-wrap gap-3 items-end bg-surface border border-border rounded-xl p-4">
         <div className="w-52">
           <label className="block text-xs text-muted mb-1">Turma</label>
-          <Combobox options={turmaOptions} value={filterTurmaId} onChange={setFilterTurmaId} placeholder="Todas as turmas" />
+          <Combobox options={turmaOptions} value={filterTurmaId} onChange={setFilterTurmaId} placeholder="Todas as turmas" loading={loadingOptions} />
         </div>
         <div className="w-40">
           <label className="block text-xs text-muted mb-1">Status</label>
@@ -162,10 +163,10 @@ export default function MatriculasPage() {
             <h2 className="text-lg font-semibold text-foreground mb-4">Nova Matrícula</h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <Field label="Aluno *">
-                <Combobox options={alunoOptions} value={createAlunoId} onChange={setCreateAlunoId} placeholder="Selecionar aluno..." />
+                <Combobox options={alunoOptions} value={createAlunoId} onChange={setCreateAlunoId} placeholder="Selecionar aluno..." loading={loadingOptions} />
               </Field>
               <Field label="Turma *">
-                <Combobox options={turmaOptions} value={createTurmaId} onChange={setCreateTurmaId} placeholder="Selecionar turma..." />
+                <Combobox options={turmaOptions} value={createTurmaId} onChange={setCreateTurmaId} placeholder="Selecionar turma..." loading={loadingOptions} />
               </Field>
               <Field label="Data de início *">
                 <Input type="date" value={createDataInicio} onChange={(e) => setCreateDataInicio(e.target.value)} />

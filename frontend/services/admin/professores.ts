@@ -1,4 +1,5 @@
 import { apiAuth, api } from "../api";
+import { cached, invalidate } from "@/lib/cache";
 import type { GerarSemanaRelatorio } from "./turmas";
 
 export interface Professor {
@@ -34,10 +35,10 @@ export interface ProfessorDashboard {
 }
 
 export const professoresService = {
-  listar: () => apiAuth.get<Professor[]>("/professores/"),
+  listar: () => cached("professores:listar", () => apiAuth.get<Professor[]>("/professores/")),
   buscar: (pessoaId: number) => apiAuth.get<Professor>(`/professores/${pessoaId}`),
-  criar: (data: ProfessorCreate) => apiAuth.post<Professor>("/professores/", data),
-  atualizar: (pessoaId: number, data: { ativo?: boolean }) => apiAuth.put<Professor>(`/professores/${pessoaId}`, data),
+  criar: (data: ProfessorCreate) => apiAuth.post<Professor>("/professores/", data).then((r) => { invalidate("professores:"); return r; }),
+  atualizar: (pessoaId: number, data: { ativo?: boolean }) => apiAuth.put<Professor>(`/professores/${pessoaId}`, data).then((r) => { invalidate("professores:"); return r; }),
   dashboard: (pessoaId: number) => apiAuth.get<ProfessorDashboard>(`/professores/${pessoaId}/dashboard`),
   gerarSemana: (pessoaId: number, dry_run: boolean) => apiAuth.post<GerarSemanaRelatorio>(`/professores/${pessoaId}/gerar-semana`, { dry_run }),
   exportarAgendaPdf: (pessoaId: number, semanaInicio: string) =>

@@ -21,6 +21,7 @@ export function AppShell({ children, streak = 0 }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [nome, setNome] = useState("");
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authService.isAuthenticated()) {
@@ -28,6 +29,17 @@ export function AppShell({ children, streak = 0 }: AppShellProps) {
       return;
     }
     setNome(authService.getNome() ?? "Aluno");
+    authService.me().then((me) => {
+      if (me.tem_foto) {
+        authService.getFotoUrl().then((r) => setFotoUrl(r.url)).catch(() => {});
+      }
+    }).catch(() => {});
+
+    function onFotoAtualizada(e: Event) {
+      setFotoUrl((e as CustomEvent<{ url: string }>).detail.url);
+    }
+    window.addEventListener("foto-atualizada", onFotoAtualizada);
+    return () => window.removeEventListener("foto-atualizada", onFotoAtualizada);
   }, []);
 
   const initials = nome
@@ -43,8 +55,10 @@ export function AppShell({ children, streak = 0 }: AppShellProps) {
       <header className="sticky top-0 z-20 bg-surface border-b border-border px-5 py-3">
         <div className="flex items-center justify-between max-w-lg mx-auto w-full">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-black select-none">
-              {initials}
+            <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-black select-none overflow-hidden">
+              {fotoUrl
+                ? <img src={fotoUrl} alt={nome} className="w-full h-full object-cover" />
+                : initials}
             </div>
             <div>
               <p className="text-xs text-muted leading-none">Olá,</p>

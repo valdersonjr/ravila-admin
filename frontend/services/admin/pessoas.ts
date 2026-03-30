@@ -1,4 +1,5 @@
 import { apiAuth } from "../api";
+import { cached, invalidate } from "@/lib/cache";
 
 export interface Pessoa {
   id: number;
@@ -34,9 +35,13 @@ export const pessoasService = {
     if (params?.search) qs.set("search", params.search);
     if (params?.page) qs.set("page", String(params.page));
     if (params?.page_size) qs.set("page_size", String(params.page_size));
-    return apiAuth.get<PessoaListOut>(`/pessoas/${qs.toString() ? `?${qs}` : ""}`);
+    const url = `/pessoas/${qs.toString() ? `?${qs}` : ""}`;
+    if ((params?.page_size ?? 0) >= 500 && !params?.search) {
+      return cached(`pessoas:${url}`, () => apiAuth.get<PessoaListOut>(url));
+    }
+    return apiAuth.get<PessoaListOut>(url);
   },
   buscar: (id: number) => apiAuth.get<Pessoa>(`/pessoas/${id}`),
-  criar: (data: PessoaCreate) => apiAuth.post<Pessoa>("/pessoas/", data),
-  atualizar: (id: number, data: Partial<PessoaCreate>) => apiAuth.put<Pessoa>(`/pessoas/${id}`, data),
+  criar: (data: PessoaCreate) => apiAuth.post<Pessoa>("/pessoas/", data).then((r) => { invalidate("pessoas:"); return r; }),
+  atualizar: (id: number, data: Partial<PessoaCreate>) => apiAuth.put<Pessoa>(`/pessoas/${id}`, data).then((r) => { invalidate("pessoas:"); return r; }),
 };

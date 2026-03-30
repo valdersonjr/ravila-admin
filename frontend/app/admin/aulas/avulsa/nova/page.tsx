@@ -26,12 +26,13 @@ export default function NovaAulaAvulsaPage() {
   const [horaFim, setHoraFim] = useState("");
   const [descricao, setDescricao] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingOptions, setLoadingOptions] = useState(true);
 
   useEffect(() => {
     Promise.all([pessoasService.listar({ page_size: 500 }), professoresService.listar()]).then(([ps, profs]) => {
       setPessoas(ps.items);
       setProfessores(profs.filter((p) => p.ativo));
-    });
+    }).finally(() => setLoadingOptions(false));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -71,10 +72,10 @@ export default function NovaAulaAvulsaPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Aluno *">
-          <Combobox options={pessoaOptions} value={alunoId} onChange={setAlunoId} placeholder="Buscar aluno..." />
+          <Combobox options={pessoaOptions} value={alunoId} onChange={setAlunoId} placeholder="Buscar aluno..." loading={loadingOptions} />
         </Field>
         <Field label="Professor *">
-          <Combobox options={professorOptions} value={professorId} onChange={setProfessorId} placeholder="Selecionar professor..." />
+          <Combobox options={professorOptions} value={professorId} onChange={setProfessorId} placeholder="Selecionar professor..." loading={loadingOptions} />
         </Field>
         <Field label="Data *">
           <Input type="date" value={data} onChange={(e) => setData(e.target.value)} required />

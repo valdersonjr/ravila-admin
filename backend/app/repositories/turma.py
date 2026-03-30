@@ -1,6 +1,7 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.turma import Turma, HorarioTurma
+from app.models.professor import Professor
 
 
 def listar(
@@ -18,8 +19,12 @@ def listar(
         query = query.filter(Turma.status == status)
     if search:
         query = query.filter(Turma.nome.ilike(f"%{search}%"))
+    _eager = [
+        selectinload(Turma.professor).selectinload(Professor.pessoa),
+        selectinload(Turma.horarios),
+    ]
     total = query.count()
-    items = query.order_by(Turma.nome.asc()).offset((page - 1) * page_size).limit(page_size).all()
+    items = query.options(*_eager).order_by(Turma.nome.asc()).offset((page - 1) * page_size).limit(page_size).all()
     return items, total
 
 
@@ -33,7 +38,10 @@ def listar_todos(
         query = query.filter(Turma.professor_id == professor_id)
     if status:
         query = query.filter(Turma.status == status)
-    return query.order_by(Turma.nome.asc()).all()
+    return query.options(
+        selectinload(Turma.professor).selectinload(Professor.pessoa),
+        selectinload(Turma.horarios),
+    ).order_by(Turma.nome.asc()).all()
 
 
 def buscar_por_id(db: Session, id: int) -> Turma | None:

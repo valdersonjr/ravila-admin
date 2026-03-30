@@ -9,9 +9,10 @@ interface ComboboxProps {
   onChange: (value: number | string | null) => void;
   placeholder?: string;
   disabled?: boolean;
+  loading?: boolean;
 }
 
-export function Combobox({ options, value, onChange, placeholder = "Selecionar...", disabled }: ComboboxProps) {
+export function Combobox({ options, value, onChange, placeholder = "Selecionar...", disabled, loading }: ComboboxProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -33,11 +34,16 @@ export function Combobox({ options, value, onChange, placeholder = "Selecionar..
           className="flex-1 px-3 py-2 text-sm bg-transparent text-foreground placeholder:text-muted outline-none disabled:opacity-50"
           placeholder={selected ? selected.label : placeholder}
           value={query}
-          disabled={disabled}
+          disabled={disabled || loading}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => !loading && setOpen(true)}
         />
-        {selected && !disabled && (
+        {loading && (
+          <span className="pr-3 flex items-center">
+            <span className="w-3.5 h-3.5 rounded-full border-2 border-primary-500 border-t-transparent animate-spin" />
+          </span>
+        )}
+        {selected && !disabled && !loading && (
           <button type="button" onClick={() => { onChange(null); setQuery(""); }} className="pr-3 text-muted hover:text-foreground text-lg leading-none">×</button>
         )}
       </div>

@@ -44,6 +44,8 @@ export default function AulasPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingTurmas, setLoadingTurmas] = useState(true);
+  const [loadingProfessores, setLoadingProfessores] = useState(true);
 
   const [turmaId, setTurmaId] = useState<number | string | null>(null);
   const [professorId, setProfessorId] = useState<number | string | null>(null);
@@ -79,8 +81,12 @@ export default function AulasPage() {
 
   useEffect(() => {
     const pid = searchParams.get("professor_id");
-    turmasService.listar({ page_size: 500 }).then((r) => setTurmas(r.items));
-    if (isAdmin) professoresService.listar().then(setProfessores);
+    turmasService.listar({ page_size: 500 }).then((r) => setTurmas(r.items)).finally(() => setLoadingTurmas(false));
+    if (isAdmin) {
+      professoresService.listar().then(setProfessores).finally(() => setLoadingProfessores(false));
+    } else {
+      setLoadingProfessores(false);
+    }
     if (pid) {
       setProfessorId(Number(pid));
       load(Number(pid));
@@ -162,12 +168,12 @@ export default function AulasPage() {
         {isAdmin && (
           <div className="w-52">
             <label className="block text-xs text-muted mb-1">Professor</label>
-            <Combobox options={profOptions} value={professorId} onChange={setProfessorId} placeholder="Todos os professores" />
+            <Combobox options={profOptions} value={professorId} onChange={setProfessorId} placeholder="Todos os professores" loading={loadingProfessores} />
           </div>
         )}
         <div className="w-52">
           <label className="block text-xs text-muted mb-1">Turma</label>
-          <Combobox options={turmaOptions} value={turmaId} onChange={setTurmaId} placeholder="Todas as turmas" />
+          <Combobox options={turmaOptions} value={turmaId} onChange={setTurmaId} placeholder="Todas as turmas" loading={loadingTurmas} />
         </div>
         <div className="w-40">
           <label className="block text-xs text-muted mb-1">Status</label>

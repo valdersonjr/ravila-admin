@@ -56,6 +56,7 @@ export default function NovaAulaPage() {
   const [horaFim, setHoraFim] = useState("10:00");
   const [tipo, setTipo] = useState<"regular" | "substitutiva">("regular");
   const [loading, setLoading] = useState(false);
+  const [loadingOptions, setLoadingOptions] = useState(true);
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slotSelecionado, setSlotSelecionado] = useState("");
@@ -64,12 +65,14 @@ export default function NovaAulaPage() {
   useEffect(() => {
     if (isProfessor && pessoaId) {
       setProfessorId(pessoaId);
-      turmasService.listar({ professor_id: pessoaId, page_size: 500 }).then((r) => setTurmas(r.items));
+      turmasService.listar({ professor_id: pessoaId, page_size: 500 })
+        .then((r) => setTurmas(r.items))
+        .finally(() => setLoadingOptions(false));
     } else {
       Promise.all([turmasService.listar({ page_size: 500 }), professoresService.listar()]).then(([ts, ps]) => {
         setTurmas(ts.items);
         setProfessores(ps.filter((p) => p.ativo));
-      });
+      }).finally(() => setLoadingOptions(false));
     }
   }, []);
 
@@ -142,11 +145,11 @@ export default function NovaAulaPage() {
       <h1 className="text-2xl font-bold text-foreground">Nova Aula</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Turma *">
-          <Combobox options={turmaOptions} value={turmaId} onChange={handleTurmaChange} placeholder="Selecionar turma..." />
+          <Combobox options={turmaOptions} value={turmaId} onChange={handleTurmaChange} placeholder="Selecionar turma..." loading={loadingOptions} />
         </Field>
         {!isProfessor && (
           <Field label="Professor *">
-            <Combobox options={profOptions} value={professorId} onChange={handleProfessorChange} placeholder="Selecionar professor..." />
+            <Combobox options={profOptions} value={professorId} onChange={handleProfessorChange} placeholder="Selecionar professor..." loading={loadingOptions} />
           </Field>
         )}
 

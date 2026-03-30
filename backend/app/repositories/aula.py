@@ -1,8 +1,9 @@
 from datetime import date
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.aula import Aula
+from app.models.turma import Turma
 
 
 def listar(
@@ -30,7 +31,14 @@ def listar(
     if aluno_id:
         query = query.filter(Aula.aluno_id == aluno_id)
     total = query.count()
-    items = query.order_by(Aula.data.asc(), Aula.hora_inicio).offset((page - 1) * page_size).limit(page_size).all()
+    items = (
+        query
+        .options(joinedload(Aula.turma))
+        .order_by(Aula.data.asc(), Aula.hora_inicio)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
     return items, total
 
 
