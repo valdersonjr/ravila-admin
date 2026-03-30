@@ -42,12 +42,12 @@ export function MateriaisSection({ aulaId, turmaId, canEdit = true }: Props) {
       materiaisService.listar({ aula_id: aulaId, turma_id: turmaId }),
     ];
     if (!aulaId) {
-      promises.push(turmasService.listar({ status: "ativa" }));
+      promises.push(turmasService.listar({ status: "ativa", page_size: 500 }));
     }
     Promise.all(promises)
       .then(([mats, turs]) => {
         setMateriais(mats as Material[]);
-        if (turs) setTurmas(turs as Turma[]);
+        if (turs) setTurmas((turs as { items: Turma[] }).items);
       })
       .catch(() => showToast("Erro ao carregar materiais.", "error"))
       .finally(() => setLoading(false));

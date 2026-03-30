@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_staff, get_current_user
+from app.dependencies import require_admin, require_staff, require_staff_or_professor, get_current_user
 from app.models.user import User
 from app.schemas.turma import (
     TurmaCreate,
     TurmaUpdate,
     TurmaOut,
+    TurmaListOut,
     HorarioTurmaCreate,
     HorarioTurmaOut,
     GerarAulasRequest,
@@ -23,10 +24,13 @@ from app.services import turma as turma_service
 router = APIRouter(prefix="/turmas", tags=["turmas"])
 
 
-@router.get("/", response_model=list[TurmaOut])
+@router.get("/", response_model=TurmaListOut)
 def listar(
     professor_id: Optional[int] = Query(None),
     status_filter: Optional[str] = Query(None, alias="status"),
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=500),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -35,15 +39,17 @@ def listar(
         effective_professor_id = current_user.pessoa_id
     elif professor_id:
         effective_professor_id = professor_id
-    return turma_service.listar(db, effective_professor_id, status_filter)
+    return turma_service.listar(db, effective_professor_id, status_filter, search, page, page_size)
 
 
 @router.post("/", response_model=TurmaOut, status_code=status.HTTP_201_CREATED)
 def criar(
     body: TurmaCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff_or_professor),
 ):
+    if current_user.role == "professor" and body.professor_id != current_user.pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Professor só pode criar turmas para si mesmo")
     return turma_service.criar(db, body)
 
 
@@ -64,9 +70,24 @@ def atualizar(
     turma_id: int,
     body: TurmaUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff_or_professor),
 ):
+    turma = turma_service.buscar(db, turma_id)
+    if current_user.role == "professor" and turma.professor_id != current_user.pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
     return turma_service.atualizar(db, turma_id, body)
+
+
+@router.delete("/{turma_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir(
+    turma_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff_or_professor),
+):
+    turma = turma_service.buscar(db, turma_id)
+    if current_user.role == "professor" and turma.professor_id != current_user.pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
+    turma_service.excluir(db, turma_id)
 
 
 @router.post("/{turma_id}/horarios", response_model=HorarioTurmaOut, status_code=status.HTTP_201_CREATED)
@@ -74,8 +95,11 @@ def adicionar_horario(
     turma_id: int,
     body: HorarioTurmaCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff_or_professor),
 ):
+    turma = turma_service.buscar(db, turma_id)
+    if current_user.role == "professor" and turma.professor_id != current_user.pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
     return turma_service.adicionar_horario(db, turma_id, body)
 
 
@@ -84,8 +108,11 @@ def remover_horario(
     turma_id: int,
     horario_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff_or_professor),
 ):
+    turma = turma_service.buscar(db, turma_id)
+    if current_user.role == "professor" and turma.professor_id != current_user.pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
     turma_service.remover_horario(db, turma_id, horario_id)
 
 
@@ -94,8 +121,11 @@ def gerar_aulas(
     turma_id: int,
     body: GerarAulasRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff_or_professor),
 ):
+    turma = turma_service.buscar(db, turma_id)
+    if current_user.role == "professor" and turma.professor_id != current_user.pessoa_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
     try:
         data_inicio = date.fromisoformat(body.data_inicio)
         data_fim = date.fromisoformat(body.data_fim)

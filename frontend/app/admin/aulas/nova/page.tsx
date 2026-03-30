@@ -64,10 +64,10 @@ export default function NovaAulaPage() {
   useEffect(() => {
     if (isProfessor && pessoaId) {
       setProfessorId(pessoaId);
-      turmasService.listar({ professor_id: pessoaId }).then(setTurmas);
+      turmasService.listar({ professor_id: pessoaId, page_size: 500 }).then((r) => setTurmas(r.items));
     } else {
-      Promise.all([turmasService.listar(), professoresService.listar()]).then(([ts, ps]) => {
-        setTurmas(ts);
+      Promise.all([turmasService.listar({ page_size: 500 }), professoresService.listar()]).then(([ts, ps]) => {
+        setTurmas(ts.items);
         setProfessores(ps.filter((p) => p.ativo));
       });
     }

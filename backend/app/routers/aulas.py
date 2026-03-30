@@ -63,9 +63,8 @@ def criar(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
-    pendente = current_user.role == "professor"
     professor_pessoa_id = current_user.pessoa_id if current_user.role == "professor" else None
-    return aula_service.criar(db, body, pendente_aprovacao=pendente, professor_pessoa_id=professor_pessoa_id)
+    return aula_service.criar(db, body, professor_pessoa_id=professor_pessoa_id)
 
 
 @router.post("/avulsa", response_model=AulaOut, status_code=status.HTTP_201_CREATED)

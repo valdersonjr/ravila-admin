@@ -58,8 +58,8 @@ export default function MatriculasPage() {
   }
 
   useEffect(() => {
-    Promise.all([turmasService.listar(), alunosService.listar({ page_size: 500 })]).then(([ts, as]) => {
-      setTurmas(ts);
+    Promise.all([turmasService.listar({ page_size: 500 }), alunosService.listar({ page_size: 500 })]).then(([ts, as]) => {
+      setTurmas(ts.items);
       setAlunos(as.items);
     });
     load();

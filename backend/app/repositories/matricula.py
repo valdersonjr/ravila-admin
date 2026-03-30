@@ -46,6 +46,16 @@ def criar(db: Session, dados: dict) -> Matricula:
     return matricula
 
 
+def cancelar_por_turma(db: Session, turma_id: int) -> int:
+    result = (
+        db.query(Matricula)
+        .filter(Matricula.turma_id == turma_id, Matricula.status == "ativa")
+        .update({"status": "cancelada"}, synchronize_session=False)
+    )
+    db.commit()
+    return result
+
+
 def atualizar(db: Session, matricula: Matricula, dados: dict) -> Matricula:
     for key, value in dados.items():
         setattr(matricula, key, value)

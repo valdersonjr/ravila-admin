@@ -8,6 +8,7 @@ from app.models.turma import Turma, HorarioTurma
 from app.repositories import turma as turma_repo
 from app.repositories import professor as professor_repo
 from app.repositories import aula as aula_repo
+from app.repositories import matricula as matricula_repo
 from app.schemas.turma import TurmaCreate, TurmaUpdate, HorarioTurmaCreate, GerarSemanaItem, GerarSemanaRelatorio
 
 
@@ -15,8 +16,13 @@ def listar(
     db: Session,
     professor_id: int | None = None,
     status: str | None = None,
-) -> list[Turma]:
-    return turma_repo.listar(db, professor_id, status)
+    search: str | None = None,
+    page: int = 1,
+    page_size: int = 10,
+):
+    from app.schemas.turma import TurmaListOut
+    items, total = turma_repo.listar(db, professor_id, status, search, page, page_size)
+    return TurmaListOut(items=items, total=total, page=page, page_size=page_size)
 
 
 def buscar(db: Session, id: int) -> Turma:
@@ -50,6 +56,12 @@ def atualizar(db: Session, id: int, dados: TurmaUpdate) -> Turma:
                 detail="Professor não encontrado",
             )
     return turma_repo.atualizar(db, turma, data)
+
+
+def excluir(db: Session, turma_id: int) -> None:
+    turma = buscar(db, turma_id)
+    matricula_repo.cancelar_por_turma(db, turma_id)
+    turma_repo.atualizar(db, turma, {"status": "excluida"})
 
 
 def adicionar_horario(db: Session, turma_id: int, dados: HorarioTurmaCreate) -> HorarioTurma:
@@ -107,7 +119,7 @@ def gerar_aulas(
     aulas_criadas = 0
     current = data_inicio
     while current <= data_fim:
-        dia = current.weekday()
+        dia = (current.weekday() + 1) % 7  # converte para 0=Dom, 1=Seg, ..., 6=Sáb
         if dia in dia_map and current not in existing_dates:
             for h in dia_map[dia]:
                 aula_repo.criar(db, {
@@ -138,7 +150,7 @@ def gerar_semana(db: Session, dry_run: bool = True, professor_id: int | None = N
         data_inicio = today + timedelta(days=7 - weekday)
     data_fim = data_inicio + timedelta(days=6)
 
-    turmas = turma_repo.listar(db, professor_id=professor_id, status="ativa")
+    turmas = turma_repo.listar_todos(db, professor_id=professor_id, status="ativa")
 
     itens: list[GerarSemanaItem] = []
     total_aulas = 0
@@ -169,7 +181,7 @@ def gerar_semana(db: Session, dry_run: bool = True, professor_id: int | None = N
 
         current = data_inicio
         while current <= data_fim:
-            dia = current.weekday()
+            dia = (current.weekday() + 1) % 7  # converte para 0=Dom, 1=Seg, ..., 6=Sáb
             if dia in dia_map and current not in existing_dates:
                 for h in dia_map[dia]:
                     conflito = aula_repo.buscar_conflito_horario(
@@ -209,7 +221,7 @@ def gerar_semana(db: Session, dry_run: bool = True, professor_id: int | None = N
 
             current = data_inicio
             while current <= data_fim:
-                dia = current.weekday()
+                dia = (current.weekday() + 1) % 7  # converte para 0=Dom, 1=Seg, ..., 6=Sáb
                 if dia in dia_map and current not in existing_dates:
                     for h in dia_map[dia]:
                         aula_repo.criar(db, {

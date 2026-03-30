@@ -34,7 +34,7 @@ export default function AulasPage() {
   const { showToast } = useToast();
   const searchParams = useSearchParams();
   const role = authService.getRole();
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "secretario";
   const isProfessor = role === "professor";
   const pessoaId = authService.getPessoaId();
 
@@ -79,7 +79,7 @@ export default function AulasPage() {
 
   useEffect(() => {
     const pid = searchParams.get("professor_id");
-    turmasService.listar().then(setTurmas);
+    turmasService.listar({ page_size: 500 }).then((r) => setTurmas(r.items));
     if (isAdmin) professoresService.listar().then(setProfessores);
     if (pid) {
       setProfessorId(Number(pid));
@@ -245,7 +245,8 @@ export default function AulasPage() {
               header: "",
               render: (a: Aula) => {
                 const podeExcluir = isAdmin || (isProfessor && a.professor_id === pessoaId);
-                if (!podeExcluir || a.status !== "agendada") return null;
+                const isFutura = a.data >= new Date().toISOString().split("T")[0];
+                if (!podeExcluir || a.status !== "agendada" || !isFutura) return null;
                 return (
                   <button
                     onClick={() => handleDeletar(a)}

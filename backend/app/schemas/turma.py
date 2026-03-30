@@ -48,6 +48,13 @@ class TurmaOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TurmaListOut(BaseModel):
+    items: list[TurmaOut]
+    total: int
+    page: int
+    page_size: int
+
+
 class GerarAulasRequest(BaseModel):
     data_inicio: str  # YYYY-MM-DD
     data_fim: str     # YYYY-MM-DD

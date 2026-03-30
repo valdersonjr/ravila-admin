@@ -59,26 +59,28 @@ export default function DashboardPage() {
         if (isAdmin) {
           const [alunos, turmas, aulasHoje, proximas, aniv, repos, ind] = await Promise.all([
             alunosService.listar({ status: "ativo", page_size: 1 }),
-            turmasService.listar({ status: "ativa" }),
+            turmasService.listar({ status: "ativa", page_size: 500 }),
             aulasService.listar({ data_inicio: hoje, data_fim: hoje, page_size: 100 }),
             aulasService.listar({ status: "agendada", page_size: 5 }),
             alunosService.aniversarios(),
             reposicoesService.listar(),
             contratosService.indicadores(),
           ]);
-          setStats({ alunos: alunos.total, turmas: turmas.length, aulasHoje: aulasHoje.total });
+          setStats({ alunos: alunos.total, turmas: turmas.total, aulasHoje: aulasHoje.total });
           setAulasRecentes(proximas.items);
           setAniversarios(aniv);
           setReposicoes(repos);
           setIndicadores(ind);
         } else {
-          const [turmas, aulasHoje, proximas] = await Promise.all([
-            turmasService.listar({ status: "ativa" }),
+          const [turmas, aulasHoje, proximas, aniv] = await Promise.all([
+            turmasService.listar({ status: "ativa", page_size: 500 }),
             aulasService.listar({ data_inicio: hoje, data_fim: hoje, page_size: 100 }),
             aulasService.listar({ status: "agendada", page_size: 5 }),
+            alunosService.aniversarios(),
           ]);
-          setStats({ alunos: 0, turmas: turmas.length, aulasHoje: aulasHoje.total });
+          setStats({ alunos: 0, turmas: turmas.total, aulasHoje: aulasHoje.total });
           setAulasRecentes(proximas.items);
+          setAniversarios(aniv);
         }
       } finally {
         setLoading(false);

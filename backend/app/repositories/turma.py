@@ -7,13 +7,33 @@ def listar(
     db: Session,
     professor_id: int | None = None,
     status: str | None = None,
-) -> list[Turma]:
-    query = db.query(Turma)
+    search: str | None = None,
+    page: int = 1,
+    page_size: int = 10,
+) -> tuple[list[Turma], int]:
+    query = db.query(Turma).filter(Turma.status != "excluida")
     if professor_id:
         query = query.filter(Turma.professor_id == professor_id)
     if status:
         query = query.filter(Turma.status == status)
-    return query.all()
+    if search:
+        query = query.filter(Turma.nome.ilike(f"%{search}%"))
+    total = query.count()
+    items = query.order_by(Turma.nome.asc()).offset((page - 1) * page_size).limit(page_size).all()
+    return items, total
+
+
+def listar_todos(
+    db: Session,
+    professor_id: int | None = None,
+    status: str | None = None,
+) -> list[Turma]:
+    query = db.query(Turma).filter(Turma.status != "excluida")
+    if professor_id:
+        query = query.filter(Turma.professor_id == professor_id)
+    if status:
+        query = query.filter(Turma.status == status)
+    return query.order_by(Turma.nome.asc()).all()
 
 
 def buscar_por_id(db: Session, id: int) -> Turma | None:

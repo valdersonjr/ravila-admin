@@ -25,7 +25,9 @@ export default function TurmaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { showToast } = useToast();
   const role = authService.getRole();
+  const pessoaId = authService.getPessoaId();
   const isAdmin = role === "admin" || role === "secretario";
+  const isProfessor = role === "professor";
 
   const [turma, setTurma] = useState<Turma | null>(null);
   const [aulas, setAulas] = useState<Aula[]>([]);
@@ -50,6 +52,9 @@ export default function TurmaDetailPage() {
   const [deletandoHorario, setDeletingHorario] = useState(false);
   const [aprovando, setAprovando] = useState<number | null>(null);
 
+  // Professor pode editar apenas a própria turma; o backend também valida
+  const podeEditar = isAdmin || (isProfessor && turma?.professor?.pessoa_id === pessoaId);
+
   async function load() {
     setLoading(true);
     try {
@@ -65,6 +70,7 @@ export default function TurmaDetailPage() {
         const profs = await professoresService.listar();
         setProfessores(profs);
       }
+
     } finally { setLoading(false); }
   }
 
@@ -168,7 +174,7 @@ export default function TurmaDetailPage() {
         </div>
         <div className="flex items-center gap-3">
           <Badge variant={turma.status === "ativa" ? "success" : "neutral"}>{turma.status}</Badge>
-          {isAdmin && (
+          {podeEditar && (
             <Button size="sm" variant="outline" onClick={abrirEdicao}>Editar turma</Button>
           )}
         </div>
@@ -183,11 +189,11 @@ export default function TurmaDetailPage() {
             <div key={h.id} className="flex items-center gap-2 bg-surface border border-border rounded-lg px-3 py-2 text-sm">
               <span className="font-medium text-foreground">{DIAS[h.dia_semana]}</span>
               <span className="text-muted">{h.hora_inicio.slice(0,5)} – {h.hora_fim.slice(0,5)}</span>
-              {isAdmin && <button onClick={() => setDeleteHorario(h)} className="text-rose-500 hover:text-rose-700 text-xs ml-1">✕</button>}
+              {podeEditar && <button onClick={() => setDeleteHorario(h)} className="text-rose-500 hover:text-rose-700 text-xs ml-1">✕</button>}
             </div>
           ))}
         </div>
-        {isAdmin && (
+        {podeEditar && (
           <form onSubmit={handleAddHorario} className="flex flex-wrap gap-3 items-end bg-surface border border-border rounded-xl p-4">
             <div>
               <label className="block text-xs text-muted mb-1">Dia</label>
@@ -290,13 +296,15 @@ export default function TurmaDetailPage() {
             <Field label="Livro">
               <Input value={editForm.livro} onChange={(e) => setEditForm((p) => ({ ...p, livro: e.target.value }))} placeholder="Opcional" />
             </Field>
-            <Field label="Professor">
-              <Select
-                value={editForm.professor_id}
-                onChange={(e) => setEditForm((p) => ({ ...p, professor_id: e.target.value }))}
-                options={professores.map((p) => ({ value: String(p.pessoa_id), label: p.pessoa.nome }))}
-              />
-            </Field>
+            {isAdmin && (
+              <Field label="Professor">
+                <Select
+                  value={editForm.professor_id}
+                  onChange={(e) => setEditForm((p) => ({ ...p, professor_id: e.target.value }))}
+                  options={professores.map((p) => ({ value: String(p.pessoa_id), label: p.pessoa.nome }))}
+                />
+              </Field>
+            )}
             <Field label="Status">
               <Select
                 value={editForm.status}
