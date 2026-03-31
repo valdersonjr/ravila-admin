@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -10,7 +10,8 @@ from app.schemas.presenca import PresencaItem
 
 
 def _verificar_aula_iniciada(aula) -> None:
-    aula_inicio = datetime.combine(aula.data, aula.hora_inicio)
+    h, m = map(int, aula.hora_inicio.split(":"))
+    aula_inicio = datetime.combine(aula.data, time(h, m))
     if datetime.now() < aula_inicio:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
