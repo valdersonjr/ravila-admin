@@ -8,7 +8,7 @@ from app.schemas.aluno import AlunoOut
 class PessoaSimples(BaseModel):
     id: int
     nome: str
-    cpf: str
+    cpf: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
