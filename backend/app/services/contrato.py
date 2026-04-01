@@ -116,9 +116,9 @@ def atualizar_status(db: Session, contrato_id: int, dados: ContratoStatusUpdate)
 
 
 def _fmt_brl(valor) -> str:
-    v = float(valor)
+    v = Decimal(str(valor)).quantize(Decimal("0.01"))
     integer_part = int(v)
-    decimal_part = round((v - integer_part) * 100)
+    decimal_part = int((v - integer_part) * 100)
     integer_str = f"{integer_part:,}".replace(",", ".")
     return f"R$ {integer_str},{decimal_part:02d}"
 
@@ -150,12 +150,12 @@ def gerar_pdf(db: Session, contrato_id: int) -> bytes:
     valor_com_desconto = None
     desconto_label = None
     if contrato.desconto_percentual:
-        v = float(contrato.valor_mensalidade) * (1 - float(contrato.desconto_percentual) / 100)
+        v = contrato.valor_mensalidade * (1 - contrato.desconto_percentual / 100)
         valor_com_desconto = _fmt_brl(v)
         desconto_label = f"{contrato.desconto_percentual}%"
     elif contrato.desconto_valor:
-        v = float(contrato.valor_mensalidade) - float(contrato.desconto_valor)
-        valor_com_desconto = _fmt_brl(max(v, 0))
+        v = contrato.valor_mensalidade - contrato.desconto_valor
+        valor_com_desconto = _fmt_brl(max(v, Decimal("0")))
         desconto_label = _fmt_brl(contrato.desconto_valor)
 
     # Render Jinja2 template
@@ -204,12 +204,12 @@ def gerar_instrucoes_gerais(db: Session, contrato_id: int) -> bytes:
     valor_com_desconto = None
     desconto_label = None
     if contrato.desconto_percentual:
-        v = float(contrato.valor_mensalidade) * (1 - float(contrato.desconto_percentual) / 100)
+        v = contrato.valor_mensalidade * (1 - contrato.desconto_percentual / 100)
         valor_com_desconto = _fmt_brl(v)
         desconto_label = f"{contrato.desconto_percentual}%"
     elif contrato.desconto_valor:
-        v = float(contrato.valor_mensalidade) - float(contrato.desconto_valor)
-        valor_com_desconto = _fmt_brl(max(v, 0))
+        v = contrato.valor_mensalidade - contrato.desconto_valor
+        valor_com_desconto = _fmt_brl(max(v, Decimal("0")))
         desconto_label = _fmt_brl(contrato.desconto_valor)
 
     template_dir = Path(__file__).parent.parent / "templates"

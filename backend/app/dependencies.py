@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.core.security import decode_access_token
 from app.database import get_db
@@ -28,8 +29,9 @@ def get_current_user(
     user = user_repo.buscar_por_username(db, username)
     if user is None or not user.ativo:
         raise credentials_exception
-    # Role é derivada no login e carregada do JWT — não lida do banco
-    user.role = payload.get("role", "")
+    # Role é derivada no login e carregada do JWT — não lida do banco.
+    # set_committed_value evita que o SQLAlchemy rastreie isso como uma mudança pendente.
+    set_committed_value(user, "role", payload.get("role", ""))
     return user
 
 

@@ -68,7 +68,7 @@ export function MateriaisSection({ aulaId, turmaId, canEdit = true }: Props) {
     e.preventDefault();
     if (!titulo.trim()) { showToast("Título obrigatório.", "error"); return; }
     if (tipo === "link" && !urlExterna.trim()) { showToast("URL obrigatória para tipo link.", "error"); return; }
-    if (destinatario === "turma" && !formTurmaId) { showToast("Selecione uma turma.", "error"); return; }
+    if (!aulaId && destinatario === "turma" && !formTurmaId) { showToast("Selecione uma turma.", "error"); return; }
 
     setSaving(true);
     try {
