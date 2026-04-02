@@ -5,6 +5,7 @@ const REFRESH_KEY   = "portal_refresh_token";
 const ROLE_KEY      = "portal_role";
 const NOME_KEY      = "portal_nome";
 const PESSOA_ID_KEY = "portal_pessoa_id";
+const FOTO_URL_KEY  = "portal_foto_url";
 
 function isClient(): boolean {
   return typeof window !== "undefined";
@@ -60,9 +61,19 @@ export const authService = {
   },
 
   logout(): void {
-    [ACCESS_KEY, REFRESH_KEY, ROLE_KEY, NOME_KEY, PESSOA_ID_KEY].forEach((key) =>
+    [ACCESS_KEY, REFRESH_KEY, ROLE_KEY, NOME_KEY, PESSOA_ID_KEY, FOTO_URL_KEY].forEach((key) =>
       sessionStorage.removeItem(key)
     );
+  },
+
+  getFotoUrlCached(): string | null {
+    return getStorageItem(FOTO_URL_KEY);
+  },
+
+  setFotoUrlCached(url: string | null): void {
+    if (!isClient()) return;
+    if (url) sessionStorage.setItem(FOTO_URL_KEY, url);
+    else sessionStorage.removeItem(FOTO_URL_KEY);
   },
 
   getToken(): string | null {

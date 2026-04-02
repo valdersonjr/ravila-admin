@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, UserRound, FileText, Bell, KeyRound } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
@@ -9,6 +9,26 @@ export default function PerfilPage() {
   const router = useRouter();
   const nome = authService.getNome() ?? "Aluno";
   const initials = nome.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+  const [fotoUrl, setFotoUrl] = useState<string | null>(authService.getFotoUrlCached());
+
+  useEffect(() => {
+    if (!fotoUrl) {
+      authService.me().then((me) => {
+        if (me.tem_foto) {
+          authService.getFotoUrl().then((r) => {
+            setFotoUrl(r.url);
+            authService.setFotoUrlCached(r.url);
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+    function onFotoAtualizada(e: Event) {
+      const url = (e as CustomEvent<{ url: string }>).detail.url;
+      setFotoUrl(url);
+    }
+    window.addEventListener("foto-atualizada", onFotoAtualizada);
+    return () => window.removeEventListener("foto-atualizada", onFotoAtualizada);
+  }, []);
 
   function handleLogout() {
     authService.logout();
@@ -22,8 +42,10 @@ export default function PerfilPage() {
 
         {/* Avatar + nome */}
         <div className="flex flex-col items-center gap-3 py-4">
-          <div className="w-20 h-20 rounded-full bg-primary-600 flex items-center justify-center text-white text-2xl font-black">
-            {initials}
+          <div className="w-20 h-20 rounded-full bg-primary-600 flex items-center justify-center text-white text-2xl font-black overflow-hidden">
+            {fotoUrl
+              ? <img src={fotoUrl} alt={nome} className="w-full h-full object-cover" />
+              : initials}
           </div>
           <p className="text-lg font-bold text-foreground">{nome}</p>
           <span className="text-xs bg-primary-100 text-primary-700 font-semibold rounded-full px-3 py-1">Aluno</span>

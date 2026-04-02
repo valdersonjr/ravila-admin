@@ -29,14 +29,25 @@ export function AppShell({ children, streak = 0 }: AppShellProps) {
       return;
     }
     setNome(authService.getNome() ?? "Aluno");
-    authService.me().then((me) => {
-      if (me.tem_foto) {
-        authService.getFotoUrl().then((r) => setFotoUrl(r.url)).catch(() => {});
-      }
-    }).catch(() => {});
+    // Usa cache imediatamente — sem flash de iniciais
+    const cached = authService.getFotoUrlCached();
+    if (cached) setFotoUrl(cached);
+    // Valida em background só se não tem cache ainda
+    if (!cached) {
+      authService.me().then((me) => {
+        if (me.tem_foto) {
+          authService.getFotoUrl().then((r) => {
+            setFotoUrl(r.url);
+            authService.setFotoUrlCached(r.url);
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
 
     function onFotoAtualizada(e: Event) {
-      setFotoUrl((e as CustomEvent<{ url: string }>).detail.url);
+      const url = (e as CustomEvent<{ url: string }>).detail.url;
+      setFotoUrl(url);
+      authService.setFotoUrlCached(url);
     }
     window.addEventListener("foto-atualizada", onFotoAtualizada);
     return () => window.removeEventListener("foto-atualizada", onFotoAtualizada);
