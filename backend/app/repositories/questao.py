@@ -1,4 +1,5 @@
 import random
+import string
 from datetime import date
 from typing import Optional
 
@@ -15,8 +16,11 @@ def listar(
     *,
     nivel: Optional[str] = None,
     subtipo: Optional[str] = None,
-    estilo: Optional[str] = None,
+    contexto: Optional[str] = None,
+    topico: Optional[str] = None,
+    dificuldade: Optional[str] = None,
     ativo: Optional[bool] = True,
+    busca: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
 ) -> tuple[list[Questao], int]:
@@ -25,10 +29,21 @@ def listar(
         q = q.filter(Questao.nivel == nivel)
     if subtipo:
         q = q.filter(Questao.subtipo == subtipo)
-    if estilo:
-        q = q.filter(Questao.estilo == estilo)
+    if contexto:
+        q = q.filter(Questao.contexto == contexto)
+    if topico:
+        q = q.filter(Questao.topico == topico)
+    if dificuldade:
+        q = q.filter(Questao.dificuldade == dificuldade)
     if ativo is not None:
         q = q.filter(Questao.ativo == ativo)
+    if busca:
+        termo = busca.lstrip("#").upper()
+        from sqlalchemy import or_
+        q = q.filter(or_(
+            Questao.codigo == termo,
+            Questao.enunciado.ilike(f"%{busca}%"),
+        ))
     q = q.order_by(Questao.criado_em.desc())
     total = q.count()
     return q.offset(skip).limit(limit).all(), total
@@ -38,8 +53,16 @@ def buscar(db: Session, questao_id: int) -> Optional[Questao]:
     return db.query(Questao).filter(Questao.id == questao_id).first()
 
 
-def criar(db: Session, dados: QuestaoCreate) -> Questao:
-    questao = Questao(**dados.model_dump())
+def _gerar_codigo_unico(db: Session) -> str:
+    chars = string.ascii_uppercase + string.digits
+    while True:
+        codigo = "".join(random.choices(chars, k=6))
+        if not db.query(Questao).filter(Questao.codigo == codigo).first():
+            return codigo
+
+
+def criar(db: Session, dados: QuestaoCreate, criado_por_id: Optional[int] = None) -> Questao:
+    questao = Questao(**dados.model_dump(), codigo=_gerar_codigo_unico(db), criado_por_id=criado_por_id)
     db.add(questao)
     db.commit()
     db.refresh(questao)
@@ -136,15 +159,18 @@ def listar_para_portal(
     db: Session,
     *,
     nivel: Optional[str] = None,
-    estilo: Optional[str] = None,
+    contexto: Optional[str] = None,
+    topico: Optional[str] = None,
     skip: int = 0,
     limit: int = 20,
 ) -> list[Questao]:
     q = db.query(Questao).filter(Questao.ativo == True)
     if nivel:
         q = q.filter(Questao.nivel == nivel)
-    if estilo:
-        q = q.filter(Questao.estilo == estilo)
+    if contexto:
+        q = q.filter(Questao.contexto == contexto)
+    if topico:
+        q = q.filter(Questao.topico == topico)
     return q.order_by(Questao.id).offset(skip).limit(limit).all()
 
 

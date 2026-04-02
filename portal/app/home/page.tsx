@@ -61,7 +61,7 @@ export default function HomePage() {
           {loading ? <SkeletonCard /> : (
             resumo?.nivel_atual ? (
               <button
-                onClick={() => router.push("/pratica/questoes")}
+                onClick={() => router.push("/praticar/questoes")}
                 className="w-full bg-surface border border-border rounded-2xl p-5 flex items-center gap-4 text-left"
               >
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${resumo.questao_respondida_hoje ? "bg-green-100" : "bg-primary-600"}`}>
@@ -90,7 +90,7 @@ export default function HomePage() {
               </button>
             ) : (
               <button
-                onClick={() => router.push("/pratica/proficiencia")}
+                onClick={() => router.push("/praticar/proficiencia")}
                 className="w-full bg-surface border border-border rounded-2xl p-5 flex items-center gap-4 text-left"
               >
                 <div className="w-11 h-11 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
@@ -148,7 +148,7 @@ export default function HomePage() {
           <section>
             <h2 className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Seu nível</h2>
             <button
-              onClick={() => router.push("/pratica/questoes")}
+              onClick={() => router.push("/praticar/questoes")}
               className="w-full bg-surface border border-border rounded-2xl p-5 flex items-center gap-4 text-left"
             >
               <div className="w-11 h-11 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">

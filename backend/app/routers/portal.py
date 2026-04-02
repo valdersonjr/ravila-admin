@@ -24,6 +24,17 @@ from app.models.user import User
 from app.models.aluno import Aluno as AlunoModel
 from app.models.questao import Questao, QuestaoAlunoDia, QuestaoResposta
 from app.models.questao import NIVEIS_CEFR
+from app.models.avaliacao import Avaliacao, AvaliacaoAluno
+from app.models.matricula import Matricula as MatriculaModel
+from app.repositories import avaliacao as avaliacao_repo
+from app.schemas.avaliacao import (
+    AvaliacaoPortalOut,
+    AvaliacaoDetalhePortalOut,
+    AvaliacaoRespostaIn,
+    ResultadoAvaliacaoOut,
+    ResultadoQuestaoOut,
+    AvaliacaoQuestaoOut,
+)
 from app.schemas.material import MaterialPortalOut
 from app.schemas.questao import (
     QuestaoAlunoDiaOut,
@@ -163,7 +174,7 @@ def listar_aulas(
 @router.get("/presencas", response_model=list[PresencaPortalOut])
 def listar_presencas(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_aluno),
 ):
@@ -393,7 +404,8 @@ def responder_questao_diaria(
 @router.get("/questoes", response_model=list[QuestaoPortalOut])
 def banco_questoes(
     nivel: Optional[str] = Query(None),
-    estilo: Optional[str] = Query(None),
+    contexto: Optional[str] = Query(None),
+    topico: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -402,7 +414,7 @@ def banco_questoes(
     """Banco de questões para prática livre."""
     from app.repositories.questao import listar_para_portal
     items = listar_para_portal(
-        db, nivel=nivel, estilo=estilo,
+        db, nivel=nivel, contexto=contexto, topico=topico,
         skip=(page - 1) * page_size, limit=page_size,
     )
     return [QuestaoPortalOut.model_validate(q) for q in items]
@@ -589,4 +601,193 @@ def resumo(
         streak_dias=streak_dias,
         questao_respondida_hoje=questao_respondida_hoje,
         nivel_atual=aluno.nivel_questao if aluno else None,
+    )
+
+
+# ── Avaliações ────────────────────────────────────────────────────────────────
+
+def _turma_do_aluno(db: Session, aluno_id: int) -> Optional[int]:
+    mat = (
+        db.query(MatriculaModel)
+        .filter(MatriculaModel.aluno_id == aluno_id, MatriculaModel.status == "ativa")
+        .order_by(MatriculaModel.data_inicio.desc())
+        .first()
+    )
+    return mat.turma_id if mat else None
+
+
+def _avaliacao_disponivel(av) -> bool:
+    """Verifica se a avaliação está dentro da janela de tempo permitida."""
+    from datetime import datetime as dt, date as d
+    if not av.hora_inicio or not av.hora_fim:
+        return True
+    hoje = d.today()
+    if av.data_aplicacao and av.data_aplicacao != hoje:
+        return False
+    agora = dt.now().time()
+    return av.hora_inicio <= agora <= av.hora_fim
+
+
+@router.get("/avaliacoes", response_model=list[AvaliacaoPortalOut])
+def listar_avaliacoes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    turma_id = _turma_do_aluno(db, current_user.pessoa_id)
+    if not turma_id:
+        return []
+    items = avaliacao_repo.listar_para_aluno(db, turma_id, current_user.pessoa_id)
+    return [
+        AvaliacaoPortalOut(
+            id=i["av"].id,
+            titulo=i["av"].titulo,
+            topico=i["av"].topico,
+            modulo=i["av"].modulo,
+            descricao=i["av"].descricao,
+            data_aplicacao=i["av"].data_aplicacao,
+            hora_inicio=i["av"].hora_inicio,
+            hora_fim=i["av"].hora_fim,
+            disponivel=_avaliacao_disponivel(i["av"]),
+            status_aluno=i["status_aluno"],
+            nota_final=i["nota_final"],
+            total_questoes=i["total_questoes"],
+        )
+        for i in items
+    ]
+
+
+@router.get("/avaliacoes/{avaliacao_id}", response_model=AvaliacaoDetalhePortalOut)
+def detalhe_avaliacao(
+    avaliacao_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    from fastapi import HTTPException
+    av = avaliacao_repo.buscar(db, avaliacao_id)
+    if not av or av.status not in ("publicada", "encerrada"):
+        raise HTTPException(status_code=404, detail="Avaliação não encontrada")
+    turma_id = _turma_do_aluno(db, current_user.pessoa_id)
+    if av.turma_id != turma_id:
+        raise HTTPException(status_code=403, detail="Sem acesso a esta avaliação")
+    if not _avaliacao_disponivel(av):
+        raise HTTPException(status_code=403, detail="fora_do_horario")
+    if avaliacao_repo.aluno_ja_respondeu(db, avaliacao_id, current_user.pessoa_id):
+        raise HTTPException(status_code=409, detail="ja_respondida")
+    return AvaliacaoDetalhePortalOut(
+        id=av.id,
+        titulo=av.titulo,
+        topico=av.topico,
+        modulo=av.modulo,
+        descricao=av.descricao,
+        data_aplicacao=av.data_aplicacao,
+        hora_fim=av.hora_fim,
+        questoes=av.questoes,
+    )
+
+
+@router.get("/avaliacoes/{avaliacao_id}/horario")
+def horario_avaliacao(
+    avaliacao_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    from fastapi import HTTPException
+    av = avaliacao_repo.buscar(db, avaliacao_id)
+    if not av or av.status != "publicada":
+        raise HTTPException(status_code=404)
+    turma_id = _turma_do_aluno(db, current_user.pessoa_id)
+    if av.turma_id != turma_id:
+        raise HTTPException(status_code=403)
+    return {
+        "hora_fim": av.hora_fim.strftime("%H:%M:%S") if av.hora_fim else None,
+        "data_aplicacao": av.data_aplicacao.isoformat() if av.data_aplicacao else None,
+    }
+
+
+@router.post("/avaliacoes/{avaliacao_id}/responder")
+def responder_avaliacao(
+    avaliacao_id: int,
+    dados: AvaliacaoRespostaIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    from fastapi import HTTPException
+    av = avaliacao_repo.buscar(db, avaliacao_id)
+    if not av or av.status != "publicada":
+        raise HTTPException(status_code=404, detail="Avaliação não disponível")
+    turma_id = _turma_do_aluno(db, current_user.pessoa_id)
+    if av.turma_id != turma_id:
+        raise HTTPException(status_code=403, detail="Sem acesso a esta avaliação")
+    if not _avaliacao_disponivel(av):
+        raise HTTPException(status_code=403, detail="fora_do_horario")
+    if avaliacao_repo.aluno_ja_respondeu(db, avaliacao_id, current_user.pessoa_id):
+        raise HTTPException(status_code=409, detail="Avaliação já respondida")
+    reg = avaliacao_repo.submeter_respostas(
+        db, av, current_user.pessoa_id,
+        [{"questao_id": r.questao_id, "resposta_dada": r.resposta_dada} for r in dados.respostas],
+    )
+    return {"status": reg.status, "nota_final": reg.nota_final}
+
+
+@router.get("/avaliacoes/{avaliacao_id}/resultado", response_model=ResultadoAvaliacaoOut)
+def resultado_avaliacao(
+    avaliacao_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    from fastapi import HTTPException
+    av = avaliacao_repo.buscar(db, avaliacao_id)
+    if not av:
+        raise HTTPException(status_code=404, detail="Avaliação não encontrada")
+    reg = avaliacao_repo.buscar_registro_aluno(db, avaliacao_id, current_user.pessoa_id)
+    if not reg:
+        raise HTTPException(status_code=404, detail="Você ainda não respondeu esta avaliação")
+    peso_map = {aq.questao_id: aq.peso for aq in av.questoes}
+    respostas = avaliacao_repo.buscar_respostas_aluno(db, avaliacao_id, current_user.pessoa_id)
+
+    total_peso = sum(peso_map.values()) or 1.0
+    peso_corrigido = 0.0
+    pontos_parciais = 0.0
+
+    questoes_out = []
+    for r in respostas:
+        q = r.questao
+        peso = peso_map.get(r.questao_id, 1.0)
+
+        if r.corrigida:
+            peso_corrigido += peso
+            if r.acertou is True:
+                pontos_parciais += peso
+            elif r.nota_manual is not None:
+                pontos_parciais += r.nota_manual * peso
+
+        questoes_out.append(ResultadoQuestaoOut(
+            questao_id=r.questao_id,
+            enunciado=q.enunciado,
+            subtipo=q.subtipo,
+            nivel=q.nivel,
+            peso=peso,
+            texto_apoio=q.texto_apoio,
+            midia_url=q.midia_url,
+            midia_tipo=q.midia_tipo,
+            alternativas=q.alternativas,
+            resposta_dada=r.resposta_dada,
+            resposta_correta=q.resposta_correta,
+            acertou=r.acertou,
+            nota_manual=r.nota_manual,
+            comentario_professor=r.comentario_professor,
+            explicacao=q.explicacao,
+            corrigida=r.corrigida,
+        ))
+
+    nota_parcial = round((pontos_parciais / total_peso) * 100, 1) if peso_corrigido > 0 else None
+
+    return ResultadoAvaliacaoOut(
+        status=reg.status,
+        nota_final=reg.nota_final,
+        nota_parcial=nota_parcial,
+        total_peso=total_peso,
+        peso_corrigido=peso_corrigido,
+        concluido_em=reg.concluido_em,
+        questoes=questoes_out,
     )

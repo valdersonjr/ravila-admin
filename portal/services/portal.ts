@@ -77,9 +77,11 @@ export interface QuestaoPortal {
   enunciado: string;
   nivel: string;
   subtipo: string;
-  estilo: string;
+  contexto: string;
+  topico: string;
   texto_apoio: string | null;
   midia_url: string | null;
+  midia_tipo: string | null;
   alternativas: string[] | null;
 }
 
@@ -124,6 +126,69 @@ export interface ContratoPortal {
   data_inicio: string;
   data_fim: string;
   tem_assinado: boolean;
+}
+
+export interface AvaliacaoPortal {
+  id: number;
+  titulo: string;
+  topico: string;
+  modulo: string | null;
+  descricao: string | null;
+  data_aplicacao: string | null;
+  hora_inicio: string | null;   // "HH:MM:SS"
+  hora_fim: string | null;
+  disponivel: boolean;
+  status_aluno: string | null;   // aguardando_correcao | concluida | null
+  nota_final: number | null;
+  total_questoes: number;
+}
+
+export interface AvaliacaoQuestaoPortal {
+  id: number;
+  questao_id: number;
+  ordem: number;
+  peso: number;
+  questao: QuestaoPortal;
+}
+
+export interface AvaliacaoDetalhePortal {
+  id: number;
+  titulo: string;
+  topico: string;
+  modulo: string | null;
+  descricao: string | null;
+  data_aplicacao: string | null;
+  hora_fim: string | null;
+  questoes: AvaliacaoQuestaoPortal[];
+}
+
+export interface ResultadoQuestao {
+  questao_id: number;
+  enunciado: string;
+  subtipo: string;
+  nivel: string;
+  peso: number;
+  texto_apoio: string | null;
+  midia_url: string | null;
+  midia_tipo: string | null;
+  alternativas: string[] | null;
+  resposta_dada: string | null;
+  resposta_correta: string | null;
+  acertou: boolean | null;
+  nota_manual: number | null;      // 0.0–1.0
+  comentario_professor: string | null;
+  explicacao: string | null;
+  corrigida: boolean;
+}
+
+export interface ResultadoAvaliacao {
+  status: string;                  // aguardando_correcao | concluida
+  nota_final: number | null;       // 0–100, só quando concluida
+  nota_parcial: number | null;     // pontuação das já corrigidas
+  total_peso: number;
+  peso_corrigido: number;
+  concluido_em: string | null;
+  questoes: ResultadoQuestao[];
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -178,7 +243,7 @@ export const portalService = {
     });
   },
 
-  bancoquestoes(params?: { nivel?: string; estilo?: string; page?: number }): Promise<QuestaoPortal[]> {
+  bancoquestoes(params?: { nivel?: string; contexto?: string; topico?: string; page?: number }): Promise<QuestaoPortal[]> {
     return request(`/portal/questoes${buildQueryString(params)}`);
   },
 
@@ -208,5 +273,28 @@ export const portalService = {
 
   nivelProgresso(): Promise<NivelProgresso> {
     return request("/portal/nivel-progresso");
+  },
+
+  avaliacoes(): Promise<AvaliacaoPortal[]> {
+    return request("/portal/avaliacoes");
+  },
+
+  avaliacaoDetalhe(id: number): Promise<AvaliacaoDetalhePortal> {
+    return request(`/portal/avaliacoes/${id}`);
+  },
+
+  avaliacaoHorario(id: number): Promise<{ hora_fim: string | null; data_aplicacao: string | null }> {
+    return request(`/portal/avaliacoes/${id}/horario`);
+  },
+
+  responderAvaliacao(id: number, respostas: { questao_id: number; resposta_dada: string }[]): Promise<{ status: string; nota_final: number | null }> {
+    return request(`/portal/avaliacoes/${id}/responder`, {
+      method: "POST",
+      body: JSON.stringify({ respostas }),
+    });
+  },
+
+  resultadoAvaliacao(id: number): Promise<ResultadoAvaliacao> {
+    return request(`/portal/avaliacoes/${id}/resultado`);
   },
 };

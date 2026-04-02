@@ -28,6 +28,7 @@ from app.routers import (
     contratos,
     materiais,
     questoes,
+    avaliacoes,
     portal,
 )
 
@@ -65,6 +66,7 @@ app.include_router(reposicoes.router)
 app.include_router(contratos.router)
 app.include_router(materiais.router)
 app.include_router(questoes.router)
+app.include_router(avaliacoes.router)
 app.include_router(portal.router)
 
 

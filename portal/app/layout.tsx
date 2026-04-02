@@ -32,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" className="h-full">
       <body
+        suppressHydrationWarning
         className={`${nunito.variable} font-[family-name:var(--font-nunito)] min-h-full bg-background text-foreground antialiased`}
       >
         {children}

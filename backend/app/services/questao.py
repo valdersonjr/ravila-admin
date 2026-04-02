@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.questao import Questao
+from app.models.questao import Questao, SUBTIPOS_MANUAL
 from app.repositories import questao as repo
 from app.schemas.questao import QuestaoCreate, QuestaoUpdate, QuestaoRespostaOut
 
@@ -35,10 +35,12 @@ def listar(db: Session, **kwargs):
     return items, total
 
 
-def criar(db: Session, dados: QuestaoCreate) -> Questao:
+def criar(db: Session, dados: QuestaoCreate, criado_por_id: Optional[int] = None) -> Questao:
     if dados.subtipo == "multiple_choice" and not dados.alternativas:
         raise HTTPException(status_code=422, detail="multiple_choice requer alternativas")
-    return repo.criar(db, dados)
+    if dados.subtipo not in SUBTIPOS_MANUAL and not dados.resposta_correta:
+        raise HTTPException(status_code=422, detail="resposta_correta é obrigatória para este subtipo")
+    return repo.criar(db, dados, criado_por_id=criado_por_id)
 
 
 def atualizar(db: Session, questao_id: int, dados: QuestaoUpdate) -> Questao:

@@ -6,9 +6,13 @@ import {
   type QuestaoCreate,
   NIVEIS,
   SUBTIPOS,
-  ESTILOS,
-  ESTILO_LABELS,
+  CONTEXTOS,
+  TOPICOS,
+  DIFICULDADES,
+  CONTEXTO_LABELS,
   SUBTIPO_LABELS,
+  TOPICO_LABELS,
+  DIFICULDADE_LABELS,
 } from "@/services/admin/questoes";
 import { getErrorMessage } from "@/lib/utils";
 import { Table } from "@/components/ui/Table";
@@ -23,19 +27,32 @@ const ALL_OPTION = { value: "", label: "Todos" };
 
 const nivelOptions = [ALL_OPTION, ...NIVEIS.map((n) => ({ value: n, label: n }))];
 const subtipoOptions = [ALL_OPTION, ...SUBTIPOS.map((s) => ({ value: s, label: SUBTIPO_LABELS[s] }))];
-const estiloOptions = [ALL_OPTION, ...ESTILOS.map((e) => ({ value: e, label: ESTILO_LABELS[e] }))];
+const contextoOptions = [ALL_OPTION, ...CONTEXTOS.map((c) => ({ value: c, label: CONTEXTO_LABELS[c] }))];
+const topicoOptions = [ALL_OPTION, ...TOPICOS.map((t) => ({ value: t, label: TOPICO_LABELS[t] }))];
+const dificuldadeOptions = [ALL_OPTION, ...DIFICULDADES.map((d) => ({ value: d, label: DIFICULDADE_LABELS[d] }))];
 
 const nivelFormOptions = NIVEIS.map((n) => ({ value: n, label: n }));
 const subtipoFormOptions = SUBTIPOS.map((s) => ({ value: s, label: SUBTIPO_LABELS[s] }));
-const estiloFormOptions = ESTILOS.map((e) => ({ value: e, label: ESTILO_LABELS[e] }));
+const contextoFormOptions = CONTEXTOS.map((c) => ({ value: c, label: CONTEXTO_LABELS[c] }));
+const topicoFormOptions = TOPICOS.map((t) => ({ value: t, label: TOPICO_LABELS[t] }));
+const dificuldadeFormOptions = DIFICULDADES.map((d) => ({ value: d, label: DIFICULDADE_LABELS[d] }));
+const midiaTipoFormOptions = [
+  { value: "", label: "Não especificado" },
+  { value: "image", label: "Imagem" },
+  { value: "audio", label: "Áudio" },
+  { value: "video", label: "Vídeo" },
+];
 
 const EMPTY_FORM: QuestaoCreate = {
   enunciado: "",
   nivel: "A1",
   subtipo: "multiple_choice",
-  estilo: "casual",
+  contexto: "casual",
+  topico: "grammar",
+  dificuldade: "medium",
   texto_apoio: "",
   midia_url: "",
+  midia_tipo: "",
   alternativas: ["", "", "", ""],
   resposta_correta: "",
   explicacao: "",
@@ -53,7 +70,9 @@ export default function QuestoesPage() {
 
   const [filterNivel, setFilterNivel] = useState("");
   const [filterSubtipo, setFilterSubtipo] = useState("");
-  const [filterEstilo, setFilterEstilo] = useState("");
+  const [filterContexto, setFilterContexto] = useState("");
+  const [filterTopico, setFilterTopico] = useState("");
+  const [filterDificuldade, setFilterDificuldade] = useState("");
 
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Questao | null>(null);
@@ -70,7 +89,9 @@ export default function QuestoesPage() {
       const result = await questoesService.listar({
         nivel: filterNivel || undefined,
         subtipo: filterSubtipo || undefined,
-        estilo: filterEstilo || undefined,
+        contexto: filterContexto || undefined,
+        topico: filterTopico || undefined,
+        dificuldade: filterDificuldade || undefined,
         page: p,
         page_size: PAGE_SIZE,
       });
@@ -97,9 +118,12 @@ export default function QuestoesPage() {
       enunciado: q.enunciado,
       nivel: q.nivel,
       subtipo: q.subtipo,
-      estilo: q.estilo,
+      contexto: q.contexto,
+      topico: q.topico,
+      dificuldade: q.dificuldade,
       texto_apoio: q.texto_apoio ?? "",
       midia_url: q.midia_url ?? "",
+      midia_tipo: q.midia_tipo ?? "",
       alternativas: q.alternativas ?? ["", "", "", ""],
       resposta_correta: q.resposta_correta,
       explicacao: q.explicacao ?? "",
@@ -139,6 +163,7 @@ export default function QuestoesPage() {
       ...form,
       texto_apoio: form.texto_apoio?.trim() || undefined,
       midia_url: form.midia_url?.trim() || undefined,
+      midia_tipo: form.midia_tipo?.trim() || undefined,
       explicacao: form.explicacao?.trim() || undefined,
       alternativas: form.subtipo === "multiple_choice" ? form.alternativas : undefined,
     };
@@ -202,8 +227,16 @@ export default function QuestoesPage() {
           <Select options={subtipoOptions} value={filterSubtipo} onChange={(e) => setFilterSubtipo(e.target.value)} />
         </div>
         <div className="w-44">
-          <label className="block text-xs text-muted mb-1">Estilo</label>
-          <Select options={estiloOptions} value={filterEstilo} onChange={(e) => setFilterEstilo(e.target.value)} />
+          <label className="block text-xs text-muted mb-1">Tópico</label>
+          <Select options={topicoOptions} value={filterTopico} onChange={(e) => setFilterTopico(e.target.value)} />
+        </div>
+        <div className="w-36">
+          <label className="block text-xs text-muted mb-1">Dificuldade</label>
+          <Select options={dificuldadeOptions} value={filterDificuldade} onChange={(e) => setFilterDificuldade(e.target.value)} />
+        </div>
+        <div className="w-44">
+          <label className="block text-xs text-muted mb-1">Contexto</label>
+          <Select options={contextoOptions} value={filterContexto} onChange={(e) => setFilterContexto(e.target.value)} />
         </div>
         <Button variant="outline" onClick={() => { setPage(1); load(1); }}>Filtrar</Button>
       </div>
@@ -219,6 +252,12 @@ export default function QuestoesPage() {
           data={questoes}
           emptyMessage="Nenhuma questão cadastrada."
           columns={[
+            {
+              header: "Código",
+              render: (q) => (
+                <span className="font-mono text-xs text-foreground">{q.codigo}</span>
+              ),
+            },
             {
               header: "Enunciado",
               render: (q) => (
@@ -236,7 +275,22 @@ export default function QuestoesPage() {
               ),
             },
             { header: "Subtipo", render: (q) => SUBTIPO_LABELS[q.subtipo] ?? q.subtipo },
-            { header: "Estilo", render: (q) => ESTILO_LABELS[q.estilo] ?? q.estilo },
+            { header: "Tópico", render: (q) => TOPICO_LABELS[q.topico] ?? q.topico },
+            {
+              header: "Dificuldade",
+              render: (q) => {
+                const cls = q.dificuldade === "easy"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : q.dificuldade === "hard"
+                  ? "bg-rose-100 text-rose-600"
+                  : "bg-amber-100 text-amber-700";
+                return (
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${cls}`}>
+                    {DIFICULDADE_LABELS[q.dificuldade] ?? q.dificuldade}
+                  </span>
+                );
+              },
+            },
             {
               header: "Ações",
               render: (q) => (
@@ -279,7 +333,7 @@ export default function QuestoesPage() {
             <form onSubmit={handleSalvar} className="space-y-4">
 
               {/* Classificação */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <Field label="Nível *">
                   <Select options={nivelFormOptions} value={form.nivel}
                     onChange={(e) => setForm((p) => ({ ...p, nivel: e.target.value }))} />
@@ -293,9 +347,17 @@ export default function QuestoesPage() {
                       resposta_correta: "",
                     }))} />
                 </Field>
-                <Field label="Estilo *">
-                  <Select options={estiloFormOptions} value={form.estilo}
-                    onChange={(e) => setForm((p) => ({ ...p, estilo: e.target.value }))} />
+                <Field label="Tópico *">
+                  <Select options={topicoFormOptions} value={form.topico}
+                    onChange={(e) => setForm((p) => ({ ...p, topico: e.target.value }))} />
+                </Field>
+                <Field label="Dificuldade *">
+                  <Select options={dificuldadeFormOptions} value={form.dificuldade}
+                    onChange={(e) => setForm((p) => ({ ...p, dificuldade: e.target.value }))} />
+                </Field>
+                <Field label="Contexto *">
+                  <Select options={contextoFormOptions} value={form.contexto}
+                    onChange={(e) => setForm((p) => ({ ...p, contexto: e.target.value }))} />
                 </Field>
               </div>
 
@@ -311,21 +373,32 @@ export default function QuestoesPage() {
               </Field>
 
               {/* URL de mídia */}
-              <Field label="URL de imagem / mídia">
-                <Input
-                  value={form.midia_url ?? ""}
-                  onChange={(e) => setForm((p) => ({ ...p, midia_url: e.target.value }))}
-                  placeholder="https://... (opcional)"
-                />
-                {form.midia_url?.trim() && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="URL de mídia">
+                    <Input
+                      value={form.midia_url ?? ""}
+                      onChange={(e) => setForm((p) => ({ ...p, midia_url: e.target.value }))}
+                      placeholder="https://... (opcional)"
+                    />
+                  </Field>
+                  <Field label="Tipo de mídia">
+                    <Select
+                      options={midiaTipoFormOptions}
+                      value={form.midia_tipo ?? ""}
+                      onChange={(e) => setForm((p) => ({ ...p, midia_tipo: e.target.value }))}
+                    />
+                  </Field>
+                </div>
+                {form.midia_url?.trim() && form.midia_tipo === "image" && (
                   <img
                     src={form.midia_url}
                     alt="preview"
-                    className="mt-2 rounded-lg border border-border max-h-40 object-contain"
+                    className="rounded-lg border border-border max-h-40 object-contain"
                     onError={(e) => (e.currentTarget.style.display = "none")}
                   />
                 )}
-              </Field>
+              </div>
 
               {/* Enunciado */}
               <Field label="Enunciado / Pergunta *">

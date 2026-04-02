@@ -56,13 +56,10 @@ export default function ProficienciaPage() {
       return;
     }
 
-    // Última questão — ir para tela de calculando e processar em background
     setFase({ tipo: "calculando" });
     const res = await portalService.avaliarCompleto(novasRespostas);
     setFase({ tipo: "resultado", nivel: res.nivel });
   }
-
-  // ── Renders ──────────────────────────────────────────────────────────────────
 
   if (fase.tipo === "loading") {
     return (
@@ -84,9 +81,9 @@ export default function ProficienciaPage() {
             <p className="text-sm text-muted mt-2">Seu nível é <span className="font-bold text-primary-600">{fase.nivel}</span></p>
           </div>
           <p className="text-xs text-muted">Para mudar de nível, pratique no banco de questões.</p>
-          <button onClick={() => router.push("/pratica")}
+          <button onClick={() => router.push("/praticar")}
             className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold">
-            Ir para Aprender
+            Ir para Praticar
           </button>
         </div>
       </AppShell>
@@ -134,7 +131,6 @@ export default function ProficienciaPage() {
     return (
       <AppShell>
         <div className="px-5 py-5 space-y-5">
-          {/* Header */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-muted">
               <span className="font-medium">Questão {fase.indice + 1} de {total}</span>
@@ -145,7 +141,6 @@ export default function ProficienciaPage() {
             </div>
           </div>
 
-          {/* Questão */}
           <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
             <p className="text-sm font-semibold text-foreground leading-relaxed">{q.enunciado}</p>
 
@@ -208,9 +203,9 @@ export default function ProficienciaPage() {
             Agora você receberá questões do nível <strong>{fase.nivel}</strong> diariamente.<br />
             Para subir de nível, pratique no banco de questões!
           </p>
-          <button onClick={() => router.push("/pratica")}
+          <button onClick={() => router.push("/praticar")}
             className="w-full py-4 rounded-xl bg-primary-600 text-white text-base font-black">
-            Começar a aprender
+            Começar a praticar
           </button>
         </div>
       </AppShell>

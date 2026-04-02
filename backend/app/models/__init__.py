@@ -11,6 +11,7 @@ from app.models.presenca import Presenca
 from app.models.reposicao import ReposicaoPendente
 from app.models.contrato import Contrato
 from app.models.questao import Questao, QuestaoAlunoDia, QuestaoResposta
+from app.models.avaliacao import Avaliacao, AvaliacaoQuestao, AvaliacaoResposta, AvaliacaoAluno
 
 __all__ = [
     "Base",
@@ -29,4 +30,8 @@ __all__ = [
     "Questao",
     "QuestaoAlunoDia",
     "QuestaoResposta",
+    "Avaliacao",
+    "AvaliacaoQuestao",
+    "AvaliacaoResposta",
+    "AvaliacaoAluno",
 ]

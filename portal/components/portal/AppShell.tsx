@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { House, CalendarDays, UserRound, BookOpen, Flame } from "lucide-react";
+import { House, Users, Dumbbell, UserRound, Flame } from "lucide-react";
 import { authService } from "@/services/auth";
 import { Logo } from "@/components/ui/Logo";
 
@@ -11,10 +11,10 @@ interface AppShellProps {
 }
 
 const NAV = [
-  { href: "/home", label: "Início", Icon: House },
-  { href: "/atividade", label: "Atividade", Icon: CalendarDays },
-  { href: "/pratica", label: "Aprender", Icon: BookOpen },
-  { href: "/perfil", label: "Perfil", Icon: UserRound },
+  { href: "/home",     label: "Início",   Icon: House,     exact: true  },
+  { href: "/turma",    label: "Turma",    Icon: Users,     exact: false },
+  { href: "/praticar", label: "Praticar", Icon: Dumbbell,  exact: false },
+  { href: "/perfil",   label: "Perfil",   Icon: UserRound, exact: false },
 ];
 
 export function AppShell({ children, streak = 0 }: AppShellProps) {
@@ -86,8 +86,8 @@ export function AppShell({ children, streak = 0 }: AppShellProps) {
       {/* Bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-20 bg-surface border-t border-border" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex items-center justify-around px-2 py-2 max-w-lg mx-auto">
-          {NAV.map(({ href, label, Icon }) => {
-            const active = pathname === href;
+          {NAV.map(({ href, label, Icon, exact }) => {
+            const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <button
                 key={href}

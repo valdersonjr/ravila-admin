@@ -12,17 +12,28 @@ import {
 } from "@/services/portal";
 
 const NIVEIS = ["A1", "A2", "B1", "B2", "C1", "C2"];
-const ESTILOS = [
+const CONTEXTOS = [
   { value: "casual", label: "Casual" },
   { value: "vestibular", label: "Vestibular" },
   { value: "toefl_ielts", label: "TOEFL / IELTS" },
+  { value: "avaliacao", label: "Avaliação" },
+];
+
+const TOPICOS = [
+  { value: "grammar", label: "Gramática" },
+  { value: "vocabulary", label: "Vocabulário" },
+  { value: "reading", label: "Leitura" },
+  { value: "listening", label: "Audição" },
+  { value: "writing", label: "Escrita" },
+  { value: "speaking", label: "Fala" },
+  { value: "pronunciation", label: "Pronúncia" },
 ];
 const IMAGE_EXTS = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i;
 
 type Tab = "diaria" | "banco";
 const TABS: { value: Tab; label: string }[] = [
   { value: "diaria", label: "Questão do dia" },
-  { value: "banco", label: "Banco livre" },
+  { value: "banco",  label: "Banco livre" },
 ];
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -35,9 +46,7 @@ export default function QuestoesPage() {
   const [progresso, setProgresso] = useState<NivelProgresso | null>(null);
 
   useEffect(() => {
-    portalService.nivelProgresso().then(setProgresso).catch((err) => {
-      console.error("Erro ao carregar progresso:", err);
-    });
+    portalService.nivelProgresso().then(setProgresso).catch(() => {});
   }, []);
 
   return (
@@ -86,8 +95,6 @@ export default function QuestoesPage() {
   );
 }
 
-// ── Questão do dia ────────────────────────────────────────────────────────────
-
 function QuestaoDiariaTab() {
   const router = useRouter();
   const [estado, setEstado] = useState<"loading" | "sem_nivel" | "questao" | "resultado">("loading");
@@ -102,8 +109,7 @@ function QuestaoDiariaTab() {
       const d = await portalService.questaoDiaria();
       setDiaria(d);
       setEstado(d.respondida ? "resultado" : "questao");
-    } catch (err: unknown) {
-      console.error("Erro ao carregar questão diária:", err);
+    } catch {
       setEstado("sem_nivel");
     }
   }
@@ -127,7 +133,7 @@ function QuestaoDiariaTab() {
   if (estado === "sem_nivel") {
     return (
       <div className="px-5">
-        <ProficiencyTestPrompt onPress={() => router.push("/pratica/proficiencia")} />
+        <ProficiencyTestPrompt onPress={() => router.push("/praticar/proficiencia")} />
       </div>
     );
   }
@@ -173,12 +179,11 @@ function QuestaoDiariaTab() {
   return null;
 }
 
-// ── Banco livre ───────────────────────────────────────────────────────────────
-
 function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno: string | null }) {
   const router = useRouter();
   const [nivel, setNivel] = useState("");
-  const [estilo, setEstilo] = useState("");
+  const [contexto, setContexto] = useState("");
+  const [topico, setTopico] = useState("");
   const [fila, setFila] = useState<QuestaoPortal[]>([]);
   const [indice, setIndice] = useState(0);
   const [resultado, setResultado] = useState<QuestaoRespostaPortal | null>(null);
@@ -191,29 +196,30 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
       <div className="px-5">
         <ProficiencyTestPrompt
           descricao="O banco de questões é liberado após o teste para garantir que você pratique no nível certo."
-          onPress={() => router.push("/pratica/proficiencia")}
+          onPress={() => router.push("/praticar/proficiencia")}
         />
       </div>
     );
   }
 
-  async function carregarFila(n: string, e: string) {
+  async function carregarFila(n: string, c: string, t: string) {
     setLoading(true);
     setResultado(null);
     setResposta("");
     try {
-      const items = await portalService.bancoquestoes({ nivel: n, estilo: e || undefined });
+      const items = await portalService.bancoquestoes({ nivel: n, contexto: c || undefined, topico: t || undefined });
       setFila(shuffleArray(items));
       setIndice(0);
-    } catch (err) {
-      console.error("Erro ao carregar fila de questões:", err);
+    } catch {
+      // silencioso — usuário vê "nenhuma questão encontrada"
     } finally {
       setLoading(false);
     }
   }
 
-  function handleNivel(n: string) { setNivel(n); if (n) carregarFila(n, estilo); }
-  function handleEstilo(e: string) { setEstilo(e); if (nivel) carregarFila(nivel, e); }
+  function handleNivel(n: string) { setNivel(n); if (n) carregarFila(n, contexto, topico); }
+  function handleContexto(c: string) { setContexto(c); if (nivel) carregarFila(nivel, c, topico); }
+  function handleTopico(t: string) { setTopico(t); if (nivel) carregarFila(nivel, contexto, t); }
 
   async function handleResponder() {
     if (!resposta || !fila[indice]) return;
@@ -233,7 +239,7 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
       setResultado(null);
       setResposta("");
     } else {
-      await carregarFila(nivel, estilo);
+      await carregarFila(nivel, contexto, topico);
     }
   }
 
@@ -251,11 +257,20 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
           </div>
         </div>
         <div>
-          <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Estilo</p>
+          <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Tópico</p>
           <div className="flex gap-2 flex-wrap">
-            <PillFilter active={estilo === ""} onClick={() => handleEstilo("")}>Todos</PillFilter>
-            {ESTILOS.map((e) => (
-              <PillFilter key={e.value} active={estilo === e.value} onClick={() => handleEstilo(e.value)}>{e.label}</PillFilter>
+            <PillFilter active={topico === ""} onClick={() => handleTopico("")}>Todos</PillFilter>
+            {TOPICOS.map((t) => (
+              <PillFilter key={t.value} active={topico === t.value} onClick={() => handleTopico(t.value)}>{t.label}</PillFilter>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Contexto</p>
+          <div className="flex gap-2 flex-wrap">
+            <PillFilter active={contexto === ""} onClick={() => handleContexto("")}>Todos</PillFilter>
+            {CONTEXTOS.map((c) => (
+              <PillFilter key={c.value} active={contexto === c.value} onClick={() => handleContexto(c.value)}>{c.label}</PillFilter>
             ))}
           </div>
         </div>
@@ -299,8 +314,6 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
     </div>
   );
 }
-
-// ── Componentes compartilhados ────────────────────────────────────────────────
 
 function ProficiencyTestPrompt({
   descricao = "Precisamos saber seu nível para enviar a questão certa para você.",
@@ -380,8 +393,12 @@ function QuestaoCard({ questao, resposta, setResposta, onSubmit, loading }: {
         </div>
       )}
       {questao.midia_url && (
-        IMAGE_EXTS.test(questao.midia_url) ? (
+        (questao.midia_tipo === "image" || (!questao.midia_tipo && IMAGE_EXTS.test(questao.midia_url))) ? (
           <img src={questao.midia_url} alt="Mídia" className="rounded-xl border border-border max-h-52 w-full object-contain bg-background" />
+        ) : questao.midia_tipo === "audio" ? (
+          <audio controls src={questao.midia_url} className="w-full" />
+        ) : questao.midia_tipo === "video" ? (
+          <video controls src={questao.midia_url} className="w-full rounded-xl border border-border max-h-52" />
         ) : (
           <a href={questao.midia_url} target="_blank" rel="noopener noreferrer" className="block text-xs text-primary-600 underline">Ver mídia</a>
         )

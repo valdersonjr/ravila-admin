@@ -11,34 +11,46 @@ if TYPE_CHECKING:
     pass
 
 NIVEIS_CEFR = ["A1", "A2", "B1", "B2", "C1", "C2"]
-SUBTIPOS_QUESTAO = ["multiple_choice", "fill_blanks"]
-ESTILOS_QUESTAO = ["casual", "vestibular", "toefl_ielts"]
+SUBTIPOS_QUESTAO = ["multiple_choice", "fill_blanks", "dissertativa", "redacao"]
+SUBTIPOS_AUTO = {"multiple_choice", "fill_blanks"}      # corrigidos automaticamente
+SUBTIPOS_MANUAL = {"dissertativa", "redacao"}           # exigem correção do professor
+CONTEXTOS_QUESTAO = ["casual", "vestibular", "toefl_ielts", "avaliacao"]
+TOPICOS_QUESTAO = ["grammar", "vocabulary", "reading", "listening", "writing", "speaking", "pronunciation"]
+DIFICULDADES_QUESTAO = ["easy", "medium", "hard"]
 
 
 class Questao(Base):
     __tablename__ = "questoes"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    codigo: Mapped[str] = mapped_column(String(8), nullable=False, unique=True, index=True)
     enunciado: Mapped[str] = mapped_column(Text, nullable=False)
     nivel: Mapped[str] = mapped_column(String(5), nullable=False, index=True)
     subtipo: Mapped[str] = mapped_column(String(20), nullable=False)
-    estilo: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    contexto: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    topico: Mapped[str] = mapped_column(String(20), nullable=False, index=True, server_default="grammar")
+    dificuldade: Mapped[str] = mapped_column(String(10), nullable=False, index=True, server_default="medium")
 
     # Texto de apoio (opcional) — trecho, charge, contexto da questão
     texto_apoio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    # URL de imagem/mídia de apoio (opcional)
+    # URL e tipo de mídia de apoio (opcional)
     midia_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+    midia_tipo: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)  # image | audio | video
 
     # Apenas para multiple_choice: lista de opções ex: ["goes", "go", "going", "went"]
     alternativas: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
 
     # multiple_choice: texto da opção correta
     # fill_blanks: respostas aceitas separadas por | ex: "goes|go"
-    resposta_correta: Mapped[str] = mapped_column(String(500), nullable=False)
+    # multiple_choice/fill_blanks: gabarito obrigatório
+    # dissertativa/redacao: gabarito opcional (rubrica de referência para o professor)
+    resposta_correta: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     # Explicação exibida após o aluno responder
     explicacao: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    criado_por_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
@@ -71,7 +83,7 @@ class QuestaoResposta(Base):
     questao_id: Mapped[int] = mapped_column(ForeignKey("questoes.id"), nullable=False)
     resposta_dada: Mapped[str] = mapped_column(String(500), nullable=False)
     acertou: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    origem: Mapped[str] = mapped_column(String(10), nullable=False)  # "diaria" | "banco"
+    origem: Mapped[str] = mapped_column(String(20), nullable=False)  # "diaria" | "banco" | "proficiencia" | "avaliacao"
     respondida_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
     questao: Mapped["Questao"] = relationship("Questao", back_populates="respostas")
