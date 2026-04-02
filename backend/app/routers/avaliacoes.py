@@ -9,6 +9,7 @@ from app.models.avaliacao import STATUS_AVALIACAO
 from app.models.user import User
 from app.repositories import avaliacao as repo
 from app.schemas.avaliacao import (
+    AvaliacaoAlunoOut,
     AvaliacaoCreate,
     AvaliacaoListOut,
     AvaliacaoOut,
@@ -67,7 +68,7 @@ def listar(
         result.append(AvaliacaoListOut(
             id=av.id,
             titulo=av.titulo,
-            topico=av.topico,
+            topicos=av.topicos,
             modulo=av.modulo,
             turma_id=av.turma_id,
             turma_nome=av.turma.nome if av.turma else None,
@@ -170,6 +171,34 @@ def remover_questao(
     repo.remover_questao(db, avaliacao_id, questao_id)
     db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
+
+
+@router.get("/{avaliacao_id}/alunos", response_model=list[AvaliacaoAlunoOut])
+def listar_alunos(
+    avaliacao_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_staff_or_professor),
+):
+    from app.models.avaliacao import AvaliacaoAluno
+    from app.models.pessoa import Pessoa
+    registros = (
+        db.query(AvaliacaoAluno, Pessoa)
+        .join(Pessoa, Pessoa.id == AvaliacaoAluno.aluno_id)
+        .filter(AvaliacaoAluno.avaliacao_id == avaliacao_id)
+        .order_by(AvaliacaoAluno.iniciado_em.desc())
+        .all()
+    )
+    return [
+        AvaliacaoAlunoOut(
+            aluno_id=reg.aluno_id,
+            nome=pessoa.nome,
+            status=reg.status,
+            nota_final=reg.nota_final,
+            iniciado_em=reg.iniciado_em,
+            concluido_em=reg.concluido_em,
+        )
+        for reg, pessoa in registros
+    ]
 
 
 @router.get("/{avaliacao_id}/respostas/{aluno_id}", response_model=list[RespostaAlunoOut])

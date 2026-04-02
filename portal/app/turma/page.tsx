@@ -338,7 +338,7 @@ function AvaliacoesTab() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground truncate">{av.titulo}</p>
                   <p className="text-xs text-muted mt-0.5">
-                    {TOPICO_LABELS[av.topico] ?? av.topico} · {av.total_questoes} {av.total_questoes !== 1 ? "questões" : "questão"}
+                    {(av.topicos ?? []).map((t) => TOPICO_LABELS[t] ?? t).join(", ")} · {av.total_questoes} {av.total_questoes !== 1 ? "questões" : "questão"}
                   </p>
                   {(dataFormatada || horario) && !jaRespondida && (
                     <p className="text-xs text-muted mt-1">

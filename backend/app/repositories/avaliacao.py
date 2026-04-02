@@ -26,7 +26,7 @@ def listar(
     if status:
         q = q.filter(Avaliacao.status == status)
     if topico:
-        q = q.filter(Avaliacao.topico == topico)
+        q = q.filter(Avaliacao.topicos.any(topico))
     if modulo:
         q = q.filter(Avaliacao.modulo == modulo)
     q = q.order_by(Avaliacao.criado_em.desc())
@@ -41,7 +41,7 @@ def buscar(db: Session, avaliacao_id: int) -> Optional[Avaliacao]:
 def criar(db: Session, dados: AvaliacaoCreate, criado_por_id: Optional[int] = None) -> Avaliacao:
     av = Avaliacao(
         titulo=dados.titulo,
-        topico=dados.topico,
+        topicos=dados.topicos,
         modulo=dados.modulo,
         descricao=dados.descricao,
         turma_id=dados.turma_id,

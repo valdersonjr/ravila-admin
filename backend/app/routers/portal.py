@@ -642,7 +642,7 @@ def listar_avaliacoes(
         AvaliacaoPortalOut(
             id=i["av"].id,
             titulo=i["av"].titulo,
-            topico=i["av"].topico,
+            topicos=i["av"].topicos,
             modulo=i["av"].modulo,
             descricao=i["av"].descricao,
             data_aplicacao=i["av"].data_aplicacao,
@@ -677,7 +677,7 @@ def detalhe_avaliacao(
     return AvaliacaoDetalhePortalOut(
         id=av.id,
         titulo=av.titulo,
-        topico=av.topico,
+        topicos=av.topicos,
         modulo=av.modulo,
         descricao=av.descricao,
         data_aplicacao=av.data_aplicacao,

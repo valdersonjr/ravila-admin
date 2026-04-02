@@ -2,6 +2,7 @@ from datetime import date, datetime, time
 from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import String, Boolean, Date, DateTime, Float, ForeignKey, Text, UniqueConstraint, Integer, Time, func
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -19,7 +20,7 @@ class Avaliacao(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     titulo: Mapped[str] = mapped_column(String(200), nullable=False)
-    topico: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    topicos: Mapped[list[str]] = mapped_column(ARRAY(String(20)), nullable=False)
     modulo: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     descricao: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     turma_id: Mapped[int] = mapped_column(ForeignKey("turmas.id"), nullable=False, index=True)

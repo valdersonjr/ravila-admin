@@ -1,7 +1,7 @@
 import { apiAuth } from "../api";
 
 export const NIVEIS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
-export const SUBTIPOS = ["multiple_choice", "fill_blanks"] as const;
+export const SUBTIPOS = ["multiple_choice", "fill_blanks", "dissertativa", "redacao"] as const;
 export const CONTEXTOS = ["casual", "vestibular", "toefl_ielts", "avaliacao"] as const;
 export const TOPICOS = ["grammar", "vocabulary", "reading", "listening", "writing", "speaking", "pronunciation"] as const;
 export const DIFICULDADES = ["easy", "medium", "hard"] as const;
@@ -16,6 +16,8 @@ export const CONTEXTO_LABELS: Record<string, string> = {
 export const SUBTIPO_LABELS: Record<string, string> = {
   multiple_choice: "Múltipla escolha",
   fill_blanks: "Preencher lacuna",
+  dissertativa: "Dissertativa",
+  redacao: "Redação",
 };
 
 export const TOPICO_LABELS: Record<string, string> = {

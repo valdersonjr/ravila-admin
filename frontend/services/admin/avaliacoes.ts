@@ -29,7 +29,7 @@ export interface AvaliacaoQuestaoItem {
 export interface AvaliacaoList {
   id: number;
   titulo: string;
-  topico: string;
+  topicos: string[];
   modulo: string | null;
   turma_id: number;
   turma_nome: string | null;
@@ -52,7 +52,7 @@ export interface AvaliacaoDetail extends AvaliacaoList {
 
 export interface AvaliacaoCreate {
   titulo: string;
-  topico: string;
+  topicos: string[];
   modulo?: string;
   descricao?: string;
   turma_id: number;
@@ -61,6 +61,15 @@ export interface AvaliacaoCreate {
   hora_inicio?: string;
   hora_fim?: string;
   questoes?: { questao_id: number; ordem: number; peso: number }[];
+}
+
+export interface AvaliacaoAluno {
+  aluno_id: number;
+  nome: string;
+  status: string;
+  nota_final: number | null;
+  iniciado_em: string;
+  concluido_em: string | null;
 }
 
 export interface RespostaAluno {
@@ -109,6 +118,9 @@ export const avaliacoesService = {
 
   removerQuestao: (id: number, questaoId: number) =>
     apiAuth.delete<AvaliacaoDetail>(`/avaliacoes/${id}/questoes/${questaoId}`),
+
+  listarAlunos: (id: number) =>
+    apiAuth.get<AvaliacaoAluno[]>(`/avaliacoes/${id}/alunos`),
 
   respostasAluno: (id: number, alunoId: number) =>
     apiAuth.get<RespostaAluno[]>(`/avaliacoes/${id}/respostas/${alunoId}`),

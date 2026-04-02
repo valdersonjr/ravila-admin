@@ -131,7 +131,7 @@ export interface ContratoPortal {
 export interface AvaliacaoPortal {
   id: number;
   titulo: string;
-  topico: string;
+  topicos: string[];
   modulo: string | null;
   descricao: string | null;
   data_aplicacao: string | null;
@@ -154,7 +154,7 @@ export interface AvaliacaoQuestaoPortal {
 export interface AvaliacaoDetalhePortal {
   id: number;
   titulo: string;
-  topico: string;
+  topicos: string[];
   modulo: string | null;
   descricao: string | null;
   data_aplicacao: string | null;

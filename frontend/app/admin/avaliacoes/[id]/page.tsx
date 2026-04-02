@@ -10,7 +10,7 @@ function IconSearch() {
 function IconTrash() {
   return <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14H6L5 6m5 0V4h4v2"/></svg>;
 }
-import { avaliacoesService, type AvaliacaoDetail, type RespostaAluno, STATUS_LABELS, STATUS_COLORS, STATUS_ALUNO_LABELS } from "@/services/admin/avaliacoes";
+import { avaliacoesService, type AvaliacaoDetail, type AvaliacaoAluno, type RespostaAluno, STATUS_LABELS, STATUS_COLORS, STATUS_ALUNO_LABELS } from "@/services/admin/avaliacoes";
 import { questoesService, type Questao, NIVEIS, TOPICOS, DIFICULDADES, TOPICO_LABELS, DIFICULDADE_LABELS, SUBTIPO_LABELS } from "@/services/admin/questoes";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -38,7 +38,7 @@ export default function AvaliacaoDetailPage() {
   const [resultados, setResultados] = useState<Questao[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [pesoInput, setPesoInput] = useState<Record<number, string>>({});
-  const [adicionando, setAdicionando] = useState<number | null>(null);
+  const [adicionando, setAdicionando] = useState<Set<number>>(new Set());
   const [removendo, setRemovendo] = useState<number | null>(null);
 
   // Estender tempo
@@ -63,7 +63,8 @@ export default function AvaliacaoDetailPage() {
   }
 
   // Correção
-  const [alunos, setAlunos] = useState<{ id: number; nome: string }[]>([]);
+  const [alunos, setAlunos] = useState<AvaliacaoAluno[]>([]);
+  const [carregandoAlunos, setCarregandoAlunos] = useState(false);
   const [alunoSel, setAlunoSel] = useState<number | null>(null);
   const [respostas, setRespostas] = useState<RespostaAluno[]>([]);
   const [notaInputs, setNotaInputs] = useState<Record<number, string>>({});
@@ -84,6 +85,15 @@ export default function AvaliacaoDetailPage() {
   useEffect(() => {
     loadAv();
   }, [id]);
+
+  useEffect(() => {
+    if (tab !== "correcao") return;
+    setCarregandoAlunos(true);
+    avaliacoesService.listarAlunos(id)
+      .then(setAlunos)
+      .catch(() => showToast("Erro ao carregar alunos.", "error"))
+      .finally(() => setCarregandoAlunos(false));
+  }, [tab, id]);
 
   // Busca debounced — dispara sempre que qualquer filtro muda
   useEffect(() => {
@@ -111,7 +121,7 @@ export default function AvaliacaoDetailPage() {
   async function handleAdicionar(q: Questao) {
     if (!av) return;
     const peso = parseFloat(pesoInput[q.id] ?? "1") || 1;
-    setAdicionando(q.id);
+    setAdicionando((prev) => new Set(prev).add(q.id));
     try {
       const updated = await avaliacoesService.adicionarQuestao(id, {
         questao_id: q.id,
@@ -123,7 +133,7 @@ export default function AvaliacaoDetailPage() {
     } catch (err) {
       showToast(getErrorMessage(err, "Erro ao adicionar questão."), "error");
     } finally {
-      setAdicionando(null);
+      setAdicionando((prev) => { const s = new Set(prev); s.delete(q.id); return s; });
     }
   }
 
@@ -221,7 +231,7 @@ export default function AvaliacaoDetailPage() {
             </span>
           </div>
           <p className="text-xs text-muted mt-0.5">
-            {TOPICO_LABELS[av.topico] ?? av.topico}
+            {(av.topicos ?? []).map((t) => TOPICO_LABELS[t] ?? t).join(", ")}
             {av.modulo && ` · ${av.modulo}`}
             {av.turma_nome && ` · ${av.turma_nome}`}
             {av.data_aplicacao && ` · ${new Date(av.data_aplicacao + "T00:00:00").toLocaleDateString("pt-BR")}`}
@@ -401,7 +411,7 @@ export default function AvaliacaoDetailPage() {
                               value={pesoInput[q.id] ?? "1"}
                               onChange={(e) => setPesoInput((p) => ({ ...p, [q.id]: e.target.value }))}
                             />
-                            <Button size="sm" loading={adicionando === q.id} onClick={() => handleAdicionar(q)}>
+                            <Button size="sm" loading={adicionando.has(q.id)} onClick={() => handleAdicionar(q)}>
                               Adicionar
                             </Button>
                           </div>
@@ -419,68 +429,111 @@ export default function AvaliacaoDetailPage() {
       {/* Tab: Correção */}
       {tab === "correcao" && (
         <div className="space-y-4">
-          <p className="text-sm text-muted">
-            {av.total_alunos === 0
-              ? "Nenhum aluno respondeu ainda."
-              : "Selecione um aluno para ver e corrigir as respostas."}
-          </p>
-          {/* TODO: listar alunos que responderam via endpoint futuro */}
-          {alunoSel && respostas.length > 0 && (
-            <div className="space-y-4">
-              {respostas.map((r) => (
-                <div key={r.questao_id} className="bg-surface border border-border rounded-xl p-4 space-y-3">
-                  <div className="flex items-start gap-2 justify-between">
-                    <div>
-                      <span className="text-xs font-mono text-foreground">{r.codigo}</span>
-                      <span className="ml-2 text-xs text-muted">{SUBTIPO_LABELS[r.subtipo] ?? r.subtipo} · peso {r.peso}</span>
-                    </div>
-                    {r.corrigida && (
-                      <span className="text-xs font-semibold text-emerald-600">Corrigida ✓</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-foreground">{r.enunciado}</p>
-                  <div className="bg-background border border-border rounded-lg p-3">
-                    <p className="text-xs text-muted mb-1">Resposta do aluno:</p>
-                    <p className="text-sm text-foreground">{r.resposta_dada || "—"}</p>
-                  </div>
-                  {r.acertou === null && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <Field label="Nota (0–10)">
-                          <input
-                            type="number" min="0" max="10" step="0.5"
-                            className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            value={notaInputs[r.questao_id] ?? ""}
-                            onChange={(e) => setNotaInputs((p) => ({ ...p, [r.questao_id]: e.target.value }))}
-                          />
-                        </Field>
-                      </div>
-                      <Field label="Comentário (opcional)">
-                        <textarea
-                          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                          rows={2}
-                          value={comentInputs[r.questao_id] ?? ""}
-                          onChange={(e) => setComentInputs((p) => ({ ...p, [r.questao_id]: e.target.value }))}
-                          placeholder="Feedback para o aluno..."
-                        />
-                      </Field>
-                      <Button size="sm" loading={corrigindo === r.questao_id} onClick={() => handleCorrigir(r)}>
-                        Salvar correção
-                      </Button>
-                    </div>
-                  )}
-                  {r.acertou !== null && (
-                    <p className="text-xs font-semibold">
-                      {r.acertou ? "✓ Correto" : "✗ Incorreto"}
-                      {r.nota_manual != null && ` · Nota: ${Math.round(r.nota_manual * 10)}/10`}
-                    </p>
-                  )}
-                  {r.comentario_professor && (
-                    <p className="text-xs text-muted italic">"{r.comentario_professor}"</p>
-                  )}
-                </div>
-              ))}
+          {carregandoAlunos ? (
+            <div className="flex justify-center h-20 items-center">
+              <span className="w-6 h-6 rounded-full border-2 border-primary-600 border-t-transparent animate-spin" />
             </div>
+          ) : alunos.length === 0 ? (
+            <p className="text-sm text-muted">Nenhum aluno respondeu ainda.</p>
+          ) : (
+            <>
+              {/* Lista de alunos */}
+              <div className="space-y-2">
+                {alunos.map((a) => (
+                  <button
+                    key={a.aluno_id}
+                    onClick={() => handleCarregarRespostas(a.aluno_id)}
+                    className={`w-full text-left rounded-xl border px-4 py-3 transition-colors flex items-center justify-between gap-3 ${
+                      alunoSel === a.aluno_id
+                        ? "border-primary-400 bg-primary-50"
+                        : "border-border bg-surface hover:border-primary-300"
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{a.nome}</p>
+                      <p className="text-xs text-muted mt-0.5">
+                        {STATUS_ALUNO_LABELS[a.status] ?? a.status}
+                        {a.nota_final != null && ` · Nota: ${a.nota_final}`}
+                      </p>
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                      a.status === "concluida"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {a.status === "concluida" ? "Concluída" : "Pendente"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Respostas do aluno selecionado */}
+              {alunoSel && respostas.length > 0 && (
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <p className="text-xs font-bold text-muted uppercase tracking-widest">
+                    Respostas de {alunos.find((a) => a.aluno_id === alunoSel)?.nome}
+                  </p>
+                  {respostas.map((r) => (
+                    <div key={r.questao_id} className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                      <div className="flex items-start gap-2 justify-between">
+                        <div>
+                          <span className="text-xs font-mono text-foreground">{r.codigo}</span>
+                          <span className="ml-2 text-xs text-muted">{SUBTIPO_LABELS[r.subtipo] ?? r.subtipo} · peso {r.peso}</span>
+                        </div>
+                        {r.corrigida && (
+                          <span className="text-xs font-semibold text-emerald-600">Corrigida ✓</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-foreground">{r.enunciado}</p>
+                      <div className="bg-background border border-border rounded-lg p-3">
+                        <p className="text-xs text-muted mb-1">Resposta do aluno:</p>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{r.resposta_dada || "—"}</p>
+                      </div>
+                      {r.acertou === null && !r.corrigida && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <Field label="Nota (0–10)">
+                              <input
+                                type="number" min="0" max="10" step="0.5"
+                                className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                value={notaInputs[r.questao_id] ?? ""}
+                                onChange={(e) => setNotaInputs((p) => ({ ...p, [r.questao_id]: e.target.value }))}
+                              />
+                            </Field>
+                          </div>
+                          <Field label="Comentário (opcional)">
+                            <textarea
+                              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                              rows={2}
+                              value={comentInputs[r.questao_id] ?? ""}
+                              onChange={(e) => setComentInputs((p) => ({ ...p, [r.questao_id]: e.target.value }))}
+                              placeholder="Feedback para o aluno..."
+                            />
+                          </Field>
+                          <Button size="sm" loading={corrigindo === r.questao_id} onClick={() => handleCorrigir(r)}>
+                            Salvar correção
+                          </Button>
+                        </div>
+                      )}
+                      {r.acertou !== null && (
+                        <p className={`text-xs font-semibold ${r.acertou ? "text-emerald-600" : "text-rose-600"}`}>
+                          {r.acertou ? "✓ Correto" : "✗ Incorreto"}
+                          {r.nota_manual != null && ` · Nota: ${Math.round(r.nota_manual * 10)}/10`}
+                        </p>
+                      )}
+                      {r.corrigida && r.acertou === null && r.nota_manual != null && (
+                        <p className="text-xs font-semibold text-primary-600">
+                          Nota: {Math.round(r.nota_manual * 10)}/10
+                        </p>
+                      )}
+                      {r.comentario_professor && (
+                        <p className="text-xs text-muted italic">"{r.comentario_professor}"</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

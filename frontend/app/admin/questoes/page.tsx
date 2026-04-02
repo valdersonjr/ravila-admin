@@ -173,7 +173,8 @@ export default function QuestoesPage() {
       if (alts.length < 2) { showToast("Informe pelo menos 2 alternativas.", "error"); return; }
       if (!alts.includes(form.resposta_correta)) { showToast("A resposta correta deve ser uma das alternativas.", "error"); return; }
     }
-    if (!form.resposta_correta.trim()) { showToast("Informe a resposta correta.", "error"); return; }
+    const isManual = form.subtipo === "dissertativa" || form.subtipo === "redacao";
+    if (!isManual && !form.resposta_correta.trim()) { showToast("Informe a resposta correta.", "error"); return; }
 
     setSaving(true);
     try {
@@ -466,6 +467,20 @@ export default function QuestoesPage() {
                     required
                   />
                   <p className="text-[11px] text-muted mt-1">Use | para múltiplas respostas aceitas. Ex: goes|walk to school</p>
+                </Field>
+              )}
+
+              {/* Gabarito / rubrica de referência para dissertativa e redação */}
+              {(form.subtipo === "dissertativa" || form.subtipo === "redacao") && (
+                <Field label="Gabarito de referência (opcional)">
+                  <textarea
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                    rows={form.subtipo === "redacao" ? 6 : 4}
+                    value={form.resposta_correta}
+                    onChange={(e) => setForm((p) => ({ ...p, resposta_correta: e.target.value }))}
+                    placeholder={form.subtipo === "redacao" ? "Esboce um modelo de redação ou critérios esperados (visível apenas ao professor)." : "Esboce a resposta esperada ou pontos-chave para a correção (visível apenas ao professor)."}
+                  />
+                  <p className="text-[11px] text-muted mt-1">Visível apenas ao professor durante a correção. Não exibido ao aluno.</p>
                 </Field>
               )}
 

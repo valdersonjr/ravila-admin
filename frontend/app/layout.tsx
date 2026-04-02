@@ -6,8 +6,11 @@ import "./globals.css";
 const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: ["400", "600", "700", "800", "900"] });
 
 export const metadata: Metadata = {
-  title: "Ravila's English — Admin",
+  title: "Ravila's English Admin",
   description: "Sistema de gestão da escola Ravila's English",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

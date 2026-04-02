@@ -25,7 +25,7 @@ class AvaliacaoQuestaoIn(BaseModel):
 
 class AvaliacaoCreate(BaseModel):
     titulo: str
-    topico: str
+    topicos: list[str]
     modulo: Optional[str] = None
     descricao: Optional[str] = None
     turma_id: int
@@ -35,17 +35,20 @@ class AvaliacaoCreate(BaseModel):
     hora_fim: Optional[time] = None
     questoes: list[AvaliacaoQuestaoIn] = []
 
-    @field_validator("topico")
+    @field_validator("topicos")
     @classmethod
-    def validar_topico(cls, v: str) -> str:
-        if v not in TOPICOS_QUESTAO:
-            raise ValueError(f"topico deve ser um de {TOPICOS_QUESTAO}")
+    def validar_topicos(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("Informe pelo menos um tópico")
+        for t in v:
+            if t not in TOPICOS_QUESTAO:
+                raise ValueError(f"topico '{t}' inválido, deve ser um de {TOPICOS_QUESTAO}")
         return v
 
 
 class AvaliacaoUpdate(BaseModel):
     titulo: Optional[str] = None
-    topico: Optional[str] = None
+    topicos: Optional[list[str]] = None
     modulo: Optional[str] = None
     descricao: Optional[str] = None
     aula_id: Optional[int] = None
@@ -67,7 +70,7 @@ class AvaliacaoQuestaoOut(BaseModel):
 class AvaliacaoOut(BaseModel):
     id: int
     titulo: str
-    topico: str
+    topicos: list[str]
     modulo: Optional[str]
     descricao: Optional[str]
     turma_id: int
@@ -89,7 +92,7 @@ class AvaliacaoOut(BaseModel):
 class AvaliacaoListOut(BaseModel):
     id: int
     titulo: str
-    topico: str
+    topicos: list[str]
     modulo: Optional[str]
     turma_id: int
     turma_nome: Optional[str] = None
@@ -101,6 +104,17 @@ class AvaliacaoListOut(BaseModel):
     criado_em: datetime
     total_questoes: int = 0
     total_alunos: int = 0
+
+    model_config = {"from_attributes": True}
+
+
+class AvaliacaoAlunoOut(BaseModel):
+    aluno_id: int
+    nome: str
+    status: str          # aguardando_correcao | concluida
+    nota_final: Optional[float]
+    iniciado_em: datetime
+    concluido_em: Optional[datetime]
 
     model_config = {"from_attributes": True}
 
@@ -137,7 +151,7 @@ class RespostaAlunoOut(BaseModel):
 class AvaliacaoPortalOut(BaseModel):
     id: int
     titulo: str
-    topico: str
+    topicos: list[str]
     modulo: Optional[str]
     descricao: Optional[str]
     data_aplicacao: Optional[date]
@@ -154,7 +168,7 @@ class AvaliacaoPortalOut(BaseModel):
 class AvaliacaoDetalhePortalOut(BaseModel):
     id: int
     titulo: str
-    topico: str
+    topicos: list[str]
     modulo: Optional[str]
     descricao: Optional[str]
     data_aplicacao: Optional[date]

@@ -18,7 +18,7 @@ const topicoFormOptions = TOPICOS.map((t) => ({ value: t, label: TOPICO_LABELS[t
 
 const EMPTY: AvaliacaoCreate = {
   titulo: "",
-  topico: "grammar",
+  topicos: [],
   modulo: "",
   descricao: "",
   turma_id: 0,
@@ -67,6 +67,7 @@ export default function AvaliacoesPage() {
   async function handleCriar(e: React.FormEvent) {
     e.preventDefault();
     if (!form.turma_id) { showToast("Selecione a turma.", "error"); return; }
+    if (!form.topicos.length) { showToast("Selecione pelo menos um tópico.", "error"); return; }
     setSaving(true);
     try {
       const nova = await avaliacoesService.criar({
@@ -129,7 +130,7 @@ export default function AvaliacoesPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-muted flex-wrap">
-                    <span>{TOPICO_LABELS[av.topico] ?? av.topico}</span>
+                    <span>{(av.topicos ?? []).map((t) => TOPICO_LABELS[t] ?? t).join(", ")}</span>
                     {av.modulo && <span>· {av.modulo}</span>}
                     {av.turma_nome && <span>· {av.turma_nome}</span>}
                     {av.data_aplicacao && <span>· {new Date(av.data_aplicacao + "T00:00:00").toLocaleDateString("pt-BR")}</span>}
@@ -155,18 +156,39 @@ export default function AvaliacoesPage() {
               <Field label="Título *">
                 <Input value={form.titulo} onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))} required placeholder="Ex: Avaliação de Reading" />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Tópico *">
-                  <Select options={topicoFormOptions} value={form.topico} onChange={(e) => setForm((p) => ({ ...p, topico: e.target.value }))} />
-                </Field>
-                <Field label="Turma *">
-                  <Select
-                    options={[{ value: "", label: "Selecione" }, ...turmas]}
-                    value={form.turma_id ? String(form.turma_id) : ""}
-                    onChange={(e) => setForm((p) => ({ ...p, turma_id: Number(e.target.value) }))}
-                  />
-                </Field>
-              </div>
+              <Field label="Tópicos *">
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {TOPICOS.map((t) => {
+                    const active = form.topicos.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setForm((p) => ({
+                          ...p,
+                          topicos: active
+                            ? p.topicos.filter((x) => x !== t)
+                            : [...p.topicos, t],
+                        }))}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                          active
+                            ? "bg-primary-600 text-white border-primary-600"
+                            : "bg-surface text-muted border-border hover:border-primary-400"
+                        }`}
+                      >
+                        {TOPICO_LABELS[t]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+              <Field label="Turma *">
+                <Select
+                  options={[{ value: "", label: "Selecione" }, ...turmas]}
+                  value={form.turma_id ? String(form.turma_id) : ""}
+                  onChange={(e) => setForm((p) => ({ ...p, turma_id: Number(e.target.value) }))}
+                />
+              </Field>
               <Field label="Módulo">
                 <Input value={form.modulo ?? ""} onChange={(e) => setForm((p) => ({ ...p, modulo: e.target.value }))} placeholder="Ex: Módulo 2, Unit 3 (opcional)" />
               </Field>
