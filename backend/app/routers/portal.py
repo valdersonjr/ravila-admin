@@ -617,15 +617,16 @@ def _turma_do_aluno(db: Session, aluno_id: int) -> Optional[int]:
 
 
 def _avaliacao_disponivel(av) -> bool:
-    """Verifica se a avaliação está dentro da janela de tempo permitida."""
-    from datetime import datetime as dt, date as d
+    """Verifica se a avaliação está dentro da janela de tempo permitida (horário de Brasília)."""
+    from datetime import datetime as dt
+    from zoneinfo import ZoneInfo
     if not av.hora_inicio or not av.hora_fim:
         return True
-    hoje = d.today()
-    if av.data_aplicacao and av.data_aplicacao != hoje:
+    brasilia = ZoneInfo("America/Sao_Paulo")
+    agora_br = dt.now(brasilia)
+    if av.data_aplicacao and av.data_aplicacao != agora_br.date():
         return False
-    agora = dt.now().time()
-    return av.hora_inicio <= agora <= av.hora_fim
+    return av.hora_inicio <= agora_br.time() <= av.hora_fim
 
 
 @router.get("/avaliacoes", response_model=list[AvaliacaoPortalOut])
