@@ -17,6 +17,8 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - TZ=America/Sao_Paulo
     volumes:
       - uploads_data:/app/uploads
     networks:
