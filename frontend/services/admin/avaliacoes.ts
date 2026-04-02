@@ -48,6 +48,9 @@ export interface AvaliacaoDetail extends AvaliacaoList {
   criado_por_id: number | null;
   total_pendentes: number;
   questoes: AvaliacaoQuestaoItem[];
+  aula_data: string | null;
+  aula_hora_inicio: string | null;
+  aula_hora_fim: string | null;
 }
 
 export interface AvaliacaoCreate {

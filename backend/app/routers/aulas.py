@@ -22,6 +22,17 @@ from app.services import aula as aula_service
 router = APIRouter(prefix="/aulas", tags=["aulas"])
 
 
+def _enrich_aula(out: AulaOut, db: Session) -> AulaOut:
+    from app.models.avaliacao import Avaliacao
+    av = db.query(Avaliacao).filter(
+        Avaliacao.aula_id == out.id,
+        Avaliacao.deletado == False,
+    ).first()
+    out.avaliacao_id = av.id if av else None
+    out.avaliacao_titulo = av.titulo if av else None
+    return out
+
+
 @router.get("/", response_model=AulaListOut)
 def listar(
     turma_id: Optional[int] = Query(None),
@@ -40,9 +51,11 @@ def listar(
         effective_professor_id = current_user.pessoa_id
     elif professor_id:
         effective_professor_id = professor_id
-    return aula_service.listar(
+    result = aula_service.listar(
         db, turma_id, effective_professor_id, data_inicio, data_fim, status_filter, aluno_id, page, page_size
     )
+    result.items = [_enrich_aula(a, db) for a in result.items]
+    return result
 
 
 @router.get("/{aula_id}", response_model=AulaOut)
@@ -54,7 +67,7 @@ def buscar(
     aula = aula_service.buscar(db, aula_id)
     if current_user.role == "professor" and aula.professor_id != current_user.pessoa_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
-    return aula
+    return _enrich_aula(AulaOut.model_validate(aula), db)
 
 
 @router.post("/", response_model=AulaOut, status_code=status.HTTP_201_CREATED)

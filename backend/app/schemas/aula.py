@@ -88,6 +88,8 @@ class AulaOut(BaseModel):
     descricao: Optional[str] = None
     created_at: datetime
     turma: Optional[TurmaSimples] = None
+    avaliacao_id: Optional[int] = None
+    avaliacao_titulo: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

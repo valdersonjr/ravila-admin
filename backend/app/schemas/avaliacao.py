@@ -76,6 +76,9 @@ class AvaliacaoOut(BaseModel):
     turma_id: int
     turma_nome: Optional[str] = None
     aula_id: Optional[int] = None
+    aula_data: Optional[date] = None
+    aula_hora_inicio: Optional[str] = None
+    aula_hora_fim: Optional[str] = None
     data_aplicacao: Optional[date]
     hora_inicio: Optional[time] = None
     hora_fim: Optional[time] = None

@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Combobox } from "@/components/ui/Combobox";
 import { useToast } from "@/context/ToastContext";
 import { authService } from "@/services/auth";
+import Link from "next/link";
 
 interface PresencaItem {
   aluno_id: number;
@@ -234,6 +235,22 @@ export default function PresencasPage() {
           </p>
         )}
       </div>
+
+      {/* Avaliação vinculada */}
+      {aula?.avaliacao_id && (
+        <div className="bg-surface border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-muted mb-0.5">Avaliação desta aula</p>
+            <p className="text-sm font-semibold text-foreground">{aula.avaliacao_titulo}</p>
+          </div>
+          <Link
+            href={`/admin/avaliacoes/${aula.avaliacao_id}`}
+            className="text-sm text-primary-600 hover:underline shrink-0"
+          >
+            Ver avaliação
+          </Link>
+        </div>
+      )}
 
       {/* Descrição / Observações */}
       <div className="bg-surface border border-border rounded-xl p-4 space-y-2">

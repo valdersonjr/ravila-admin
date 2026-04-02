@@ -45,15 +45,26 @@ def _check_professor_acesso(av, user: User, db: Session) -> None:
 
 def _enrich(av, db: Session) -> dict:
     from app.models.avaliacao import AvaliacaoAluno
+    from app.models.aula import Aula as AulaModel
     total_alunos = db.query(AvaliacaoAluno).filter(AvaliacaoAluno.avaliacao_id == av.id).count()
     total_pendentes = db.query(AvaliacaoAluno).filter(
         AvaliacaoAluno.avaliacao_id == av.id,
         AvaliacaoAluno.status == "aguardando_correcao",
     ).count()
     turma_nome = av.turma.nome if av.turma else None
+    aula_data = aula_hora_inicio = aula_hora_fim = None
+    if av.aula_id:
+        aula = db.query(AulaModel).filter(AulaModel.id == av.aula_id).first()
+        if aula:
+            aula_data = aula.data
+            aula_hora_inicio = str(aula.hora_inicio)
+            aula_hora_fim = str(aula.hora_fim)
     return {
         **{c.name: getattr(av, c.name) for c in av.__table__.columns},
         "turma_nome": turma_nome,
+        "aula_data": aula_data,
+        "aula_hora_inicio": aula_hora_inicio,
+        "aula_hora_fim": aula_hora_fim,
         "questoes": av.questoes,
         "total_alunos": total_alunos,
         "total_pendentes": total_pendentes,

@@ -306,6 +306,23 @@ export default function AvaliacaoDetailPage() {
         </div>
       </div>
 
+      {/* Aula vinculada */}
+      {av.aula_id && (
+        <a
+          href={`/admin/aulas/${av.aula_id}/presencas`}
+          className="flex items-center justify-between gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3 hover:bg-primary-100 transition-colors"
+        >
+          <div>
+            <p className="text-xs text-primary-600 font-medium mb-0.5">Aula vinculada</p>
+            <p className="text-sm font-semibold text-primary-800">
+              {av.aula_data ? new Date(av.aula_data + "T00:00:00").toLocaleDateString("pt-BR") : ""}
+              {av.aula_hora_inicio && av.aula_hora_fim && ` · ${String(av.aula_hora_inicio).slice(0, 5)}–${String(av.aula_hora_fim).slice(0, 5)}`}
+            </p>
+          </div>
+          <span className="text-xs text-primary-600 font-medium shrink-0">Ver aula →</span>
+        </a>
+      )}
+
       {/* Inline form: estender tempo */}
       {showExtender && (
         <div className="flex items-end gap-3 bg-surface border border-border rounded-xl p-4">

@@ -15,6 +15,8 @@ export interface Aula {
   aula_origem_id: number | null;
   descricao: string | null;
   turma: { id: number; nome: string; professor_id: number } | null;
+  avaliacao_id: number | null;
+  avaliacao_titulo: string | null;
 }
 
 export interface AulaListOut {
