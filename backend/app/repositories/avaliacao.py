@@ -13,6 +13,7 @@ from app.schemas.avaliacao import AvaliacaoCreate, AvaliacaoUpdate, AvaliacaoQue
 def listar(
     db: Session,
     *,
+    turma_ids: Optional[list[int]] = None,
     turma_id: Optional[int] = None,
     status: Optional[str] = None,
     topico: Optional[str] = None,
@@ -20,8 +21,10 @@ def listar(
     skip: int = 0,
     limit: int = 50,
 ) -> tuple[list[Avaliacao], int]:
-    q = db.query(Avaliacao)
-    if turma_id:
+    q = db.query(Avaliacao).filter(Avaliacao.deletado == False)
+    if turma_ids is not None:
+        q = q.filter(Avaliacao.turma_id.in_(turma_ids))
+    elif turma_id:
         q = q.filter(Avaliacao.turma_id == turma_id)
     if status:
         q = q.filter(Avaliacao.status == status)
@@ -35,7 +38,12 @@ def listar(
 
 
 def buscar(db: Session, avaliacao_id: int) -> Optional[Avaliacao]:
-    return db.query(Avaliacao).filter(Avaliacao.id == avaliacao_id).first()
+    return db.query(Avaliacao).filter(Avaliacao.id == avaliacao_id, Avaliacao.deletado == False).first()
+
+
+def deletar(db: Session, av: Avaliacao) -> None:
+    av.deletado = True
+    db.commit()
 
 
 def criar(db: Session, dados: AvaliacaoCreate, criado_por_id: Optional[int] = None) -> Avaliacao:
@@ -183,7 +191,11 @@ def _tentar_finalizar(db: Session, avaliacao_id: int, aluno_id: int) -> None:
 def listar_para_aluno(db: Session, turma_id: int, aluno_id: int) -> list[dict]:
     avaliacoes = (
         db.query(Avaliacao)
-        .filter(Avaliacao.turma_id == turma_id, Avaliacao.status.in_(["publicada", "encerrada"]))
+        .filter(
+            Avaliacao.turma_id == turma_id,
+            Avaliacao.status.in_(["publicada", "encerrada"]),
+            Avaliacao.deletado == False,
+        )
         .order_by(Avaliacao.data_aplicacao.desc().nullslast(), Avaliacao.criado_em.desc())
         .all()
     )

@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { avaliacoesService, type AvaliacaoList, type AvaliacaoCreate, STATUS_LABELS, STATUS_COLORS } from "@/services/admin/avaliacoes";
+import { Modal } from "@/components/ui/Modal";
 import { TOPICOS, TOPICO_LABELS } from "@/services/admin/questoes";
 import { turmasService } from "@/services/admin/turmas";
+import { aulasService, type Aula } from "@/services/admin/aulas";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -37,9 +39,13 @@ export default function AvaliacoesPage() {
   const [filterTopico, setFilterTopico] = useState("");
 
   const [turmas, setTurmas] = useState<{ value: string; label: string }[]>([]);
+  const [aulasOpcoes, setAulasOpcoes] = useState<Aula[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<AvaliacaoCreate>(EMPTY);
   const [saving, setSaving] = useState(false);
+
+  const [excluindo, setExcluindo] = useState<AvaliacaoList | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -64,6 +70,13 @@ export default function AvaliacoesPage() {
     ).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!form.turma_id) { setAulasOpcoes([]); return; }
+    aulasService.listar({ turma_id: form.turma_id, page_size: 50 })
+      .then((r) => setAulasOpcoes(r.items ?? []))
+      .catch(() => setAulasOpcoes([]));
+  }, [form.turma_id]);
+
   async function handleCriar(e: React.FormEvent) {
     e.preventDefault();
     if (!form.turma_id) { showToast("Selecione a turma.", "error"); return; }
@@ -84,6 +97,21 @@ export default function AvaliacoesPage() {
       showToast(getErrorMessage(err, "Erro ao criar avaliação."), "error");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleExcluir() {
+    if (!excluindo) return;
+    setConfirmandoExclusao(true);
+    try {
+      await avaliacoesService.deletar(excluindo.id);
+      setAvaliacoes((prev) => prev.filter((a) => a.id !== excluindo.id));
+      showToast("Avaliação excluída.");
+      setExcluindo(null);
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao excluir avaliação."), "error");
+    } finally {
+      setConfirmandoExclusao(false);
     }
   }
 
@@ -116,13 +144,15 @@ export default function AvaliacoesPage() {
       ) : (
         <div className="space-y-3">
           {avaliacoes.map((av) => (
-            <button
+            <div
               key={av.id}
-              onClick={() => router.push(`/admin/avaliacoes/${av.id}`)}
-              className="w-full text-left bg-surface border border-border rounded-xl p-4 hover:border-primary-300 transition-colors"
+              className="bg-surface border border-border rounded-xl p-4 hover:border-primary-300 transition-colors"
             >
               <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
+                <button
+                  className="flex-1 min-w-0 text-left"
+                  onClick={() => router.push(`/admin/avaliacoes/${av.id}`)}
+                >
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-foreground">{av.titulo}</p>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[av.status]}`}>
@@ -135,13 +165,21 @@ export default function AvaliacoesPage() {
                     {av.turma_nome && <span>· {av.turma_nome}</span>}
                     {av.data_aplicacao && <span>· {new Date(av.data_aplicacao + "T00:00:00").toLocaleDateString("pt-BR")}</span>}
                   </div>
-                </div>
-                <div className="text-right text-xs text-muted shrink-0">
-                  <p>{av.total_questoes} questão{av.total_questoes !== 1 ? "ões" : ""}</p>
-                  <p>{av.total_alunos} aluno{av.total_alunos !== 1 ? "s" : ""}</p>
+                </button>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className="text-right text-xs text-muted">
+                    <p>{av.total_questoes} questão{av.total_questoes !== 1 ? "ões" : ""}</p>
+                    <p>{av.total_alunos} aluno{av.total_alunos !== 1 ? "s" : ""}</p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setExcluindo(av); }}
+                    className="text-xs text-rose-600 hover:underline"
+                  >
+                    Excluir
+                  </button>
                 </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       )}
@@ -186,9 +224,41 @@ export default function AvaliacoesPage() {
                 <Select
                   options={[{ value: "", label: "Selecione" }, ...turmas]}
                   value={form.turma_id ? String(form.turma_id) : ""}
-                  onChange={(e) => setForm((p) => ({ ...p, turma_id: Number(e.target.value) }))}
+                  onChange={(e) => setForm((p) => ({ ...p, turma_id: Number(e.target.value), aula_id: undefined }))}
                 />
               </Field>
+              {form.turma_id > 0 && (
+                <Field label="Aula vinculada (opcional)">
+                  {aulasOpcoes.length > 0 ? (
+                    <Select
+                      options={[
+                        { value: "", label: "Nenhuma" },
+                        ...aulasOpcoes.map((a) => ({
+                          value: String(a.id),
+                          label: `${new Date(a.data + "T00:00:00").toLocaleDateString("pt-BR")} · ${a.hora_inicio.slice(0, 5)}–${a.hora_fim.slice(0, 5)}${a.descricao ? ` · ${a.descricao}` : ""}`,
+                        })),
+                      ]}
+                      value={form.aula_id ? String(form.aula_id) : ""}
+                      onChange={(e) => {
+                        const aula = aulasOpcoes.find((a) => String(a.id) === e.target.value);
+                        setForm((p) => ({
+                          ...p,
+                          aula_id: aula ? aula.id : undefined,
+                          data_aplicacao: aula ? aula.data : p.data_aplicacao,
+                          hora_inicio: aula ? aula.hora_inicio.slice(0, 5) : p.hora_inicio,
+                          hora_fim: aula ? aula.hora_fim.slice(0, 5) : p.hora_fim,
+                        }));
+                      }}
+                    />
+                  ) : (
+                    <p className="text-xs text-muted py-1">
+                      Nenhuma aula agendada para esta turma. Crie uma aula em{" "}
+                      <a href="/admin/aulas" className="text-primary-600 hover:underline">Aulas</a>{" "}
+                      se a avaliação ocorrer durante uma aula agendada.
+                    </p>
+                  )}
+                </Field>
+              )}
               <Field label="Módulo">
                 <Input value={form.modulo ?? ""} onChange={(e) => setForm((p) => ({ ...p, modulo: e.target.value }))} placeholder="Ex: Módulo 2, Unit 3 (opcional)" />
               </Field>
@@ -220,6 +290,17 @@ export default function AvaliacoesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {excluindo && (
+        <Modal
+          title="Excluir avaliação"
+          message={`Excluir "${excluindo.titulo}"? Esta ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          onConfirm={handleExcluir}
+          onClose={() => setExcluindo(null)}
+          loading={confirmandoExclusao}
+        />
       )}
     </div>
   );

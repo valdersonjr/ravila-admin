@@ -29,6 +29,20 @@ def _get_or_404(db: Session, avaliacao_id: int):
     return av
 
 
+def _professor_turma_ids(user: User, db: Session) -> list[int]:
+    """Retorna IDs das turmas do professor logado."""
+    from app.models.turma import Turma
+    return [t.id for t in db.query(Turma).filter(Turma.professor_id == user.pessoa_id).all()]
+
+
+def _check_professor_acesso(av, user: User, db: Session) -> None:
+    """Lança 403 se professor tentar acessar avaliação de outra turma."""
+    if user.role == "professor":
+        ids = _professor_turma_ids(user, db)
+        if av.turma_id not in ids:
+            raise HTTPException(status_code=403, detail="Acesso negado")
+
+
 def _enrich(av, db: Session) -> dict:
     from app.models.avaliacao import AvaliacaoAluno
     total_alunos = db.query(AvaliacaoAluno).filter(AvaliacaoAluno.avaliacao_id == av.id).count()
@@ -55,11 +69,15 @@ def listar(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     from app.models.avaliacao import AvaliacaoAluno
-    items, _ = repo.listar(
-        db, turma_id=turma_id, status=status, topico=topico, modulo=modulo,
+    professor_turma_ids = _professor_turma_ids(current_user, db) if current_user.role == "professor" else None
+    items, _total = repo.listar(
+        db,
+        turma_ids=professor_turma_ids,
+        turma_id=turma_id if professor_turma_ids is None else None,
+        status=status, topico=topico, modulo=modulo,
         skip=(page - 1) * page_size, limit=page_size,
     )
     result = []
@@ -87,6 +105,10 @@ def criar(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
+    if current_user.role == "professor":
+        ids = _professor_turma_ids(current_user, db)
+        if dados.turma_id not in ids:
+            raise HTTPException(status_code=403, detail="Acesso negado")
     av = repo.criar(db, dados, criado_por_id=current_user.id)
     return AvaliacaoOut(**_enrich(av, db))
 
@@ -95,9 +117,10 @@ def criar(
 def buscar(
     avaliacao_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
     return AvaliacaoOut(**_enrich(av, db))
 
 
@@ -106,22 +129,33 @@ def atualizar(
     avaliacao_id: int,
     dados: AvaliacaoUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
-    if av.status != "rascunho":
-        raise HTTPException(status_code=409, detail="Só é possível editar avaliações em rascunho")
+    _check_professor_acesso(av, current_user, db)
     av = repo.atualizar(db, av, dados)
     return AvaliacaoOut(**_enrich(av, db))
+
+
+@router.delete("/{avaliacao_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar(
+    avaliacao_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff_or_professor),
+):
+    av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
+    repo.deletar(db, av)
 
 
 @router.post("/{avaliacao_id}/publicar", response_model=AvaliacaoOut)
 def publicar(
     avaliacao_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
     if av.status != "rascunho":
         raise HTTPException(status_code=409, detail="Avaliação já foi publicada ou encerrada")
     if not av.questoes:
@@ -134,9 +168,10 @@ def publicar(
 def encerrar(
     avaliacao_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
     if av.status != "publicada":
         raise HTTPException(status_code=409, detail="Só é possível encerrar avaliações publicadas")
     av = repo.mudar_status(db, av, "encerrada")
@@ -148,9 +183,10 @@ def adicionar_questao(
     avaliacao_id: int,
     item: AvaliacaoQuestaoIn,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
     if av.status != "rascunho":
         raise HTTPException(status_code=409, detail="Só é possível editar questões em rascunho")
     repo.adicionar_questao(db, avaliacao_id, item)
@@ -163,9 +199,10 @@ def remover_questao(
     avaliacao_id: int,
     questao_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
     if av.status != "rascunho":
         raise HTTPException(status_code=409, detail="Só é possível editar questões em rascunho")
     repo.remover_questao(db, avaliacao_id, questao_id)
@@ -177,8 +214,10 @@ def remover_questao(
 def listar_alunos(
     avaliacao_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
+    av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
     from app.models.avaliacao import AvaliacaoAluno
     from app.models.pessoa import Pessoa
     registros = (
@@ -206,9 +245,10 @@ def respostas_aluno(
     avaliacao_id: int,
     aluno_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
     peso_map = {aq.questao_id: aq.peso for aq in av.questoes}
     respostas = repo.buscar_respostas_aluno(db, avaliacao_id, aluno_id)
     result = []
@@ -235,9 +275,10 @@ def corrigir(
     questao_id: int,
     dados: CorrecaoIn,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
     peso_map = {aq.questao_id: aq.peso for aq in av.questoes}
     try:
         resp = repo.corrigir_resposta(db, avaliacao_id, aluno_id, questao_id, dados.nota_manual, dados.comentario_professor)

@@ -12,10 +12,12 @@ function IconTrash() {
 }
 import { avaliacoesService, type AvaliacaoDetail, type AvaliacaoAluno, type RespostaAluno, STATUS_LABELS, STATUS_COLORS, STATUS_ALUNO_LABELS } from "@/services/admin/avaliacoes";
 import { questoesService, type Questao, NIVEIS, TOPICOS, DIFICULDADES, TOPICO_LABELS, DIFICULDADE_LABELS, SUBTIPO_LABELS } from "@/services/admin/questoes";
+import { aulasService, type Aula } from "@/services/admin/aulas";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/context/ToastContext";
 
 type Tab = "questoes" | "correcao";
@@ -40,6 +42,55 @@ export default function AvaliacaoDetailPage() {
   const [pesoInput, setPesoInput] = useState<Record<number, string>>({});
   const [adicionando, setAdicionando] = useState<Set<number>>(new Set());
   const [removendo, setRemovendo] = useState<number | null>(null);
+
+  // Edição de metadados
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState<{
+    titulo: string; modulo: string; descricao: string;
+    data_aplicacao: string; hora_inicio: string; hora_fim: string; aula_id: string;
+  }>({ titulo: "", modulo: "", descricao: "", data_aplicacao: "", hora_inicio: "", hora_fim: "", aula_id: "" });
+  const [aulasOpcoes, setAulasOpcoes] = useState<Aula[]>([]);
+  const [salvandoEdit, setSalvandoEdit] = useState(false);
+
+  function abrirEdit() {
+    if (!av) return;
+    setEditForm({
+      titulo: av.titulo,
+      modulo: av.modulo ?? "",
+      descricao: (av as any).descricao ?? "",
+      data_aplicacao: av.data_aplicacao ?? "",
+      hora_inicio: av.hora_inicio ? String(av.hora_inicio).slice(0, 5) : "",
+      hora_fim: av.hora_fim ? String(av.hora_fim).slice(0, 5) : "",
+      aula_id: av.aula_id ? String(av.aula_id) : "",
+    });
+    aulasService.listar({ turma_id: av.turma_id, page_size: 50 })
+      .then((r) => setAulasOpcoes(r.items ?? []))
+      .catch(() => {});
+    setShowEdit(true);
+  }
+
+  async function handleSalvarEdit(e: React.FormEvent) {
+    e.preventDefault();
+    setSalvandoEdit(true);
+    try {
+      const updated = await avaliacoesService.atualizar(id, {
+        titulo: editForm.titulo.trim() || undefined,
+        modulo: editForm.modulo.trim() || undefined,
+        descricao: editForm.descricao.trim() || undefined,
+        data_aplicacao: editForm.data_aplicacao || undefined,
+        hora_inicio: editForm.hora_inicio || undefined,
+        hora_fim: editForm.hora_fim || undefined,
+        aula_id: editForm.aula_id ? Number(editForm.aula_id) : undefined,
+      });
+      setAv(updated);
+      setShowEdit(false);
+      showToast("Avaliação atualizada.");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao salvar."), "error");
+    } finally {
+      setSalvandoEdit(false);
+    }
+  }
 
   // Estender tempo
   const [showExtender, setShowExtender] = useState(false);
@@ -240,6 +291,7 @@ export default function AvaliacaoDetailPage() {
           {av.descricao && <p className="text-xs text-muted mt-1 italic">{av.descricao}</p>}
         </div>
         <div className="flex gap-2 shrink-0">
+          <Button variant="outline" onClick={abrirEdit}>Editar</Button>
           {av.status === "rascunho" && (
             <Button onClick={handlePublicar} disabled={av.questoes.length === 0}>Publicar</Button>
           )}
@@ -535,6 +587,97 @@ export default function AvaliacaoDetailPage() {
               )}
             </>
           )}
+        </div>
+      )}
+      {/* Modal editar metadados */}
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-foreground/40" onClick={() => setShowEdit(false)} />
+          <div className="relative z-10 w-full max-w-md mx-4 rounded-xl bg-background border border-border p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold text-foreground">Editar avaliação</h2>
+            <form onSubmit={handleSalvarEdit} className="space-y-4">
+              <Field label="Título *">
+                <Input
+                  value={editForm.titulo}
+                  onChange={(e) => setEditForm((p) => ({ ...p, titulo: e.target.value }))}
+                  required
+                />
+              </Field>
+              <Field label="Módulo">
+                <Input
+                  value={editForm.modulo}
+                  onChange={(e) => setEditForm((p) => ({ ...p, modulo: e.target.value }))}
+                  placeholder="Ex: Módulo 2, Unit 3 (opcional)"
+                />
+              </Field>
+              <Field label="Descrição">
+                <textarea
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                  rows={2}
+                  value={editForm.descricao}
+                  onChange={(e) => setEditForm((p) => ({ ...p, descricao: e.target.value }))}
+                  placeholder="Contexto pedagógico (opcional)"
+                />
+              </Field>
+              <Field label="Aula vinculada (opcional)">
+                {aulasOpcoes.length > 0 ? (
+                  <Select
+                    options={[
+                      { value: "", label: "Nenhuma" },
+                      ...aulasOpcoes.map((a) => ({
+                        value: String(a.id),
+                        label: `${new Date(a.data + "T00:00:00").toLocaleDateString("pt-BR")} · ${a.hora_inicio.slice(0, 5)}–${a.hora_fim.slice(0, 5)}${a.descricao ? ` · ${a.descricao}` : ""}`,
+                      })),
+                    ]}
+                    value={editForm.aula_id}
+                    onChange={(e) => {
+                      const aula = aulasOpcoes.find((a) => String(a.id) === e.target.value);
+                      setEditForm((p) => ({
+                        ...p,
+                        aula_id: e.target.value,
+                        data_aplicacao: aula ? aula.data : p.data_aplicacao,
+                        hora_inicio: aula ? aula.hora_inicio.slice(0, 5) : p.hora_inicio,
+                        hora_fim: aula ? aula.hora_fim.slice(0, 5) : p.hora_fim,
+                      }));
+                    }}
+                  />
+                ) : (
+                  <p className="text-xs text-muted py-1">
+                    Nenhuma aula agendada para esta turma. Crie uma aula em{" "}
+                    <a href="/admin/aulas" className="text-primary-600 hover:underline">Aulas</a>{" "}
+                    se a avaliação ocorrer durante uma aula agendada.
+                  </p>
+                )}
+              </Field>
+              <Field label="Data de aplicação">
+                <Input
+                  type="date"
+                  value={editForm.data_aplicacao}
+                  onChange={(e) => setEditForm((p) => ({ ...p, data_aplicacao: e.target.value }))}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Início">
+                  <Input
+                    type="time"
+                    value={editForm.hora_inicio}
+                    onChange={(e) => setEditForm((p) => ({ ...p, hora_inicio: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Término">
+                  <Input
+                    type="time"
+                    value={editForm.hora_fim}
+                    onChange={(e) => setEditForm((p) => ({ ...p, hora_fim: e.target.value }))}
+                  />
+                </Field>
+              </div>
+              <div className="flex gap-3 justify-end pt-1">
+                <Button type="button" variant="outline" onClick={() => setShowEdit(false)} disabled={salvandoEdit}>Cancelar</Button>
+                <Button type="submit" loading={salvandoEdit}>Salvar</Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

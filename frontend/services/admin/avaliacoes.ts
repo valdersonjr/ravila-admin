@@ -125,6 +125,8 @@ export const avaliacoesService = {
   respostasAluno: (id: number, alunoId: number) =>
     apiAuth.get<RespostaAluno[]>(`/avaliacoes/${id}/respostas/${alunoId}`),
 
+  deletar: (id: number) => apiAuth.delete<void>(`/avaliacoes/${id}`),
+
   corrigir: (id: number, alunoId: number, questaoId: number, nota_manual: number, comentario?: string) =>
     apiAuth.patch<RespostaAluno>(`/avaliacoes/${id}/corrigir/${alunoId}/${questaoId}`, {
       nota_manual,
