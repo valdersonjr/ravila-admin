@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.material import Material
@@ -15,9 +16,12 @@ def listar(
     limit: int = 50,
 ) -> tuple[list[Material], int]:
     q = db.query(Material).options(joinedload(Material.turma))
-    if aula_id is not None:
+    if aula_id is not None and turma_id is not None:
+        # Mostra materiais vinculados à aula OU à turma (ex: página de presenças)
+        q = q.filter(or_(Material.aula_id == aula_id, Material.turma_id == turma_id))
+    elif aula_id is not None:
         q = q.filter(Material.aula_id == aula_id)
-    if turma_id is not None:
+    elif turma_id is not None:
         q = q.filter(Material.turma_id == turma_id)
     if categoria:
         q = q.filter(Material.categoria == categoria)
