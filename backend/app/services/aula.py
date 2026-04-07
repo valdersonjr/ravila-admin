@@ -53,10 +53,10 @@ def criar(db: Session, dados: AulaCreate, professor_pessoa_id: int | None = None
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você só pode criar aulas para suas próprias turmas",
         )
-    if aula_repo.professor_tem_aula_no_dia(db, dados.professor_id, dados.data):
+    if aula_repo.buscar_conflito_horario(db, dados.professor_id, dados.data, dados.hora_inicio, dados.hora_fim):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Professor já possui uma aula agendada neste dia.",
+            detail="Professor já possui uma aula agendada neste horário.",
         )
     professor_nome = professor.pessoa.nome if professor.pessoa else ""
     payload = {
@@ -128,10 +128,10 @@ def substituir_professor(db: Session, aula_id: int, professor_id: int) -> Aula:
     professor = professor_repo.buscar_por_pessoa_id(db, professor_id)
     if not professor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professor não encontrado")
-    if aula_repo.professor_tem_aula_no_dia(db, professor_id, aula.data, exclude_id=aula_id):
+    if aula_repo.buscar_conflito_horario(db, professor_id, aula.data, aula.hora_inicio, aula.hora_fim, exclude_id=aula_id):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Professor já possui uma aula agendada neste dia.",
+            detail="Professor já possui uma aula agendada neste horário.",
         )
     return aula_repo.atualizar(db, aula, {
         "professor_id": professor_id,
