@@ -14,9 +14,9 @@ export const metadata: Metadata = {
     title: "Ravila's",
   },
   icons: {
-    icon: "/icon-192.png",
+    icon: "/logo.svg",
     apple: "/apple-touch-icon.png",
-    shortcut: "/icon-192.png",
+    shortcut: "/logo.svg",
   },
 };
 
