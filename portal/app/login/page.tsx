@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth";
 import { Logo } from "@/components/ui/Logo";
+import { PwaInstallGuide } from "@/components/ui/PwaInstallGuide";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -77,6 +78,7 @@ export default function LoginPage() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
+        <PwaInstallGuide />
       </div>
     </div>
   );
