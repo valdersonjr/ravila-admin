@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { Download, X } from "lucide-react";
 
 function isIOS() {
   if (typeof navigator === "undefined") return false;
@@ -23,7 +24,7 @@ export function PwaInstallGuide() {
         onClick={() => setShow(true)}
         className="flex items-center gap-2 text-sm text-primary-500 font-semibold mx-auto mt-4 hover:text-primary-700 transition-colors"
       >
-        <span>⬇</span>
+        <Download size={16} />
         Baixar como aplicativo
       </button>
 
@@ -35,9 +36,9 @@ export function PwaInstallGuide() {
               <h2 className="text-base font-black text-foreground">Instalar no iPhone</h2>
               <button
                 onClick={() => setShow(false)}
-                className="text-muted hover:text-foreground text-xl leading-none"
+                className="text-muted hover:text-foreground"
               >
-                ×
+                <X size={18} />
               </button>
             </div>
 
