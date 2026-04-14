@@ -160,7 +160,7 @@ export default function AulasPage() {
         <h1 className="text-2xl font-bold text-foreground">Aulas</h1>
         <div className="flex gap-2">
           <Link href="/admin/aulas/nova"><Button variant="outline">+ Aula de turma</Button></Link>
-          {isAdmin && <Link href="/admin/aulas/avulsa/nova"><Button>+ Aula experimental</Button></Link>}
+          {(isAdmin || isProfessor) && <Link href="/admin/aulas/avulsa/nova"><Button>+ Aula experimental</Button></Link>}
         </div>
       </div>
 

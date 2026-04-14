@@ -11,16 +11,20 @@ import { Button } from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
 import { Field } from "@/components/ui/Field";
 import { useToast } from "@/context/ToastContext";
+import { authService } from "@/services/auth";
 
 export default function NovaAulaAvulsaPage() {
   const router = useRouter();
   const { showToast } = useToast();
 
+  const isProfessor = authService.getRole() === "professor";
+  const pessoaId = authService.getPessoaId();
+
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
 
   const [alunoId, setAlunoId] = useState<number | string | null>(null);
-  const [professorId, setProfessorId] = useState<number | string | null>(null);
+  const [professorId, setProfessorId] = useState<number | string | null>(isProfessor && pessoaId ? pessoaId : null);
   const [data, setData] = useState(new Date().toISOString().split("T")[0]);
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFim, setHoraFim] = useState("");
@@ -29,9 +33,11 @@ export default function NovaAulaAvulsaPage() {
   const [loadingOptions, setLoadingOptions] = useState(true);
 
   useEffect(() => {
-    Promise.all([pessoasService.listar({ page_size: 500 }), professoresService.listar()]).then(([ps, profs]) => {
-      setPessoas(ps.items);
-      setProfessores(profs.filter((p) => p.ativo));
+    const promises: Promise<unknown>[] = [pessoasService.listar({ page_size: 500 })];
+    if (!isProfessor) promises.push(professoresService.listar());
+    Promise.all(promises).then(([ps, profs]) => {
+      setPessoas((ps as Awaited<ReturnType<typeof pessoasService.listar>>).items);
+      if (profs) setProfessores((profs as Professor[]).filter((p) => p.ativo));
     }).finally(() => setLoadingOptions(false));
   }, []);
 
@@ -74,28 +80,20 @@ export default function NovaAulaAvulsaPage() {
         <Field label="Aluno *">
           <Combobox options={pessoaOptions} value={alunoId} onChange={setAlunoId} placeholder="Buscar aluno..." loading={loadingOptions} />
         </Field>
-        <Field label="Professor *">
-          <Combobox options={professorOptions} value={professorId} onChange={setProfessorId} placeholder="Selecionar professor..." loading={loadingOptions} />
-        </Field>
+        {!isProfessor && (
+          <Field label="Professor *">
+            <Combobox options={professorOptions} value={professorId} onChange={setProfessorId} placeholder="Selecionar professor..." loading={loadingOptions} />
+          </Field>
+        )}
         <Field label="Data *">
           <Input type="date" value={data} onChange={(e) => setData(e.target.value)} required />
         </Field>
         <div className="flex gap-3">
           <Field label="Início *">
-            <Input
-              type="time"
-              value={horaInicio}
-              onChange={(e) => setHoraInicio(e.target.value)}
-              required
-            />
+            <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} required />
           </Field>
           <Field label="Fim *">
-            <Input
-              type="time"
-              value={horaFim}
-              onChange={(e) => setHoraFim(e.target.value)}
-              required
-            />
+            <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} required />
           </Field>
         </div>
         <Field label="Observações">

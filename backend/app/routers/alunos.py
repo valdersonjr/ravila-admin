@@ -31,7 +31,7 @@ def listar(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=500),
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    _: User = Depends(require_staff_or_professor),
 ):
     return aluno_service.listar(db, status_filter, search, nivel_id, sem_contrato_ativo, page, page_size)
 
