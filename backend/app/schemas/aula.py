@@ -64,6 +64,10 @@ class AulaDescricaoUpdate(BaseModel):
     descricao: Optional[str] = None
 
 
+class AulaConteudoUpdate(BaseModel):
+    conteudo_dado: Optional[str] = None
+
+
 class TurmaSimples(BaseModel):
     id: int
     nome: str
@@ -86,6 +90,7 @@ class AulaOut(BaseModel):
     status: str
     aula_origem_id: Optional[int] = None
     descricao: Optional[str] = None
+    conteudo_dado: Optional[str] = None
     created_at: datetime
     turma: Optional[TurmaSimples] = None
     avaliacao_id: Optional[int] = None

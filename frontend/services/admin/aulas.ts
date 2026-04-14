@@ -10,10 +10,11 @@ export interface Aula {
   hora_fim: string;
   professor_id: number;
   professor_nome_snapshot: string;
-  tipo: "regular" | "substitutiva";
+  tipo: "regular" | "substitutiva" | "experimental";
   status: "agendada" | "realizada" | "cancelada" | "pendente_aprovacao";
   aula_origem_id: number | null;
   descricao: string | null;
+  conteudo_dado: string | null;
   turma: { id: number; nome: string; professor_id: number } | null;
   avaliacao_id: number | null;
   avaliacao_titulo: string | null;
@@ -61,5 +62,7 @@ export const aulasService = {
   aprovar: (id: number) => apiAuth.patch<Aula>(`/aulas/${id}/aprovar`, {}),
   atualizarDescricao: (id: number, descricao: string | null) =>
     apiAuth.patch<Aula>(`/aulas/${id}/descricao`, { descricao }),
+  atualizarConteudo: (id: number, conteudo_dado: string | null) =>
+    apiAuth.patch<Aula>(`/aulas/${id}/conteudo`, { conteudo_dado }),
   deletar: (id: number) => apiAuth.delete<void>(`/aulas/${id}`),
 };

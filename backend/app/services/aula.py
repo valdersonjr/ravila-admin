@@ -102,7 +102,7 @@ def criar_avulsa(db: Session, dados: AulaAvulsaCreate) -> Aula:
         "data": dados.data,
         "hora_inicio": dados.hora_inicio,
         "hora_fim": dados.hora_fim,
-        "tipo": AulaTipo.REGULAR,
+        "tipo": AulaTipo.EXPERIMENTAL,
         "status": AulaStatus.AGENDADA,
         "descricao": dados.descricao,
     })
@@ -142,6 +142,11 @@ def substituir_professor(db: Session, aula_id: int, professor_id: int) -> Aula:
 def atualizar_descricao(db: Session, aula_id: int, descricao: str | None) -> Aula:
     aula = buscar(db, aula_id)
     return aula_repo.atualizar(db, aula, {"descricao": descricao})
+
+
+def atualizar_conteudo(db: Session, aula_id: int, conteudo_dado: str | None) -> Aula:
+    aula = buscar(db, aula_id)
+    return aula_repo.atualizar(db, aula, {"conteudo_dado": conteudo_dado})
 
 
 def deletar(db: Session, aula_id: int) -> None:

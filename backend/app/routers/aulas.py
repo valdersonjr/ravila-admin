@@ -9,6 +9,7 @@ from app.dependencies import get_current_user, require_staff, require_staff_or_p
 from app.models.user import User
 from app.schemas.aula import (
     AulaAvulsaCreate,
+    AulaConteudoUpdate,
     AulaCreate,
     AulaDescricaoUpdate,
     AulaListOut,
@@ -84,7 +85,7 @@ def criar(
 def criar_avulsa(
     body: AulaAvulsaCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    _: User = Depends(require_staff_or_professor),
 ):
     return aula_service.criar_avulsa(db, body)
 
@@ -138,6 +139,16 @@ def atualizar_descricao(
     _: User = Depends(require_staff_or_professor),
 ):
     return aula_service.atualizar_descricao(db, aula_id, body.descricao)
+
+
+@router.patch("/{aula_id}/conteudo", response_model=AulaOut)
+def atualizar_conteudo(
+    aula_id: int,
+    body: AulaConteudoUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_staff_or_professor),
+):
+    return aula_service.atualizar_conteudo(db, aula_id, body.conteudo_dado)
 
 
 @router.post("/{aula_id}/remarcar", response_model=AulaOut, status_code=status.HTTP_201_CREATED)

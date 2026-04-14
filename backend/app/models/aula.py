@@ -34,6 +34,7 @@ class Aula(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="agendada")
     aula_origem_id: Mapped[Optional[int]] = mapped_column(ForeignKey("aulas.id"), nullable=True)
     descricao: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    conteudo_dado: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
     turma: Mapped[Optional["Turma"]] = relationship("Turma", back_populates="aulas")

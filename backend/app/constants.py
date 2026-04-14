@@ -14,6 +14,7 @@ class AulaStatus:
 class AulaTipo:
     REGULAR = "regular"
     SUBSTITUTIVA = "substitutiva"
+    EXPERIMENTAL = "experimental"
 
 
 class MatriculaStatus:

@@ -195,7 +195,7 @@
 
   <!-- Partes -->
   <div class="parties">
-    <p><strong>CONTRATADO:</strong> Rávila Ravane Costa Silva – ME, empresa inscrita no CNPJ sob o nº 42.170.459/0001-83</p>
+    <p><strong>CONTRATADO:</strong> Rávila Ravane Costa Silva, inscrita no CNPJ sob o nº 42.170.459/0001-83</p>
     <p><strong>CONTRATANTE:</strong> {{ contratante.nome|upper }}{% if contrato.alunos|length == 1 and contrato.contratante_id != contrato.alunos[0].pessoa_id %}, agindo na qualidade de responsável legal pelo(a) aluno(a) {{ contrato.alunos[0].pessoa.nome|upper }}{% endif %}</p>
     <p><strong>ENDEREÇO:</strong> {{ contratante.endereco or '___________________________________' }}</p>
     <p><strong>Telefone:</strong> {{ contratante.telefone or '______________' }}</p>
@@ -291,7 +291,7 @@
   </div>
   {% endif %}
 
-  <p class="location-date">{{ contrato.local_assinatura or 'Goianésia – GO' }}, _____ de _________________ de _________</p>
+  <p class="location-date">{{ data_geracao }}</p>
 
   <div class="signatures">
     <div class="sig-block">

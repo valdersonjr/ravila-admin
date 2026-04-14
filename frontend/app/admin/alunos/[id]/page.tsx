@@ -237,7 +237,7 @@ export default function AlunoPage() {
                   {presencas.map((p) => (
                     <tr key={p.id} className="hover:bg-border transition-colors">
                       <td className="px-4 py-2 text-foreground">{formatDate(p.aula.data)}</td>
-                      <td className="px-4 py-2 text-foreground">{p.aula.turma?.nome ?? <span className="text-muted italic">Particular</span>}</td>
+                      <td className="px-4 py-2 text-foreground">{p.aula.turma?.nome ?? <span className="text-muted italic">Experimental</span>}</td>
                       <td className="px-4 py-2 text-muted">{p.aula.hora_inicio} – {p.aula.hora_fim}</td>
                       <td className="px-4 py-2 text-muted capitalize">{p.tipo}</td>
                       <td className="px-4 py-2">

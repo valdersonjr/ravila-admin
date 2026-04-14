@@ -160,7 +160,7 @@ export default function AulasPage() {
         <h1 className="text-2xl font-bold text-foreground">Aulas</h1>
         <div className="flex gap-2">
           <Link href="/admin/aulas/nova"><Button variant="outline">+ Aula de turma</Button></Link>
-          {isAdmin && <Link href="/admin/aulas/avulsa/nova"><Button>+ Aula particular</Button></Link>}
+          {isAdmin && <Link href="/admin/aulas/avulsa/nova"><Button>+ Aula experimental</Button></Link>}
         </div>
       </div>
 
@@ -203,7 +203,7 @@ export default function AulasPage() {
               header: "Turma / Aluno",
               render: (a) => a.turma
                 ? a.turma.nome
-                : <span className="inline-flex items-center gap-1"><Badge variant="neutral">particular</Badge>{a.aluno_nome_snapshot ?? "-"}</span>,
+                : <span className="inline-flex items-center gap-1"><Badge variant="warning">experimental</Badge>{a.aluno_nome_snapshot ?? "-"}</span>,
             },
             {
               header: "Professor",
@@ -229,7 +229,7 @@ export default function AulasPage() {
               },
             },
             { header: "Horário", render: (a) => `${a.hora_inicio.slice(0,5)} – ${a.hora_fim.slice(0,5)}` },
-            { header: "Tipo", render: (a) => <Badge variant={a.tipo === "regular" ? "primary" : "warning"}>{a.tipo === "substitutiva" ? "substitutiva" : a.tipo}</Badge> },
+            { header: "Tipo", render: (a) => <Badge variant={a.tipo === "regular" ? "primary" : "warning"}>{a.tipo}</Badge> },
             {
               header: "Status",
               render: (a) => (
@@ -288,7 +288,7 @@ export default function AulasPage() {
           <div className="relative z-10 w-full max-w-sm mx-4 rounded-xl bg-background border border-border p-6 shadow-xl space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Trocar professor</h2>
             <p className="text-sm text-muted">
-              Aula de {new Date(modalAula.data + "T00:00:00").toLocaleDateString("pt-BR")} — {modalAula.turma?.nome ?? `particular · ${modalAula.aluno_nome_snapshot}`}
+              Aula de {new Date(modalAula.data + "T00:00:00").toLocaleDateString("pt-BR")} — {modalAula.turma?.nome ?? `experimental · ${modalAula.aluno_nome_snapshot}`}
             </p>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Professor</label>

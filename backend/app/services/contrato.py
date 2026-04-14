@@ -140,6 +140,11 @@ def gerar_pdf(db: Session, contrato_id: int) -> bytes:
     def fmt_date(d):
         return d.strftime("%d/%m/%Y") if d else "___/___/______"
 
+    _MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                 "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    hoje = date.today()
+    data_geracao = f"{hoje.day} de {_MESES_PT[hoje.month - 1]} de {hoje.year}"
+
     cpf = contrato.contratante.cpf or ""
     cpf_formatado = (
         f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
@@ -174,6 +179,7 @@ def gerar_pdf(db: Session, contrato_id: int) -> bytes:
         valor_reposicao=_fmt_brl(contrato.valor_reposicao_hora),
         data_inicio=fmt_date(contrato.data_inicio),
         data_fim=fmt_date(contrato.data_fim),
+        data_geracao=data_geracao,
     )
 
     return WeasyHTML(string=html_str).write_pdf()

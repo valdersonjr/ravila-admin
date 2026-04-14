@@ -51,10 +51,10 @@ export default function NovaAulaAvulsaPage() {
         hora_fim: horaFim,
         descricao: descricao || undefined,
       });
-      showToast("Aula particular criada com sucesso!");
+      showToast("Aula experimental criada com sucesso!");
       router.push("/admin/aulas");
     } catch (err) {
-      showToast(getErrorMessage(err, "Erro ao criar aula particular."), "error");
+      showToast(getErrorMessage(err, "Erro ao criar aula experimental."), "error");
     } finally {
       setLoading(false);
     }
@@ -66,8 +66,8 @@ export default function NovaAulaAvulsaPage() {
   return (
     <div className="max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Nova Aula Particular</h1>
-        <p className="text-sm text-muted mt-1">Aula avulsa sem vínculo com turma.</p>
+        <h1 className="text-2xl font-bold text-foreground">Nova Aula Experimental</h1>
+        <p className="text-sm text-muted mt-1">Aula sem vínculo com turma para pessoa ainda não matriculada.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -108,7 +108,7 @@ export default function NovaAulaAvulsaPage() {
           />
         </Field>
         <div className="flex gap-3 pt-2">
-          <Button type="submit" loading={loading}>Criar aula particular</Button>
+          <Button type="submit" loading={loading}>Criar aula experimental</Button>
           <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
         </div>
       </form>

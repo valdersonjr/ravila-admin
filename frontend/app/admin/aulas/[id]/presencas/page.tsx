@@ -36,7 +36,11 @@ export default function PresencasPage() {
   const [editandoDescricao, setEditandoDescricao] = useState(false);
   const [savingDescricao, setSavingDescricao] = useState(false);
 
-  const isAdmin = authService.getRole() === "admin";
+  const [conteudoDado, setConteudoDado] = useState("");
+  const [editandoConteudo, setEditandoConteudo] = useState(false);
+  const [savingConteudo, setSavingConteudo] = useState(false);
+
+  const isAdmin = ["admin", "secretario", "professor"].includes(authService.getRole() ?? "");
   const [todasPessoas, setTodasPessoas] = useState<Pessoa[]>([]);
   const [todosAlunos, setTodosAlunos] = useState<Aluno[]>([]);
   const [reposicoesPendentes, setReposicoesPendentes] = useState<ReposicaoPendente[]>([]);
@@ -61,6 +65,7 @@ export default function PresencasPage() {
         const aula = aulaData as Aula;
         setAula(aula);
         setDescricao(aula.descricao ?? "");
+        setConteudoDado(aula.conteudo_dado ?? "");
         if (pessoas) setTodasPessoas((pessoas as { items: Pessoa[] }).items);
         if (alunos) setTodosAlunos((alunos as { items: Aluno[] }).items);
         if (reposicoes) setReposicoesPendentes(reposicoes as ReposicaoPendente[]);
@@ -167,6 +172,20 @@ export default function PresencasPage() {
       showToast(getErrorMessage(err, "Erro ao salvar descrição."), "error");
     } finally {
       setSavingDescricao(false);
+    }
+  }
+
+  async function handleSaveConteudo() {
+    setSavingConteudo(true);
+    try {
+      const updated = await aulasService.atualizarConteudo(Number(id), conteudoDado || null);
+      setAula(updated);
+      setEditandoConteudo(false);
+      showToast("Conteúdo salvo!");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao salvar conteúdo."), "error");
+    } finally {
+      setSavingConteudo(false);
     }
   }
 
@@ -292,6 +311,49 @@ export default function PresencasPage() {
           </div>
         ) : (
           <p className="text-sm text-muted whitespace-pre-wrap">{descricao || "Nenhuma observação registrada."}</p>
+        )}
+      </div>
+
+      {/* Conteúdo dado */}
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Conteúdo dado</h2>
+          {!editandoConteudo && (
+            <button
+              type="button"
+              onClick={() => setEditandoConteudo(true)}
+              className="text-xs text-primary-600 hover:underline"
+            >
+              {conteudoDado ? "Editar" : "Adicionar"}
+            </button>
+          )}
+        </div>
+        {editandoConteudo ? (
+          <div className="space-y-2">
+            <textarea
+              value={conteudoDado}
+              onChange={(e) => setConteudoDado(e.target.value)}
+              rows={3}
+              placeholder="Descreva o conteúdo abordado na aula..."
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => { setConteudoDado(aula?.conteudo_dado ?? ""); setEditandoConteudo(false); }}
+                disabled={savingConteudo}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" size="sm" loading={savingConteudo} onClick={handleSaveConteudo}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted whitespace-pre-wrap">{conteudoDado || "Nenhum conteúdo registrado."}</p>
         )}
       </div>
 
