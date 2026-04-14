@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +8,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.jobs import start_scheduler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,10 +34,18 @@ from app.routers import (
     portal,
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = start_scheduler()
+    yield
+    scheduler.shutdown()
+
+
 app = FastAPI(
     title="Ravilas English — API",
     description="Sistema de gestão para a escola de inglês Ravilas English",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter
