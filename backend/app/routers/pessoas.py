@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_staff
+from app.dependencies import require_staff, require_staff_or_professor
 from app.models.user import User
 from app.schemas.pessoa import PessoaCreate, PessoaUpdate, PessoaOut, PessoaListOut
 from app.services import pessoa as pessoa_service
@@ -18,7 +18,7 @@ def listar(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=500),
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    _: User = Depends(require_staff_or_professor),
 ):
     return pessoa_service.listar(db, search, page, page_size)
 

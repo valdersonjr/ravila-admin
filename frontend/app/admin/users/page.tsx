@@ -13,6 +13,7 @@ import { Combobox } from "@/components/ui/Combobox";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/context/ToastContext";
 import { Field } from "@/components/ui/Field";
+import { authService } from "@/services/auth";
 
 const FILTER_OPTIONS = [
   { value: "", label: "Todos" },
@@ -49,6 +50,7 @@ const roleLabel: Record<string, string> = {
 
 export default function UsersPage() {
   const { showToast } = useToast();
+  const isProfessor = authService.getRole() === "professor";
 
   const [users, setUsers] = useState<User[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
@@ -59,7 +61,7 @@ export default function UsersPage() {
   // Create
   const [showCreate, setShowCreate] = useState(false);
   const [createUsername, setCreateUsername] = useState("");
-  const [createRole, setCreateRole] = useState("secretario");
+  const [createRole, setCreateRole] = useState(isProfessor ? "aluno" : "secretario");
   const [createSenha, setCreateSenha] = useState("");
   const [createPessoaId, setCreatePessoaId] = useState<number | string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -174,7 +176,7 @@ export default function UsersPage() {
 
       <div className="flex flex-wrap gap-3">
         <Input placeholder="Buscar por usuário ou nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
-        <Select options={FILTER_OPTIONS} value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-48" />
+        {!isProfessor && <Select options={FILTER_OPTIONS} value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="w-48" />}
       </div>
 
       {loading ? (
@@ -193,12 +195,15 @@ export default function UsersPage() {
             { header: "Status", render: (u) => <Badge variant={u.ativo ? "success" : "neutral"}>{u.ativo ? "Ativo" : "Inativo"}</Badge> },
             {
               header: "Ações",
-              render: (u) => (
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Editar</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(u)}>Excluir</Button>
-                </div>
-              ),
+              render: (u: User) => {
+                if (isProfessor && u.role !== "aluno") return null;
+                return (
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Editar</Button>
+                    {!isProfessor && <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(u)}>Excluir</Button>}
+                  </div>
+                );
+              },
             },
           ]}
         />
@@ -217,9 +222,11 @@ export default function UsersPage() {
               <Field label="Senha *">
                 <Input type="password" value={createSenha} onChange={(e) => setCreateSenha(e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" />
               </Field>
-              <Field label="Tipo *">
-                <Select options={ROLE_OPTIONS} value={createRole} onChange={(e) => setCreateRole(e.target.value)} />
-              </Field>
+              {!isProfessor && (
+                <Field label="Tipo *">
+                  <Select options={ROLE_OPTIONS} value={createRole} onChange={(e) => setCreateRole(e.target.value)} />
+                </Field>
+              )}
               <Field label={`Pessoa vinculada${(createRole === "professor" || createRole === "aluno") ? " *" : " (opcional)"}`}>
                 <Combobox options={pessoaOptions} value={createPessoaId} onChange={setCreatePessoaId} placeholder="Buscar pessoa..." />
               </Field>
