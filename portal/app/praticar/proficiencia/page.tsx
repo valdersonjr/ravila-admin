@@ -76,11 +76,12 @@ export default function ProficienciaPage() {
       <AppShell>
         <div className="px-5 py-8 space-y-6 text-center">
           <GraduationCap size={48} className="text-primary-600 mx-auto" />
-          <div>
+          <div className="space-y-2">
             <p className="text-xl font-black text-foreground">Teste já realizado!</p>
-            <p className="text-sm text-muted mt-2">Seu nível é <span className="font-bold text-primary-600">{fase.nivel}</span></p>
+            <p className="text-sm text-muted leading-relaxed px-4">
+              Suas respostas já foram enviadas para análise do seu professor.
+            </p>
           </div>
-          <p className="text-xs text-muted">Para mudar de nível, pratique no banco de questões.</p>
           <button onClick={() => router.push("/praticar")}
             className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold">
             Ir para Praticar
@@ -195,17 +196,15 @@ export default function ProficienciaPage() {
       <AppShell>
         <div className="px-5 py-10 space-y-6 text-center">
           <Trophy size={52} className="text-primary-600 mx-auto" />
-          <div>
-            <p className="text-lg text-muted">Seu nível é</p>
-            <p className="text-6xl font-black text-primary-600">{fase.nivel}</p>
+          <div className="space-y-2">
+            <p className="text-xl font-black text-foreground">Obrigado por realizar o teste!</p>
+            <p className="text-sm text-muted leading-relaxed px-4">
+              Suas respostas foram enviadas para análise do seu professor, que em breve entrará em contato com você.
+            </p>
           </div>
-          <p className="text-sm text-muted leading-relaxed px-4">
-            Agora você receberá questões do nível <strong>{fase.nivel}</strong> diariamente.<br />
-            Para subir de nível, pratique no banco de questões!
-          </p>
           <button onClick={() => router.push("/praticar")}
             className="w-full py-4 rounded-xl bg-primary-600 text-white text-base font-black">
-            Começar a praticar
+            Ir para Praticar
           </button>
         </div>
       </AppShell>
