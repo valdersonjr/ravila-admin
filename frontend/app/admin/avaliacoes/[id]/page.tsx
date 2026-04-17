@@ -13,6 +13,7 @@ function IconTrash() {
 import { avaliacoesService, type AvaliacaoDetail, type AvaliacaoAluno, type RespostaAluno, STATUS_LABELS, STATUS_COLORS, STATUS_ALUNO_LABELS } from "@/services/admin/avaliacoes";
 import { questoesService, type Questao, NIVEIS, TOPICOS, DIFICULDADES, TOPICO_LABELS, DIFICULDADE_LABELS, SUBTIPO_LABELS } from "@/services/admin/questoes";
 import { aulasService, type Aula } from "@/services/admin/aulas";
+import { matriculasService, type Matricula } from "@/services/admin/matriculas";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -20,7 +21,7 @@ import { Field } from "@/components/ui/Field";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/context/ToastContext";
 
-type Tab = "questoes" | "correcao";
+type Tab = "questoes" | "correcao" | "notas";
 
 export default function AvaliacaoDetailPage() {
   const params = useParams();
@@ -30,7 +31,7 @@ export default function AvaliacaoDetailPage() {
 
   const [av, setAv] = useState<AvaliacaoDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("questoes");
+  const [tab, setTab] = useState<Tab | null>(null);
 
   // Picker de questões
   const [busca, setBusca] = useState("");
@@ -113,6 +114,11 @@ export default function AvaliacaoDetailPage() {
     }
   }
 
+  // Offline: lançar notas
+  const [matriculas, setMatriculas] = useState<Matricula[]>([]);
+  const [notasOffline, setNotasOffline] = useState<Record<number, string>>({});
+  const [salvandoNotas, setSalvandoNotas] = useState(false);
+
   // Correção
   const [alunos, setAlunos] = useState<AvaliacaoAluno[]>([]);
   const [carregandoAlunos, setCarregandoAlunos] = useState(false);
@@ -126,6 +132,20 @@ export default function AvaliacaoDetailPage() {
     try {
       const data = await avaliacoesService.buscar(id);
       setAv(data);
+      setTab(data.tipo === "offline" ? "notas" : "questoes");
+      if (data.tipo === "offline") {
+        // Carrega matriculados e notas existentes em paralelo
+        const [ms, alunosExistentes] = await Promise.all([
+          matriculasService.listar({ turma_id: data.turma_id }),
+          avaliacoesService.listarAlunos(id),
+        ]);
+        setMatriculas(ms.filter((m: Matricula) => m.status === "ativa"));
+        const notasIniciais: Record<number, string> = {};
+        alunosExistentes.forEach((a) => {
+          if (a.nota_final != null) notasIniciais[a.aluno_id] = String(a.nota_final);
+        });
+        setNotasOffline(notasIniciais);
+      }
     } catch {
       showToast("Erro ao carregar avaliação.", "error");
     } finally {
@@ -212,6 +232,24 @@ export default function AvaliacaoDetailPage() {
     }
   }
 
+  async function handleSalvarNotasOffline() {
+    setSalvandoNotas(true);
+    try {
+      const notas = matriculas.map((m) => ({
+        aluno_id: m.aluno_id,
+        nota: notasOffline[m.aluno_id] !== undefined && notasOffline[m.aluno_id] !== ""
+          ? Number(notasOffline[m.aluno_id])
+          : null,
+      }));
+      await avaliacoesService.lancarNotas(id, notas);
+      showToast("Notas salvas com sucesso!");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao salvar notas."), "error");
+    } finally {
+      setSalvandoNotas(false);
+    }
+  }
+
   async function handleEncerrar() {
     if (!av) return;
     try {
@@ -280,6 +318,9 @@ export default function AvaliacaoDetailPage() {
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[av.status]}`}>
               {STATUS_LABELS[av.status]}
             </span>
+            {av.tipo === "offline" && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">offline</span>
+            )}
           </div>
           <p className="text-xs text-muted mt-0.5">
             {(av.topicos ?? []).map((t) => TOPICO_LABELS[t] ?? t).join(", ")}
@@ -293,7 +334,7 @@ export default function AvaliacaoDetailPage() {
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" onClick={abrirEdit}>Editar</Button>
           {av.status === "rascunho" && (
-            <Button onClick={handlePublicar} disabled={av.questoes.length === 0}>Publicar</Button>
+            <Button onClick={handlePublicar} disabled={av.tipo === "online" && av.questoes.length === 0}>Publicar</Button>
           )}
           {av.status === "publicada" && (
             <>
@@ -359,16 +400,25 @@ export default function AvaliacaoDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-border rounded-xl p-1 w-fit">
-        {(["questoes", "correcao"] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${tab === t ? "bg-surface text-foreground shadow-sm" : "text-muted"}`}>
-            {t === "questoes" ? "Questões" : `Correção${av.total_pendentes > 0 ? ` (${av.total_pendentes})` : ""}`}
+        {av.tipo === "offline" ? (
+          <button
+            onClick={() => setTab("notas")}
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-surface text-foreground shadow-sm"
+          >
+            Lançar notas
           </button>
-        ))}
+        ) : (
+          (["questoes", "correcao"] as Tab[]).map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${tab === t ? "bg-surface text-foreground shadow-sm" : "text-muted"}`}>
+              {t === "questoes" ? "Questões" : `Correção${av.total_pendentes > 0 ? ` (${av.total_pendentes})` : ""}`}
+            </button>
+          ))
+        )}
       </div>
 
       {/* Tab: Questões */}
-      {tab === "questoes" && (
+      {tab === "questoes" && av.tipo !== "offline" && (
         <div className="space-y-5">
           {/* Lista de questões na avaliação */}
           <div className="space-y-2">
@@ -491,6 +541,67 @@ export default function AvaliacaoDetailPage() {
                 </div>
               )}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Lançar notas (offline) */}
+      {tab === "notas" && av.tipo === "offline" && (
+        <div className="space-y-4">
+          {av.status === "rascunho" && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+              Publique a avaliação antes de lançar notas.
+            </div>
+          )}
+          {matriculas.length === 0 ? (
+            <p className="text-sm text-muted">Nenhum aluno matriculado nesta turma.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto rounded-xl border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-background text-muted">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium">Aluno</th>
+                      <th className="px-4 py-3 text-left font-medium w-36">Nota (0–100)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {matriculas.map((m) => (
+                      <tr key={m.aluno_id} className="hover:bg-surface transition-colors">
+                        <td className="px-4 py-3 text-foreground font-medium">
+                          {m.aluno?.pessoa.nome ?? `Aluno ${m.aluno_id}`}
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            placeholder="—"
+                            disabled={av.status === "rascunho"}
+                            value={notasOffline[m.aluno_id] ?? ""}
+                            onChange={(e) => setNotasOffline((p) => ({ ...p, [m.aluno_id]: e.target.value }))}
+                            className="w-28 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted">
+                  Deixe em branco para alunos que não participaram. As notas podem ser atualizadas a qualquer momento.
+                </p>
+                <Button
+                  onClick={handleSalvarNotasOffline}
+                  loading={salvandoNotas}
+                  disabled={av.status === "rascunho"}
+                >
+                  Salvar notas
+                </Button>
+              </div>
+            </>
           )}
         </div>
       )}

@@ -28,6 +28,7 @@ class AvaliacaoCreate(BaseModel):
     topicos: list[str]
     modulo: Optional[str] = None
     descricao: Optional[str] = None
+    tipo: str = "online"
     turma_id: int
     aula_id: Optional[int] = None
     data_aplicacao: Optional[date] = None
@@ -51,6 +52,7 @@ class AvaliacaoUpdate(BaseModel):
     topicos: Optional[list[str]] = None
     modulo: Optional[str] = None
     descricao: Optional[str] = None
+    tipo: Optional[str] = None
     aula_id: Optional[int] = None
     data_aplicacao: Optional[date] = None
     hora_inicio: Optional[time] = None
@@ -73,6 +75,7 @@ class AvaliacaoOut(BaseModel):
     topicos: list[str]
     modulo: Optional[str]
     descricao: Optional[str]
+    tipo: str = "online"
     turma_id: int
     turma_nome: Optional[str] = None
     aula_id: Optional[int] = None
@@ -97,6 +100,7 @@ class AvaliacaoListOut(BaseModel):
     titulo: str
     topicos: list[str]
     modulo: Optional[str]
+    tipo: str = "online"
     turma_id: int
     turma_nome: Optional[str] = None
     aula_id: Optional[int] = None
@@ -145,6 +149,36 @@ class RespostaAlunoOut(BaseModel):
     nota_manual: Optional[float]
     comentario_professor: Optional[str]
     corrigida: bool
+
+    model_config = {"from_attributes": True}
+
+
+class NotaAlunoIn(BaseModel):
+    aluno_id: int
+    nota: Optional[float]  # 0–100; None remove o registro
+
+    @field_validator("nota")
+    @classmethod
+    def validar_nota(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and not (0.0 <= v <= 100.0):
+            raise ValueError("nota deve estar entre 0 e 100")
+        return v
+
+
+class LancarNotasIn(BaseModel):
+    notas: list[NotaAlunoIn]
+
+
+class AvaliacaoDesempenhoAlunoOut(BaseModel):
+    id: int
+    titulo: str
+    turma_id: int
+    turma_nome: Optional[str] = None
+    data_aplicacao: Optional[date]
+    status: str
+    total_questoes: int
+    status_aluno: str
+    nota_final: Optional[float]
 
     model_config = {"from_attributes": True}
 

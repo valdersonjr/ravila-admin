@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -15,23 +15,33 @@ def listar(
     *,
     turma_ids: Optional[list[int]] = None,
     turma_id: Optional[int] = None,
+    professor_id: Optional[int] = None,
     status: Optional[str] = None,
     topico: Optional[str] = None,
     modulo: Optional[str] = None,
+    data_inicio: Optional[date] = None,
+    data_fim: Optional[date] = None,
     skip: int = 0,
     limit: int = 50,
 ) -> tuple[list[Avaliacao], int]:
+    from app.models.turma import Turma
     q = db.query(Avaliacao).filter(Avaliacao.deletado == False)
     if turma_ids is not None:
         q = q.filter(Avaliacao.turma_id.in_(turma_ids))
     elif turma_id:
         q = q.filter(Avaliacao.turma_id == turma_id)
+    if professor_id:
+        q = q.join(Turma, Turma.id == Avaliacao.turma_id).filter(Turma.professor_id == professor_id)
     if status:
         q = q.filter(Avaliacao.status == status)
     if topico:
         q = q.filter(Avaliacao.topicos.any(topico))
     if modulo:
         q = q.filter(Avaliacao.modulo == modulo)
+    if data_inicio:
+        q = q.filter(Avaliacao.data_aplicacao >= data_inicio)
+    if data_fim:
+        q = q.filter(Avaliacao.data_aplicacao <= data_fim)
     q = q.order_by(Avaliacao.criado_em.desc())
     total = q.count()
     return q.offset(skip).limit(limit).all(), total
@@ -52,6 +62,7 @@ def criar(db: Session, dados: AvaliacaoCreate, criado_por_id: Optional[int] = No
         topicos=dados.topicos,
         modulo=dados.modulo,
         descricao=dados.descricao,
+        tipo=dados.tipo,
         turma_id=dados.turma_id,
         aula_id=dados.aula_id,
         data_aplicacao=dados.data_aplicacao,
@@ -277,6 +288,54 @@ def submeter_respostas(
         db.refresh(reg)
 
     return reg
+
+
+def lancar_notas_offline(db: Session, avaliacao_id: int, notas: list[dict]) -> None:
+    """Upsert AvaliacaoAluno records com nota_final para avaliações offline."""
+    for item in notas:
+        aluno_id = item["aluno_id"]
+        nota = item["nota"]
+        reg = (
+            db.query(AvaliacaoAluno)
+            .filter(AvaliacaoAluno.avaliacao_id == avaliacao_id, AvaliacaoAluno.aluno_id == aluno_id)
+            .first()
+        )
+        if nota is None:
+            if reg:
+                db.delete(reg)
+        elif reg:
+            reg.nota_final = nota
+            reg.status = "concluida"
+            reg.concluido_em = datetime.utcnow()
+        else:
+            db.add(AvaliacaoAluno(
+                avaliacao_id=avaliacao_id,
+                aluno_id=aluno_id,
+                nota_final=nota,
+                status="concluida",
+                concluido_em=datetime.utcnow(),
+            ))
+    db.commit()
+
+
+def listar_por_aluno(db: Session, aluno_id: int) -> list[dict]:
+    """Returns avaliacoes where the aluno participated, with their nota_final."""
+    registros = (
+        db.query(Avaliacao, AvaliacaoAluno)
+        .join(AvaliacaoAluno, AvaliacaoAluno.avaliacao_id == Avaliacao.id)
+        .filter(AvaliacaoAluno.aluno_id == aluno_id, Avaliacao.deletado == False)
+        .order_by(Avaliacao.data_aplicacao.desc().nullslast(), Avaliacao.criado_em.desc())
+        .all()
+    )
+    return [
+        {
+            "avaliacao": av,
+            "status_aluno": reg.status,
+            "nota_final": reg.nota_final,
+            "total_questoes": len(av.questoes),
+        }
+        for av, reg in registros
+    ]
 
 
 def buscar_registro_aluno(db: Session, avaliacao_id: int, aluno_id: int) -> Optional[AvaliacaoAluno]:

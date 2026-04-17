@@ -7,6 +7,7 @@ import { formatCpf } from "@/lib/masks";
 import { getErrorMessage } from "@/lib/utils";
 import { aulasService, type Aula } from "@/services/admin/aulas";
 import { matriculasService, type Matricula } from "@/services/admin/matriculas";
+import { avaliacoesService, type AvaliacaoList, STATUS_LABELS } from "@/services/admin/avaliacoes";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -32,6 +33,7 @@ export default function TurmaDetailPage() {
   const [turma, setTurma] = useState<Turma | null>(null);
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoList[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,14 +60,16 @@ export default function TurmaDetailPage() {
   async function load() {
     setLoading(true);
     try {
-      const [t, as, ms] = await Promise.all([
+      const [t, as, ms, avs] = await Promise.all([
         turmasService.buscar(Number(id)),
         aulasService.listar({ turma_id: Number(id), page_size: 500 }),
         matriculasService.listar({ turma_id: Number(id) }),
+        avaliacoesService.listar({ turma_id: Number(id) }),
       ]);
       setTurma(t);
       setAulas(as.items);
       setMatriculas(ms);
+      setAvaliacoes(avs);
       if (isAdmin) {
         const profs = await professoresService.listar();
         setProfessores(profs);
@@ -272,6 +276,57 @@ export default function TurmaDetailPage() {
             },
           ]}
         />
+      </section>
+
+      {/* Avaliações */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-foreground">Avaliações ({avaliacoes.length})</h2>
+          {(isAdmin || isProfessor) && (
+            <Link href={`/admin/avaliacoes/nova?turma_id=${id}`} className="text-sm text-primary-600 hover:underline">
+              + Nova avaliação
+            </Link>
+          )}
+        </div>
+        {avaliacoes.length === 0 ? (
+          <p className="text-sm text-muted">Nenhuma avaliação criada para esta turma.</p>
+        ) : (
+          <Table<AvaliacaoList>
+            keyExtractor={(a) => a.id}
+            data={avaliacoes}
+            columns={[
+              { header: "Título", render: (a) => a.titulo },
+              {
+                header: "Data",
+                render: (a) => a.data_aplicacao
+                  ? new Date(a.data_aplicacao + "T00:00:00").toLocaleDateString("pt-BR")
+                  : <span className="text-muted text-xs">Sem data</span>,
+              },
+              {
+                header: "Status",
+                render: (a) => (
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    a.status === "publicada" ? "bg-emerald-100 text-emerald-700" :
+                    a.status === "encerrada" ? "bg-rose-100 text-rose-600" :
+                    "bg-border text-muted"
+                  }`}>
+                    {STATUS_LABELS[a.status] ?? a.status}
+                  </span>
+                ),
+              },
+              { header: "Questões", render: (a) => a.total_questoes },
+              { header: "Alunos", render: (a) => a.total_alunos },
+              {
+                header: "",
+                render: (a) => (
+                  <Link href={`/admin/avaliacoes/${a.id}`} className="text-primary-600 hover:underline text-sm">
+                    Ver detalhes
+                  </Link>
+                ),
+              },
+            ]}
+          />
+        )}
       </section>
 
       {horarioParaDeletar && (

@@ -284,7 +284,7 @@ function AvaliacoesTab() {
     );
   }
 
-  // Agrupar por módulo
+  // Agrupar por módulo, ordenando cada grupo e os próprios grupos por data mais recente
   const grupos = new Map<string, AvaliacaoPortal[]>();
   for (const av of avaliacoes) {
     const key = av.modulo ?? "__sem_modulo__";
@@ -292,9 +292,19 @@ function AvaliacoesTab() {
     grupos.get(key)!.push(av);
   }
 
+  const gruposOrdenados = [...grupos.entries()].sort(([, a], [, b]) => {
+    // Pega a data mais recente de cada grupo (já vêm ordenados do backend)
+    const dataA = a[0]?.data_aplicacao;
+    const dataB = b[0]?.data_aplicacao;
+    if (dataA && dataB) return dataB.localeCompare(dataA);
+    if (dataA) return -1; // A tem data, B não → A vem antes
+    if (dataB) return 1;  // B tem data, A não → B vem antes
+    return (b[0]?.id ?? 0) - (a[0]?.id ?? 0); // sem data: mais recente pelo id
+  });
+
   return (
     <div className="space-y-6">
-      {[...grupos.entries()].map(([modulo, items]) => (
+      {gruposOrdenados.map(([modulo, items]) => (
         <div key={modulo} className="space-y-3">
           {modulo !== "__sem_modulo__" && (
             <p className="text-xs font-bold text-muted uppercase tracking-widest">{modulo}</p>

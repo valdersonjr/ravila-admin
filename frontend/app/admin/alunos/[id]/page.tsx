@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { contratosService, type Contrato } from "@/services/admin/contratos";
 import { presencasService, type PresencaDoAluno } from "@/services/admin/presencas";
+import { avaliacoesService, type AvaliacaoDesempenhoAluno, STATUS_LABELS } from "@/services/admin/avaliacoes";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/services/auth";
@@ -39,6 +40,7 @@ export default function AlunoPage() {
   const [presencasTotal, setPresencasTotal] = useState(0);
   const [presencasPage, setPresencasPage] = useState(1);
   const [presencasLoading, setPresencasLoading] = useState(false);
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoDesempenhoAluno[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,12 +48,14 @@ export default function AlunoPage() {
       alunosService.buscar(Number(id)),
       contratosService.listar({ aluno_id: Number(id), page_size: 50 }),
       presencasService.listarPorAluno(Number(id), 1),
+      avaliacoesService.listarPorAluno(Number(id)),
     ])
-      .then(([a, c, p]) => {
+      .then(([a, c, p, avs]) => {
         setAluno(a);
         setContratos(c.items);
         setPresencas(p.items);
         setPresencasTotal(p.total);
+        setAvaliacoes(avs);
       })
       .catch(() => router.push("/admin/alunos"))
       .finally(() => setLoading(false));
@@ -260,6 +264,63 @@ export default function AlunoPage() {
               </div>
             )}
           </>
+        )}
+      </div>
+
+      {/* Desempenho em avaliações */}
+      <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Desempenho em avaliações</h2>
+        {avaliacoes.length === 0 ? (
+          <p className="text-sm text-muted">Nenhuma avaliação realizada ainda.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-background text-muted">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium">Avaliação</th>
+                  <th className="px-4 py-2 text-left font-medium">Turma</th>
+                  <th className="px-4 py-2 text-left font-medium">Data</th>
+                  <th className="px-4 py-2 text-left font-medium">Status</th>
+                  <th className="px-4 py-2 text-left font-medium">Nota</th>
+                  <th className="px-4 py-2 text-left font-medium"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {avaliacoes.map((av) => (
+                  <tr key={av.id} className="hover:bg-border transition-colors">
+                    <td className="px-4 py-2 text-foreground font-medium">{av.titulo}</td>
+                    <td className="px-4 py-2 text-muted">{av.turma_nome ?? "—"}</td>
+                    <td className="px-4 py-2 text-muted">
+                      {av.data_aplicacao
+                        ? new Date(av.data_aplicacao + "T00:00:00").toLocaleDateString("pt-BR")
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        av.status_aluno === "concluida" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {av.status_aluno === "concluida" ? "Concluída" : "Aguardando correção"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      {av.nota_final != null ? (
+                        <span className={`font-semibold ${av.nota_final >= 70 ? "text-emerald-600" : av.nota_final >= 50 ? "text-amber-600" : "text-red-500"}`}>
+                          {av.nota_final.toFixed(1)}
+                        </span>
+                      ) : (
+                        <span className="text-muted text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      <Link href={`/admin/avaliacoes/${av.id}`} className="text-primary-600 hover:underline text-xs">
+                        Ver
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

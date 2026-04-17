@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -11,11 +12,13 @@ from app.repositories import avaliacao as repo
 from app.schemas.avaliacao import (
     AvaliacaoAlunoOut,
     AvaliacaoCreate,
+    AvaliacaoDesempenhoAlunoOut,
     AvaliacaoListOut,
     AvaliacaoOut,
     AvaliacaoQuestaoIn,
     AvaliacaoUpdate,
     CorrecaoIn,
+    LancarNotasIn,
     RespostaAlunoOut,
 )
 
@@ -61,6 +64,7 @@ def _enrich(av, db: Session) -> dict:
             aula_hora_fim = str(aula.hora_fim)
     return {
         **{c.name: getattr(av, c.name) for c in av.__table__.columns},
+        "tipo": av.tipo,
         "turma_nome": turma_nome,
         "aula_data": aula_data,
         "aula_hora_inicio": aula_hora_inicio,
@@ -74,9 +78,12 @@ def _enrich(av, db: Session) -> dict:
 @router.get("/", response_model=list[AvaliacaoListOut])
 def listar(
     turma_id: Optional[int] = Query(None),
+    professor_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     topico: Optional[str] = Query(None),
     modulo: Optional[str] = Query(None),
+    data_inicio: Optional[date] = Query(None),
+    data_fim: Optional[date] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -88,7 +95,9 @@ def listar(
         db,
         turma_ids=professor_turma_ids,
         turma_id=turma_id if professor_turma_ids is None else None,
+        professor_id=professor_id if professor_turma_ids is None else None,
         status=status, topico=topico, modulo=modulo,
+        data_inicio=data_inicio, data_fim=data_fim,
         skip=(page - 1) * page_size, limit=page_size,
     )
     result = []
@@ -122,6 +131,33 @@ def criar(
             raise HTTPException(status_code=403, detail="Acesso negado")
     av = repo.criar(db, dados, criado_por_id=current_user.id)
     return AvaliacaoOut(**_enrich(av, db))
+
+
+@router.get("/por-aluno/{aluno_id}", response_model=list[AvaliacaoDesempenhoAlunoOut])
+def listar_por_aluno(
+    aluno_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff_or_professor),
+):
+    items = repo.listar_por_aluno(db, aluno_id)
+    result = []
+    professor_ids = _professor_turma_ids(current_user, db) if current_user.role == "professor" else None
+    for item in items:
+        av = item["avaliacao"]
+        if professor_ids is not None and av.turma_id not in professor_ids:
+            continue
+        result.append(AvaliacaoDesempenhoAlunoOut(
+            id=av.id,
+            titulo=av.titulo,
+            turma_id=av.turma_id,
+            turma_nome=av.turma.nome if av.turma else None,
+            data_aplicacao=av.data_aplicacao,
+            status=av.status,
+            total_questoes=item["total_questoes"],
+            status_aluno=item["status_aluno"],
+            nota_final=item["nota_final"],
+        ))
+    return result
 
 
 @router.get("/{avaliacao_id}", response_model=AvaliacaoOut)
@@ -169,7 +205,7 @@ def publicar(
     _check_professor_acesso(av, current_user, db)
     if av.status != "rascunho":
         raise HTTPException(status_code=409, detail="Avaliação já foi publicada ou encerrada")
-    if not av.questoes:
+    if av.tipo == "online" and not av.questoes:
         raise HTTPException(status_code=422, detail="Adicione ao menos uma questão antes de publicar")
     av = repo.mudar_status(db, av, "publicada")
     return AvaliacaoOut(**_enrich(av, db))
@@ -219,6 +255,20 @@ def remover_questao(
     repo.remover_questao(db, avaliacao_id, questao_id)
     db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
+
+
+@router.post("/{avaliacao_id}/lancar-notas", status_code=status.HTTP_204_NO_CONTENT)
+def lancar_notas(
+    avaliacao_id: int,
+    dados: LancarNotasIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff_or_professor),
+):
+    av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
+    if av.tipo != "offline":
+        raise HTTPException(status_code=422, detail="Endpoint exclusivo para avaliações offline")
+    repo.lancar_notas_offline(db, avaliacao_id, [n.model_dump() for n in dados.notas])
 
 
 @router.get("/{avaliacao_id}/alunos", response_model=list[AvaliacaoAlunoOut])

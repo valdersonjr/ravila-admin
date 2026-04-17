@@ -31,6 +31,7 @@ export interface AvaliacaoList {
   titulo: string;
   topicos: string[];
   modulo: string | null;
+  tipo: string;
   turma_id: number;
   turma_nome: string | null;
   aula_id: number | null;
@@ -58,6 +59,7 @@ export interface AvaliacaoCreate {
   topicos: string[];
   modulo?: string;
   descricao?: string;
+  tipo?: string;
   turma_id: number;
   aula_id?: number;
   data_aplicacao?: string;
@@ -73,6 +75,18 @@ export interface AvaliacaoAluno {
   nota_final: number | null;
   iniciado_em: string;
   concluido_em: string | null;
+}
+
+export interface AvaliacaoDesempenhoAluno {
+  id: number;
+  titulo: string;
+  turma_id: number;
+  turma_nome: string | null;
+  data_aplicacao: string | null;
+  status: string;
+  total_questoes: number;
+  status_aluno: string;
+  nota_final: number | null;
 }
 
 export interface RespostaAluno {
@@ -91,17 +105,25 @@ export interface RespostaAluno {
 export const avaliacoesService = {
   listar: (params?: {
     turma_id?: number;
+    professor_id?: number;
     status?: string;
     topico?: string;
     modulo?: string;
+    data_inicio?: string;
+    data_fim?: string;
     page?: number;
+    page_size?: number;
   }) => {
     const qs = new URLSearchParams();
     if (params?.turma_id) qs.set("turma_id", String(params.turma_id));
+    if (params?.professor_id) qs.set("professor_id", String(params.professor_id));
     if (params?.status) qs.set("status", params.status);
     if (params?.topico) qs.set("topico", params.topico);
     if (params?.modulo) qs.set("modulo", params.modulo);
+    if (params?.data_inicio) qs.set("data_inicio", params.data_inicio);
+    if (params?.data_fim) qs.set("data_fim", params.data_fim);
     if (params?.page) qs.set("page", String(params.page));
+    if (params?.page_size) qs.set("page_size", String(params.page_size));
     return apiAuth.get<AvaliacaoList[]>(`/avaliacoes/${qs.toString() ? `?${qs}` : ""}`);
   },
 
@@ -122,8 +144,14 @@ export const avaliacoesService = {
   removerQuestao: (id: number, questaoId: number) =>
     apiAuth.delete<AvaliacaoDetail>(`/avaliacoes/${id}/questoes/${questaoId}`),
 
+  lancarNotas: (id: number, notas: { aluno_id: number; nota: number | null }[]) =>
+    apiAuth.post<void>(`/avaliacoes/${id}/lancar-notas`, { notas }),
+
   listarAlunos: (id: number) =>
     apiAuth.get<AvaliacaoAluno[]>(`/avaliacoes/${id}/alunos`),
+
+  listarPorAluno: (alunoId: number) =>
+    apiAuth.get<AvaliacaoDesempenhoAluno[]>(`/avaliacoes/por-aluno/${alunoId}`),
 
   respostasAluno: (id: number, alunoId: number) =>
     apiAuth.get<RespostaAluno[]>(`/avaliacoes/${id}/respostas/${alunoId}`),
