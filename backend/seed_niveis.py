@@ -10,12 +10,12 @@ from app.database import get_db
 from app.models.nivel import Nivel
 
 NIVEIS = [
-    (1, "A1 — Iniciante"),
-    (2, "A2 — Básico"),
-    (3, "B1 — Intermediário"),
-    (4, "B2 — Intermediário Superior"),
-    (5, "C1 — Avançado"),
-    (6, "C2 — Proficiente"),
+    (1, "A1 Iniciante"),
+    (2, "A2 Básico"),
+    (3, "B1 Intermediário"),
+    (4, "B2 Intermediário Superior"),
+    (5, "C1 Avançado"),
+    (6, "C2 Proficiente"),
 ]
 
 

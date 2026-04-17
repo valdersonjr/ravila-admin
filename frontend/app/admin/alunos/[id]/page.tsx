@@ -89,60 +89,85 @@ export default function AlunoPage() {
   const contratoAtivo = contratos.find((c) => c.status === "ativo");
   const historico = contratos.filter((c) => c.status !== "ativo");
 
+  const totalPresentes = presencas.filter((p) => p.presente).length;
+  const totalFaltas = presencas.filter((p) => !p.presente).length;
+  const mediaNotas = avaliacoes.filter((a) => a.nota_final != null);
+  const media = mediaNotas.length > 0
+    ? mediaNotas.reduce((acc, a) => acc + a.nota_final!, 0) / mediaNotas.length
+    : null;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div>
           <h1 className="text-2xl font-bold text-foreground">{aluno.pessoa.nome}</h1>
-          <Badge variant={aluno.status === "ativo" ? "success" : "neutral"}>
-            {aluno.status === "ativo" ? "Matrícula ativa" : "Sem matrícula ativa"}
-          </Badge>
-          <Badge variant={aluno.tem_contrato_ativo ? "success" : "neutral"}>
-            {aluno.tem_contrato_ativo ? "Contrato ativo" : "Sem contrato ativo"}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <Badge variant={aluno.status === "ativo" ? "success" : "neutral"}>
+              {aluno.status === "ativo" ? "Matrícula ativa" : "Sem matrícula ativa"}
+            </Badge>
+            <Badge variant={aluno.tem_contrato_ativo ? "success" : "neutral"}>
+              {aluno.tem_contrato_ativo ? "Contrato ativo" : "Sem contrato ativo"}
+            </Badge>
+          </div>
         </div>
         <Link href={`/admin/alunos/${aluno.pessoa_id}/editar`}>
           <Button variant="outline" size="sm">Editar</Button>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Dados pessoais */}
-        <div className="bg-surface border border-border rounded-xl p-6 space-y-3">
-          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Dados pessoais</h2>
-          <div className="space-y-3">
-            <InfoRow label="CPF" value={aluno.pessoa.cpf ?? "—"} />
-            <InfoRow label="E-mail" value={aluno.pessoa.email ?? "—"} />
-            <InfoRow label="Telefone" value={aluno.pessoa.telefone ?? "—"} />
-            <InfoRow label="Data de nascimento" value={aluno.data_nascimento ? formatDate(aluno.data_nascimento) : "—"} />
-            <InfoRow label="Aniversário" value={aluno.aniversario ?? "—"} />
-          </div>
+      {/* Stats acadêmicos */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <p className="text-xs text-muted font-medium">Nível</p>
+          <p className="text-lg font-bold text-foreground mt-1">{aluno.nivel?.nome ?? "—"}</p>
         </div>
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <p className="text-xs text-muted font-medium">Turma{matriculasAtivas.length !== 1 ? "s" : ""} ativa{matriculasAtivas.length !== 1 ? "s" : ""}</p>
+          {matriculasAtivas.length > 0 ? (
+            <div className="mt-1 space-y-0.5">
+              {matriculasAtivas.map((m) => (
+                <p key={m.id} className="text-lg font-bold text-foreground leading-tight">{m.turma!.nome}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-lg font-bold text-muted mt-1">—</p>
+          )}
+        </div>
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <p className="text-xs text-muted font-medium">Presenças</p>
+          <p className="text-lg font-bold text-foreground mt-1">{totalPresentes}</p>
+          {totalFaltas > 0 && (
+            <p className="text-xs text-red-500 font-medium mt-0.5">{totalFaltas} falta{totalFaltas !== 1 ? "s" : ""}</p>
+          )}
+        </div>
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <p className="text-xs text-muted font-medium">Média nas avaliações</p>
+          {media != null ? (
+            <p className={`text-lg font-bold mt-1 ${media >= 70 ? "text-emerald-600" : media >= 50 ? "text-amber-600" : "text-red-500"}`}>
+              {media.toFixed(1)}
+            </p>
+          ) : (
+            <p className="text-lg font-bold text-muted mt-1">—</p>
+          )}
+          {avaliacoes.length > 0 && (
+            <p className="text-xs text-muted mt-0.5">{avaliacoes.length} avaliação{avaliacoes.length !== 1 ? "ões" : ""}</p>
+          )}
+        </div>
+      </div>
 
-        {/* Acadêmico */}
-        <div className="bg-surface border border-border rounded-xl p-6 space-y-3">
-          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Acadêmico</h2>
-          <div className="space-y-3">
-            <InfoRow label="Nível" value={aluno.nivel?.nome ?? "—"} />
-            {aluno.responsavel && (
-              <InfoRow label="Responsável" value={aluno.responsavel.nome} />
-            )}
-            <InfoRow
-              label="Turmas ativas"
-              value={
-                matriculasAtivas.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {matriculasAtivas.map((m) => (
-                      <span key={m.id} className="bg-primary-100 text-primary-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                        {m.turma!.nome}
-                      </span>
-                    ))}
-                  </div>
-                ) : "—"
-              }
-            />
-          </div>
+      {/* Dados pessoais */}
+      <div className="bg-surface border border-border rounded-xl p-6 space-y-3">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Dados pessoais</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+          <InfoRow label="CPF" value={aluno.pessoa.cpf ?? "—"} />
+          <InfoRow label="E-mail" value={aluno.pessoa.email ?? "—"} />
+          <InfoRow label="Telefone" value={aluno.pessoa.telefone ?? "—"} />
+          <InfoRow label="Data de nascimento" value={aluno.data_nascimento ? formatDate(aluno.data_nascimento) : "—"} />
+          <InfoRow label="Aniversário" value={aluno.aniversario ?? "—"} />
+          {aluno.responsavel && (
+            <InfoRow label="Responsável" value={aluno.responsavel.nome} />
+          )}
         </div>
       </div>
 
