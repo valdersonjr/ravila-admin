@@ -191,9 +191,9 @@ export default function AvaliacoesPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => { setForm(EMPTY_OFFLINE); setShowForm(true); }}>
-            + Nova avaliação offline
+            + Registrar prova externa
           </Button>
-          <Button onClick={() => { setForm(EMPTY); setShowForm(true); }}>+ Nova avaliação</Button>
+          <Button onClick={() => { setForm(EMPTY); setShowForm(true); }}>+ Criar avaliação online</Button>
         </div>
       </div>
 
@@ -343,7 +343,7 @@ export default function AvaliacoesPage() {
           <div className="absolute inset-0 bg-foreground/40" onClick={() => setShowForm(false)} />
           <div className="relative z-10 w-full max-w-md mx-4 rounded-xl bg-background border border-border p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-semibold text-foreground">
-              {form.tipo === "offline" ? "Nova avaliação offline" : "Nova avaliação"}
+              {form.tipo === "offline" ? "Registrar prova externa" : "Criar avaliação online"}
             </h2>
 
             {form.tipo === "offline" && (
