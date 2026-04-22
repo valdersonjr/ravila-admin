@@ -15,14 +15,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (isLoginPage) return;
+    let cancelled = false;
     async function checkAuth() {
-      // isAuthenticated checks sessionStorage for the refresh token.
-      // If found, hydrate the in-memory access token via /auth/refresh.
       if (!authService.isAuthenticated()) {
         router.replace("/admin/login");
         return;
       }
       const ok = await authService.tryRefresh();
+      if (cancelled) return;
       if (!ok) {
         router.replace("/admin/login");
         return;
@@ -30,6 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setIsAuthenticated(true);
     }
     checkAuth();
+    return () => { cancelled = true; };
   }, [isLoginPage, router]);
 
   if (isLoginPage) return <>{children}</>;

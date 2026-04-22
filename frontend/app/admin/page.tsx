@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { alunosService, type Aluno } from "@/services/admin/alunos";
 import { turmasService } from "@/services/admin/turmas";
 import { aulasService } from "@/services/admin/aulas";
@@ -13,8 +13,12 @@ import type { Aula } from "@/services/admin/aulas";
 import Link from "next/link";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const role = authService.getRole();
-  if (role === "professor") notFound();
+  useEffect(() => {
+    if (role === "professor") router.replace("/admin/aulas");
+  }, [role]);
+  if (role === "professor") return null;
   const isAdmin = role === "admin";
   const [stats, setStats] = useState({ alunos: 0, turmas: 0, aulasHoje: 0 });
   const [indicadores, setIndicadores] = useState<{
@@ -82,6 +86,8 @@ export default function DashboardPage() {
           setAulasRecentes(proximas.items);
           setAniversarios(aniv);
         }
+      } catch {
+        // erros individuais ja tratados pelo apiAuth — apenas esconde o spinner
       } finally {
         setLoading(false);
       }

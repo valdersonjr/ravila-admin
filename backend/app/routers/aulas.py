@@ -34,6 +34,23 @@ def _enrich_aula(out: AulaOut, db: Session) -> AulaOut:
     return out
 
 
+def _enrich_aulas_batch(items: list[AulaOut], db: Session) -> None:
+    from app.models.avaliacao import Avaliacao
+    if not items:
+        return
+    aula_ids = [a.id for a in items]
+    avaliacoes = {
+        av.aula_id: av
+        for av in db.query(Avaliacao)
+        .filter(Avaliacao.aula_id.in_(aula_ids), Avaliacao.deletado == False)
+        .all()
+    }
+    for item in items:
+        av = avaliacoes.get(item.id)
+        item.avaliacao_id = av.id if av else None
+        item.avaliacao_titulo = av.titulo if av else None
+
+
 @router.get("/", response_model=AulaListOut)
 def listar(
     turma_id: Optional[int] = Query(None),
@@ -55,7 +72,7 @@ def listar(
     result = aula_service.listar(
         db, turma_id, effective_professor_id, data_inicio, data_fim, status_filter, aluno_id, page, page_size
     )
-    result.items = [_enrich_aula(a, db) for a in result.items]
+    _enrich_aulas_batch(result.items, db)
     return result
 
 

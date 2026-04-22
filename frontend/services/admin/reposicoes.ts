@@ -22,16 +22,15 @@ export interface ReposicaoPendente {
 
 export const reposicoesService = {
   listar: (alunoId?: number) => {
-    const qs = alunoId ? `?aluno_id=${alunoId}` : "";
+    const qs = alunoId != null ? `?${new URLSearchParams({ aluno_id: String(alunoId) })}` : "";
     return apiAuth.get<ReposicaoPendente[]>(`/reposicoes${qs}`);
   },
-  gerar: (alunoId: number, aulaOrigemId: number) =>
-    apiAuth.post<ReposicaoPendente>(
-      `/reposicoes?aluno_id=${alunoId}&aula_origem_id=${aulaOrigemId}`,
-      {}
-    ),
-  usar: (reposicaoId: number, aulaReposicaoId: number) =>
-    apiAuth.patch<ReposicaoPendente>(
-      `/reposicoes/${reposicaoId}/usar?aula_reposicao_id=${aulaReposicaoId}`
-    ),
+  gerar: (alunoId: number, aulaOrigemId: number) => {
+    const qs = new URLSearchParams({ aluno_id: String(alunoId), aula_origem_id: String(aulaOrigemId) });
+    return apiAuth.post<ReposicaoPendente>(`/reposicoes?${qs}`, {});
+  },
+  usar: (reposicaoId: number, aulaReposicaoId: number) => {
+    const qs = new URLSearchParams({ aula_reposicao_id: String(aulaReposicaoId) });
+    return apiAuth.patch<ReposicaoPendente>(`/reposicoes/${reposicaoId}/usar?${qs}`);
+  },
 };

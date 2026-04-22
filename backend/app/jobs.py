@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -16,7 +17,7 @@ def realizar_aulas_passadas() -> None:
     """Marca como 'realizada' toda aula 'agendada' cuja data/hora de fim já passou."""
     db: Session = SessionLocal()
     try:
-        agora = datetime.now()
+        agora = datetime.now(ZoneInfo("America/Sao_Paulo")).replace(tzinfo=None)
         aulas = db.query(Aula).filter(Aula.status == AulaStatus.AGENDADA).all()
         atualizadas = 0
         for aula in aulas:
@@ -38,10 +39,10 @@ def start_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone="America/Sao_Paulo")
     scheduler.add_job(
         realizar_aulas_passadas,
-        trigger=CronTrigger(hour=2, minute=0, timezone="America/Sao_Paulo"),
+        trigger=CronTrigger(hour=3, minute=0, timezone="America/Sao_Paulo"),
         id="realizar_aulas_passadas",
         replace_existing=True,
     )
     scheduler.start()
-    logger.info("Scheduler iniciado — job 'realizar_aulas_passadas' agendado para 02:00")
+    logger.info("Scheduler iniciado — job 'realizar_aulas_passadas' agendado para 03:00")
     return scheduler

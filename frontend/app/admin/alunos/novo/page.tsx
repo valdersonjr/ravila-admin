@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
 import { Field } from "@/components/ui/Field";
+import Link from "next/link";
 
 export default function NovoAlunoPage() {
   const router = useRouter();
@@ -66,6 +67,12 @@ if (eMenor && !responsavelId) { showToast("Responsável obrigatório para menor 
   return (
     <div className="max-w-xl space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Novo Aluno</h1>
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+        A pessoa já precisa estar cadastrada no sistema.{" "}
+        <Link href="/admin/pessoas/nova" className="font-semibold underline hover:text-amber-900">
+          Cadastrar nova pessoa
+        </Link>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Pessoa *">
           <Combobox options={pessoaOptions} value={pessoaId} onChange={handlePessoaChange} placeholder="Buscar pessoa por nome ou CPF..." />

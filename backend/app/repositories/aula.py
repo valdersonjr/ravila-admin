@@ -1,9 +1,23 @@
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
+from sqlalchemy import DateTime, String, cast, func, or_
 from sqlalchemy.orm import Session, joinedload
 
+from app.constants import AulaStatus
 from app.models.aula import Aula
 from app.models.turma import Turma
+
+_BR = ZoneInfo("America/Sao_Paulo")
+
+
+def _aula_fim_expr():
+    """Expressão SQL: (data || ' ' || hora_fim)::timestamp — sem fuso."""
+    return cast(func.concat(cast(Aula.data, String), " ", Aula.hora_fim), DateTime)
+
+
+def _agora_br() -> datetime:
+    return datetime.now(_BR).replace(tzinfo=None)
 
 
 def listar(
@@ -27,7 +41,22 @@ def listar(
     if data_fim:
         query = query.filter(Aula.data <= data_fim)
     if status:
-        query = query.filter(Aula.status == status)
+        if status == AulaStatus.REALIZADA:
+            aula_fim = _aula_fim_expr()
+            query = query.filter(
+                or_(
+                    Aula.status == AulaStatus.REALIZADA,
+                    (Aula.status == AulaStatus.AGENDADA) & (aula_fim < _agora_br()),
+                )
+            )
+        elif status == AulaStatus.AGENDADA:
+            aula_fim = _aula_fim_expr()
+            query = query.filter(
+                Aula.status == AulaStatus.AGENDADA,
+                aula_fim >= _agora_br(),
+            )
+        else:
+            query = query.filter(Aula.status == status)
     if aluno_id:
         query = query.filter(Aula.aluno_id == aluno_id)
     total = query.count()

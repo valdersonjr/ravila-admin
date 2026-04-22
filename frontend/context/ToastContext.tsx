@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 type Variant = "success" | "error";
@@ -14,13 +14,25 @@ const variantClasses: Record<Variant, string> = {
   error: "bg-rose-100 text-rose-600 border-rose-300 dark:bg-rose-900 dark:text-rose-400",
 };
 
+let _nextId = 0;
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timers = useState<Map<number, ReturnType<typeof setTimeout>>>(() => new Map())[0];
+
   const showToast = useCallback((message: string, variant: Variant = "success") => {
-    const id = Date.now();
+    const id = ++_nextId;
     setToasts((prev) => [...prev, { id, message, variant }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
-  }, []);
+    const timer = setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+      timers.delete(id);
+    }, 3500);
+    timers.set(id, timer);
+  }, [timers]);
+
+  useEffect(() => {
+    return () => { timers.forEach(clearTimeout); };
+  }, [timers]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>

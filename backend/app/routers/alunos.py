@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -257,7 +257,7 @@ def atualizar_nivel_ingles(
     if not aluno:
         raise HTTPException(status_code=404)
     aluno.nivel_questao = body.nivel
-    aluno.nivel_questao_avaliado_em = datetime.utcnow()
+    aluno.nivel_questao_avaliado_em = datetime.now(timezone.utc)
     db.commit()
     db.refresh(aluno)
     return aluno_service.buscar(db, pessoa_id)

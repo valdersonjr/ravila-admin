@@ -1,7 +1,8 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -22,7 +23,12 @@ from app.schemas.avaliacao import (
     RespostaAlunoOut,
 )
 
+from app.services import s3 as s3_service
+
 router = APIRouter(prefix="/avaliacoes", tags=["avaliacoes"])
+
+_MAX_DOC_BYTES = 200 * 1024 * 1024  # 200 MB
+_EXTS_PERMITIDAS = {"pdf", "jpg", "jpeg", "png", "gif", "webp"}
 
 
 def _get_or_404(db: Session, avaliacao_id: int):
@@ -72,6 +78,7 @@ def _enrich(av, db: Session) -> dict:
         "questoes": av.questoes,
         "total_alunos": total_alunos,
         "total_pendentes": total_pendentes,
+        "tem_documento": bool(av.documento_key),
     }
 
 
@@ -100,9 +107,15 @@ def listar(
         data_inicio=data_inicio, data_fim=data_fim,
         skip=(page - 1) * page_size, limit=page_size,
     )
+    av_ids = [av.id for av in items]
+    counts: dict[int, int] = dict(
+        db.query(AvaliacaoAluno.avaliacao_id, func.count(AvaliacaoAluno.id))
+        .filter(AvaliacaoAluno.avaliacao_id.in_(av_ids))
+        .group_by(AvaliacaoAluno.avaliacao_id)
+        .all()
+    ) if av_ids else {}
     result = []
     for av in items:
-        total_alunos = db.query(AvaliacaoAluno).filter(AvaliacaoAluno.avaliacao_id == av.id).count()
         result.append(AvaliacaoListOut(
             id=av.id,
             titulo=av.titulo,
@@ -114,7 +127,7 @@ def listar(
             status=av.status,
             criado_em=av.criado_em,
             total_questoes=len(av.questoes),
-            total_alunos=total_alunos,
+            total_alunos=counts.get(av.id, 0),
         ))
     return result
 
@@ -269,6 +282,8 @@ def lancar_notas(
     if av.tipo != "offline":
         raise HTTPException(status_code=422, detail="Endpoint exclusivo para avaliações offline")
     repo.lancar_notas_offline(db, avaliacao_id, [n.model_dump() for n in dados.notas])
+    if av.status == "publicada":
+        repo.mudar_status(db, av, "encerrada")
 
 
 @router.get("/{avaliacao_id}/alunos", response_model=list[AvaliacaoAlunoOut])
@@ -327,6 +342,46 @@ def respostas_aluno(
             corrigida=r.corrigida,
         ))
     return result
+
+
+@router.post("/{avaliacao_id}/upload-documento", response_model=AvaliacaoOut)
+def upload_documento(
+    avaliacao_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff_or_professor),
+):
+    av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
+    if av.tipo != "offline":
+        raise HTTPException(status_code=422, detail="Endpoint exclusivo para avaliações offline")
+    ext = (file.filename or "").rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else ""
+    if ext not in _EXTS_PERMITIDAS:
+        raise HTTPException(status_code=400, detail=f"Extensão não permitida. Use: {', '.join(sorted(_EXTS_PERMITIDAS))}")
+    file_bytes = file.file.read(_MAX_DOC_BYTES + 1)
+    if len(file_bytes) > _MAX_DOC_BYTES:
+        raise HTTPException(status_code=413, detail="Arquivo muito grande. Máximo 200 MB.")
+    if av.documento_key:
+        s3_service.deletar_arquivo(av.documento_key)
+    key = s3_service.upload_avaliacao_documento(file_bytes, avaliacao_id, file.filename or f"documento.{ext}")
+    av.documento_key = key
+    db.commit()
+    db.refresh(av)
+    return AvaliacaoOut(**_enrich(av, db))
+
+
+@router.get("/{avaliacao_id}/documento")
+def get_documento_url(
+    avaliacao_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff_or_professor),
+):
+    av = _get_or_404(db, avaliacao_id)
+    _check_professor_acesso(av, current_user, db)
+    if not av.documento_key:
+        raise HTTPException(status_code=404, detail="Nenhum documento anexado")
+    url = s3_service.gerar_url_temporaria(av.documento_key, expires_in=3600)
+    return {"url": url}
 
 
 @router.patch("/{avaliacao_id}/corrigir/{aluno_id}/{questao_id}", response_model=RespostaAlunoOut)

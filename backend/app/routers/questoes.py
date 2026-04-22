@@ -1,13 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_staff_or_professor
 from app.models.user import User
-from pydantic import BaseModel
 from app.schemas.questao import QuestaoCreate, QuestaoOut, QuestaoUpdate
+from app.services import questao as svc
 
 
 class QuestaoListOut(BaseModel):
@@ -15,7 +16,6 @@ class QuestaoListOut(BaseModel):
     total: int
     page: int
     page_size: int
-from app.services import questao as svc
 
 router = APIRouter(prefix="/questoes", tags=["questoes"])
 

@@ -91,6 +91,7 @@ class AvaliacaoOut(BaseModel):
     questoes: list[AvaliacaoQuestaoOut] = []
     total_alunos: int = 0
     total_pendentes: int = 0
+    tem_documento: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -111,6 +112,7 @@ class AvaliacaoListOut(BaseModel):
     criado_em: datetime
     total_questoes: int = 0
     total_alunos: int = 0
+    tem_documento: bool = False
 
     model_config = {"from_attributes": True}
 

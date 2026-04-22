@@ -3,7 +3,7 @@ Portal do aluno — endpoints exclusivos para usuários com role='aluno'.
 Retorna apenas dados do próprio aluno autenticado.
 """
 import random
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -44,6 +44,7 @@ from app.schemas.questao import (
 )
 from app.repositories import questao as questao_repo
 from app.services import questao as questao_svc
+from app.services.aula import _aplicar_status_efetivo as _status_efetivo
 from app.services.questao import verificar_resposta
 from app.services import s3 as s3_service
 
@@ -164,7 +165,7 @@ def listar_aulas(
     aulas = query.offset((page - 1) * page_size).limit(page_size).all()
 
     return AulaListPortalOut(
-        items=[_aula_to_out(a) for a in aulas],
+        items=[_aula_to_out(_status_efetivo(a)) for a in aulas],
         total=total,
         page=page,
         page_size=page_size,
@@ -511,7 +512,7 @@ def avaliar_completo_proficiencia(
             break
 
     aluno.nivel_questao = nivel_final
-    aluno.nivel_questao_avaliado_em = datetime.utcnow()
+    aluno.nivel_questao_avaliado_em = datetime.now(timezone.utc)
     db.commit()
 
     return {"nivel": nivel_final}

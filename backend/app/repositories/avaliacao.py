@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -193,7 +193,7 @@ def _tentar_finalizar(db: Session, avaliacao_id: int, aluno_id: int) -> None:
     if reg:
         reg.status = "concluida"
         reg.nota_final = nota_final
-        reg.concluido_em = datetime.utcnow()
+        reg.concluido_em = datetime.now(timezone.utc)
         db.commit()
 
 
@@ -211,13 +211,17 @@ def listar_para_aluno(db: Session, turma_id: int, aluno_id: int) -> list[dict]:
         .all()
     )
 
+    av_ids = [av.id for av in avaliacoes]
+    regs: dict[int, AvaliacaoAluno] = {
+        r.avaliacao_id: r
+        for r in db.query(AvaliacaoAluno)
+        .filter(AvaliacaoAluno.avaliacao_id.in_(av_ids), AvaliacaoAluno.aluno_id == aluno_id)
+        .all()
+    } if av_ids else {}
+
     result = []
     for av in avaliacoes:
-        reg = (
-            db.query(AvaliacaoAluno)
-            .filter(AvaliacaoAluno.avaliacao_id == av.id, AvaliacaoAluno.aluno_id == aluno_id)
-            .first()
-        )
+        reg = regs.get(av.id)
         result.append({
             "av": av,
             "status_aluno": reg.status if reg else None,
@@ -277,7 +281,7 @@ def submeter_respostas(
         avaliacao_id=av.id,
         aluno_id=aluno_id,
         status=status,
-        concluido_em=datetime.utcnow(),
+        concluido_em=datetime.now(timezone.utc),
     )
     db.add(reg)
     db.commit()
@@ -306,14 +310,14 @@ def lancar_notas_offline(db: Session, avaliacao_id: int, notas: list[dict]) -> N
         elif reg:
             reg.nota_final = nota
             reg.status = "concluida"
-            reg.concluido_em = datetime.utcnow()
+            reg.concluido_em = datetime.now(timezone.utc)
         else:
             db.add(AvaliacaoAluno(
                 avaliacao_id=avaliacao_id,
                 aluno_id=aluno_id,
                 nota_final=nota,
                 status="concluida",
-                concluido_em=datetime.utcnow(),
+                concluido_em=datetime.now(timezone.utc),
             ))
     db.commit()
 

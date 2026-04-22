@@ -119,6 +119,38 @@ export default function AvaliacaoDetailPage() {
   const [notasOffline, setNotasOffline] = useState<Record<number, string>>({});
   const [salvandoNotas, setSalvandoNotas] = useState(false);
 
+  // Upload de documento (prova externa)
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [downloadingDoc, setDownloadingDoc] = useState(false);
+
+  async function handleUploadDocumento(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDoc(true);
+    try {
+      const updated = await avaliacoesService.uploadDocumento(id, file);
+      setAv(updated);
+      showToast("Documento enviado com sucesso.");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao enviar documento."), "error");
+    } finally {
+      setUploadingDoc(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleDownloadDocumento() {
+    setDownloadingDoc(true);
+    try {
+      const { url } = await avaliacoesService.getDocumentoUrl(id);
+      window.open(url, "_blank");
+    } catch (err) {
+      showToast(getErrorMessage(err, "Erro ao obter documento."), "error");
+    } finally {
+      setDownloadingDoc(false);
+    }
+  }
+
   // Correção
   const [alunos, setAlunos] = useState<AvaliacaoAluno[]>([]);
   const [carregandoAlunos, setCarregandoAlunos] = useState(false);
@@ -234,6 +266,7 @@ export default function AvaliacaoDetailPage() {
 
   async function handleSalvarNotasOffline() {
     setSalvandoNotas(true);
+    const eraPublicada = av?.status === "publicada";
     try {
       const notas = matriculas.map((m) => ({
         aluno_id: m.aluno_id,
@@ -242,7 +275,8 @@ export default function AvaliacaoDetailPage() {
           : null,
       }));
       await avaliacoesService.lancarNotas(id, notas);
-      showToast("Notas salvas com sucesso!");
+      await loadAv();
+      showToast(eraPublicada ? "Notas salvas. Avaliação encerrada automaticamente." : "Notas atualizadas com sucesso!");
     } catch (err) {
       showToast(getErrorMessage(err, "Erro ao salvar notas."), "error");
     } finally {
@@ -334,9 +368,11 @@ export default function AvaliacaoDetailPage() {
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" onClick={abrirEdit}>Editar</Button>
           {av.status === "rascunho" && (
-            <Button onClick={handlePublicar} disabled={av.tipo === "online" && av.questoes.length === 0}>Publicar</Button>
+            <span title={av.tipo === "online" && av.questoes.length === 0 ? "Adicione ao menos uma questão antes de publicar" : undefined}>
+              <Button onClick={handlePublicar} disabled={av.tipo === "online" && av.questoes.length === 0}>Publicar</Button>
+            </span>
           )}
-          {av.status === "publicada" && (
+          {av.status === "publicada" && av.tipo === "online" && (
             <>
               <Button variant="outline" onClick={() => { setNovaHoraFim(av.hora_fim ? String(av.hora_fim).slice(0, 5) : ""); setShowExtender(true); }}>
                 Estender
@@ -547,7 +583,34 @@ export default function AvaliacaoDetailPage() {
 
       {/* Tab: Lançar notas (offline) */}
       {tab === "notas" && av.tipo === "offline" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Documento da prova */}
+          <div className="rounded-xl border border-border p-4 space-y-3">
+            <p className="text-sm font-medium text-foreground">Documento da prova</p>
+            <p className="text-xs text-muted">Anexe o arquivo da prova aplicada (PDF ou imagem). Máx. 200 MB.</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className={`cursor-pointer inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-surface transition-colors ${uploadingDoc ? "opacity-50 pointer-events-none" : ""}`}>
+                {uploadingDoc ? "Enviando..." : av.tem_documento ? "Substituir documento" : "Enviar documento"}
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+                  className="hidden"
+                  onChange={handleUploadDocumento}
+                  disabled={uploadingDoc}
+                />
+              </label>
+              {av.tem_documento && (
+                <Button
+                  onClick={handleDownloadDocumento}
+                  loading={downloadingDoc}
+                  variant="outline"
+                >
+                  Ver documento
+                </Button>
+              )}
+            </div>
+          </div>
+
           {av.status === "rascunho" && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
               Publique a avaliação antes de lançar notas.

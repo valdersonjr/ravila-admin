@@ -10,7 +10,7 @@ from app.schemas.material import MaterialCreate, MaterialUpdate
 from app.services import s3 as s3_service
 
 EXTENSOES_PERMITIDAS = {"pdf", "jpg", "jpeg", "png", "gif", "mp4", "mov"}
-TAMANHO_MAX_MB = 50
+TAMANHO_MAX_MB = 200
 
 
 def _to_out_dict(m: Material) -> dict:
@@ -100,8 +100,9 @@ def fazer_upload(db: Session, material_id: int, file: UploadFile, usuario: User)
             detail=f"Extensão não permitida. Use: {', '.join(sorted(EXTENSOES_PERMITIDAS))}",
         )
 
-    file_bytes = file.file.read()
-    if len(file_bytes) > TAMANHO_MAX_MB * 1024 * 1024:
+    _limit = TAMANHO_MAX_MB * 1024 * 1024
+    file_bytes = file.file.read(_limit + 1)
+    if len(file_bytes) > _limit:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"Arquivo muito grande. Limite: {TAMANHO_MAX_MB}MB",

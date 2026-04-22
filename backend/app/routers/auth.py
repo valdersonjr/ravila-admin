@@ -19,6 +19,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+_MAX_FOTO_BYTES = 200 * 1024 * 1024  # 200 MB
+_ALLOWED_IMAGE_MAGIC = (b"\xff\xd8\xff", b"\x89PNG", b"GIF87a", b"GIF89a")
+
+
+def _validar_imagem(data: bytes) -> None:
+    is_webp = data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+    if not any(data.startswith(m) for m in _ALLOWED_IMAGE_MAGIC) and not is_webp:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Formato de imagem inválido")
+
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
@@ -63,9 +72,10 @@ def upload_foto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Apenas imagens são permitidas")
-    file_bytes = file.file.read()
+    file_bytes = file.file.read(_MAX_FOTO_BYTES + 1)
+    if len(file_bytes) > _MAX_FOTO_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Arquivo muito grande (máximo 10 MB)")
+    _validar_imagem(file_bytes)
     key = s3_service.upload_foto(file_bytes, current_user.id, file.filename or "foto.jpg")
     current_user.foto_key = key
     db.add(current_user)

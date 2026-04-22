@@ -201,9 +201,12 @@ export default function ContratoPage() {
               <Button variant="outline" size="sm" onClick={() => setConfirmModal({ status: "encerrado", label: "encerrar" })}>
                 Encerrar
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setConfirmModal({ status: "rescindido", label: "rescindir" })}>
+              <button
+                onClick={() => setConfirmModal({ status: "rescindido", label: "rescindir" })}
+                className="px-3 py-1.5 text-sm font-medium rounded-md border border-rose-300 text-rose-600 hover:bg-rose-50 transition-colors"
+              >
                 Rescindir
-              </Button>
+              </button>
             </>
           )}
         </div>

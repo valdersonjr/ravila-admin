@@ -125,9 +125,9 @@ def criar_diaria(db: Session, aluno_id: int, questao_id: int, hoje: date) -> Que
 
 
 def marcar_diaria_respondida(db: Session, diaria: QuestaoAlunoDia) -> None:
-    from datetime import datetime
+    from datetime import datetime, timezone
     diaria.respondida = True
-    diaria.respondida_em = datetime.utcnow()
+    diaria.respondida_em = datetime.now(timezone.utc)
     db.commit()
 
 

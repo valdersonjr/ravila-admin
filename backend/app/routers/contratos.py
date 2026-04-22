@@ -7,7 +7,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request, UploadFile, File, status
 from fastapi.responses import Response
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
 from sqlalchemy.orm import Session
 from weasyprint import HTML as WeasyHTML
 
@@ -22,6 +23,8 @@ from app.services import contrato as contrato_service
 from app.services import s3 as s3_service
 
 router = APIRouter(prefix="/contratos", tags=["contratos"])
+
+_MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # 200 MB
 
 
 @router.get("/indicadores")
@@ -278,10 +281,10 @@ async def relatorio_receita_pdf(
         raw = logo_path.read_text(encoding="utf-8")
         raw = re.sub(r'width="\d+"', 'width="50"', raw)
         raw = re.sub(r'height="\d+"', 'height="26"', raw)
-        logo_svg = raw
+        logo_svg = Markup(raw)
 
     template_dir = Path(__file__).parent.parent / "templates"
-    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=False)
+    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=select_autoescape(["html"]))
     html_str = env.get_template("relatorio_receita.html").render(
         logo_svg=logo_svg,
         gerado_em=datetime.now().strftime("%d/%m/%Y às %H:%M"),
@@ -369,7 +372,9 @@ def upload_assinado(
     _: User = Depends(require_staff),
 ):
     contrato = contrato_service.buscar(db, contrato_id)
-    file_bytes = file.file.read()
+    file_bytes = file.file.read(_MAX_UPLOAD_BYTES + 1)
+    if len(file_bytes) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Arquivo muito grande (máximo 200 MB)")
     key = s3_service.upload_contrato(file_bytes, contrato_id, file.filename or "assinado.pdf")
     return contrato_repo.atualizar(db, contrato, {"contrato_assinado_key": key})
 

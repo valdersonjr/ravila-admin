@@ -16,3 +16,7 @@ export function invalidate(prefix: string) {
     if (key.startsWith(prefix)) store.delete(key);
   }
 }
+
+export function clearAll() {
+  store.clear();
+}

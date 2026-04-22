@@ -189,7 +189,8 @@ export default function PresencasPage() {
     }
   }
 
-  async function handleGerarReposicao(alunoId: number) {
+  async function handleGerarReposicao(alunoId: number, nome: string) {
+    if (!window.confirm(`Gerar reposição para ${nome}?`)) return;
     setGerandoReposicao(alunoId);
     try {
       const nova = await reposicoesService.gerar(alunoId, Number(id));
@@ -254,6 +255,12 @@ export default function PresencasPage() {
           </p>
         )}
       </div>
+
+      {!aulaIniciou && aula && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 font-medium">
+          Presenças liberadas a partir das {aula.hora_inicio.slice(0, 5)}. Os campos estão bloqueados até o início da aula.
+        </div>
+      )}
 
       {/* Avaliação vinculada */}
       {aula?.avaliacao_id && (
@@ -383,7 +390,7 @@ export default function PresencasPage() {
                     size="sm"
                     variant="ghost"
                     loading={gerandoReposicao === p.aluno_id}
-                    onClick={() => handleGerarReposicao(p.aluno_id)}
+                    onClick={() => handleGerarReposicao(p.aluno_id, p.nome)}
                     className="text-xs text-amber-600 hover:text-amber-700"
                   >
                     Gerar reposição
@@ -429,11 +436,6 @@ export default function PresencasPage() {
         </div>
       </div>}
 
-      {!aulaIniciou && (
-        <p className="text-sm text-muted">
-          Presenças só podem ser registradas após o início da aula ({aula?.hora_inicio.slice(0,5)}).
-        </p>
-      )}
       <Button onClick={handleSave} loading={saving} disabled={!aulaIniciou}>Salvar presenças</Button>
 
       <MateriaisSection

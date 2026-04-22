@@ -56,6 +56,8 @@ export default function AvaliacoesPage() {
   const [form, setForm] = useState<AvaliacaoCreate>(EMPTY);
   const [saving, setSaving] = useState(false);
 
+  const [docFile, setDocFile] = useState<File | null>(null);
+
   const [excluindo, setExcluindo] = useState<AvaliacaoList | null>(null);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
@@ -150,7 +152,15 @@ export default function AvaliacoesPage() {
         descricao: form.descricao?.trim() || undefined,
         data_aplicacao: form.data_aplicacao?.trim() || undefined,
       });
+      if (form.tipo === "offline" && docFile) {
+        try {
+          await avaliacoesService.uploadDocumento(nova.id, docFile);
+        } catch {
+          showToast("Avaliação criada, mas o upload do documento falhou. Tente novamente na página de detalhe.", "error");
+        }
+      }
       setShowForm(false);
+      setDocFile(null);
       router.push(`/admin/avaliacoes/${nova.id}`);
     } catch (err) {
       showToast(getErrorMessage(err, "Erro ao criar avaliação."), "error");
@@ -340,7 +350,7 @@ export default function AvaliacoesPage() {
       {/* Modal criar */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-foreground/40" onClick={() => setShowForm(false)} />
+          <div className="absolute inset-0 bg-foreground/40" onClick={() => { setShowForm(false); setDocFile(null); }} />
           <div className="relative z-10 w-full max-w-md mx-4 rounded-xl bg-background border border-border p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-semibold text-foreground">
               {form.tipo === "offline" ? "Registrar prova externa" : "Criar avaliação online"}
@@ -442,13 +452,43 @@ export default function AvaliacoesPage() {
                   placeholder="Contexto pedagógico (opcional)"
                 />
               </Field>
+              {form.tipo === "offline" && (
+                <Field label="Documento da prova (opcional)">
+                  <div className="space-y-1">
+                    <label className={`cursor-pointer inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-surface transition-colors ${saving ? "opacity-50 pointer-events-none" : ""}`}>
+                      {docFile ? docFile.name : "Selecionar PDF ou imagem"}
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+                        className="hidden"
+                        disabled={saving}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] ?? null;
+                          if (f && f.size > 200 * 1024 * 1024) {
+                            showToast("Arquivo muito grande. Máximo 200 MB.", "error");
+                            e.target.value = "";
+                            return;
+                          }
+                          setDocFile(f);
+                        }}
+                      />
+                    </label>
+                    {docFile && (
+                      <button type="button" onClick={() => setDocFile(null)} className="text-xs text-muted hover:text-rose-500 transition-colors">
+                        Remover
+                      </button>
+                    )}
+                    <p className="text-xs text-muted">PDF, JPG, PNG ou WebP. Máx. 200 MB.</p>
+                  </div>
+                </Field>
+              )}
               <p className="text-xs text-muted">
                 {form.tipo === "offline"
                   ? "Após publicar, acesse o detalhe para lançar as notas por aluno."
                   : "As questões são configuradas na página de detalhe."}
               </p>
               <div className="flex gap-3 justify-end pt-1">
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)} disabled={saving}>
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setDocFile(null); }} disabled={saving}>
                   Cancelar
                 </Button>
                 <Button type="submit" loading={saving}>

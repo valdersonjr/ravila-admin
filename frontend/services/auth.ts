@@ -1,4 +1,5 @@
 import { api, apiAuth, setAccessToken } from "./api";
+import { clearAll } from "@/lib/cache";
 
 const REFRESH_KEY = "refresh_token";
 const ROLE_KEY = "user_role";
@@ -46,6 +47,7 @@ export const authService = {
 
   logout(): void {
     setAccessToken(null);
+    clearAll();
     if (typeof window !== "undefined") {
       sessionStorage.removeItem(REFRESH_KEY);
       sessionStorage.removeItem(ROLE_KEY);

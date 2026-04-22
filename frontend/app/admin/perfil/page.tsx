@@ -22,20 +22,35 @@ export default function PerfilPage() {
   const [uploadingFoto, setUploadingFoto] = useState(false);
 
   useEffect(() => {
-    authService.me().then(async (data) => {
-      setNome(data.nome ?? "");
-      setEmail(data.email ?? "");
-      setTelefone(data.telefone ?? "");
-      if (data.tem_foto) {
-        const url = await authService.fotoUrl();
-        setFotoUrl(url);
+    async function load() {
+      try {
+        const data = await authService.me();
+        setNome(data.nome ?? "");
+        setEmail(data.email ?? "");
+        setTelefone(data.telefone ?? "");
+        if (data.tem_foto) {
+          try {
+            const url = await authService.fotoUrl();
+            setFotoUrl(url);
+          } catch {
+            // foto indisponivel — nao bloqueia o resto do perfil
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    }).finally(() => setLoading(false));
+    }
+    load();
   }, []);
 
   async function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 200 * 1024 * 1024) {
+      showToast("Arquivo muito grande. Máximo 200 MB.", "error");
+      e.target.value = "";
+      return;
+    }
     setUploadingFoto(true);
     try {
       await authService.uploadFoto(file);
@@ -116,7 +131,7 @@ export default function PerfilPage() {
         </div>
         <div className="space-y-1">
           <p className="text-sm font-medium text-foreground">Foto de perfil</p>
-          <p className="text-xs text-muted">JPG, PNG ou WebP. Máx. 5 MB.</p>
+          <p className="text-xs text-muted">JPG, PNG ou WebP. Máx. 200 MB.</p>
           <label className="cursor-pointer inline-block mt-2">
             <span className="text-xs text-primary-600 hover:underline">
               {fotoUrl ? "Trocar foto" : "Adicionar foto"}

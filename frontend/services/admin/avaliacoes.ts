@@ -42,6 +42,7 @@ export interface AvaliacaoList {
   criado_em: string;
   total_questoes: number;
   total_alunos: number;
+  tem_documento: boolean;
 }
 
 export interface AvaliacaoDetail extends AvaliacaoList {
@@ -163,4 +164,13 @@ export const avaliacoesService = {
       nota_manual,
       comentario_professor: comentario,
     }),
+
+  uploadDocumento: (id: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return apiAuth.upload<AvaliacaoDetail>(`/avaliacoes/${id}/upload-documento`, fd);
+  },
+
+  getDocumentoUrl: (id: number) =>
+    apiAuth.get<{ url: string }>(`/avaliacoes/${id}/documento`),
 };

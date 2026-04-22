@@ -30,6 +30,7 @@ class Avaliacao(Base):
     hora_fim: Mapped[Optional[time]] = mapped_column(Time, nullable=True)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False, server_default="online")
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="rascunho")
+    documento_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     deletado: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     criado_por_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)

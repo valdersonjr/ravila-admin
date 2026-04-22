@@ -1,10 +1,24 @@
 import logging
-from datetime import date
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.constants import AulaStatus, AulaTipo
+
+_BR = ZoneInfo("America/Sao_Paulo")
+
+
+def _aplicar_status_efetivo(aula: "Aula") -> "Aula":
+    if aula.status != AulaStatus.AGENDADA:
+        return aula
+    agora = datetime.now(_BR).replace(tzinfo=None)
+    hora_fim_dt = datetime.combine(aula.data, time.fromisoformat(aula.hora_fim[:5]))
+    if agora > hora_fim_dt:
+        set_committed_value(aula, "status", AulaStatus.REALIZADA)
+    return aula
 from app.models.aula import Aula
 from app.models.pessoa import Pessoa
 from app.models.reposicao import ReposicaoPendente
@@ -28,6 +42,8 @@ def listar(
     page_size: int = 10,
 ) -> AulaListOut:
     items, total = aula_repo.listar(db, turma_id, professor_id, data_inicio, data_fim, status_filter, aluno_id, page, page_size)
+    for aula in items:
+        _aplicar_status_efetivo(aula)
     return AulaListOut(items=items, total=total, page=page, page_size=page_size)
 
 
@@ -38,7 +54,7 @@ def buscar(db: Session, id: int) -> Aula:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Aula não encontrada",
         )
-    return aula
+    return _aplicar_status_efetivo(aula)
 
 
 def criar(db: Session, dados: AulaCreate, professor_pessoa_id: int | None = None) -> Aula:

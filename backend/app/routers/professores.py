@@ -5,7 +5,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
 from sqlalchemy.orm import Session
 from weasyprint import HTML as WeasyHTML
 
@@ -98,7 +99,7 @@ async def agenda_pdf(
         raw = logo_path.read_text(encoding="utf-8")
         raw = re.sub(r'width="\d+"', 'width="50"', raw)
         raw = re.sub(r'height="\d+"', 'height="26"', raw)
-        logo_svg = raw
+        logo_svg = Markup(raw)
 
     # Group aulas by day
     dias_map: dict[date, list] = {}
@@ -135,7 +136,7 @@ async def agenda_pdf(
 
     # Render
     template_dir = Path(__file__).parent.parent / "templates"
-    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=False)
+    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=select_autoescape(["html"]))
     html_str = env.get_template("agenda_semana.html").render(
         logo_svg=logo_svg,
         professor_nome=professor.pessoa.nome,

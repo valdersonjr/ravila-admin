@@ -97,7 +97,7 @@ export default function NivelInglesPage() {
   function handleSearchChange(value: string) {
     setSearchInput(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => { setSearch(value); setPage(1); }, 400);
+    searchTimeout.current = setTimeout(() => { setSearch(value); setPage(1); }, 250);
   }
 
   function handleFiltroNivel(value: string) {
@@ -155,7 +155,8 @@ export default function NivelInglesPage() {
         </div>
         <button
           onClick={() => handleFiltroNivel(filtroNivel === "sem_nivel" ? "" : "sem_nivel")}
-          className={`text-left rounded-xl p-4 border transition-colors ${filtroNivel === "sem_nivel" ? "bg-surface border-border" : "bg-surface border-border hover:border-border"}`}
+          className={`text-left rounded-xl p-4 border transition-colors bg-surface ${filtroNivel === "sem_nivel" ? "border-primary-400 ring-1 ring-primary-400" : "border-border hover:border-primary-300"}`}
+          title="Filtrar por sem avaliação"
         >
           <p className="text-xs text-muted uppercase tracking-widest">Sem avaliação</p>
           <p className="text-2xl font-bold text-muted mt-1">{stats?.sem_nivel ?? "—"}</p>
@@ -314,13 +315,16 @@ export default function NivelInglesPage() {
                 />
                 <p className="text-xs text-muted">Use apenas se a avaliação foi feita fora do sistema.</p>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setEditando(null)}>Cancelar</Button>
                   <Button variant="outline" onClick={salvar} disabled={salvando}>
                     {salvando ? "Salvando..." : "Confirmar ajuste"}
                   </Button>
                 </div>
               </div>
 
+            </div>
+
+            <div className="px-6 py-4 border-t border-border flex justify-end">
+              <Button variant="outline" onClick={() => setEditando(null)}>Fechar</Button>
             </div>
           </div>
         </div>
