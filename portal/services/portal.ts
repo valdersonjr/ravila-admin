@@ -141,6 +141,7 @@ export interface AvaliacaoPortal {
   status_aluno: string | null;   // aguardando_correcao | concluida | null
   nota_final: number | null;
   total_questoes: number;
+  tem_documento: boolean;
 }
 
 export interface AvaliacaoQuestaoPortal {
@@ -159,6 +160,7 @@ export interface AvaliacaoDetalhePortal {
   descricao: string | null;
   data_aplicacao: string | null;
   hora_fim: string | null;
+  tem_documento: boolean;
   questoes: AvaliacaoQuestaoPortal[];
 }
 
@@ -296,5 +298,9 @@ export const portalService = {
 
   resultadoAvaliacao(id: number): Promise<ResultadoAvaliacao> {
     return request(`/portal/avaliacoes/${id}/resultado`);
+  },
+
+  documentoAvaliacao(id: number): Promise<{ url: string }> {
+    return request(`/portal/avaliacoes/${id}/documento`);
   },
 };

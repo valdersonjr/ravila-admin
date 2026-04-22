@@ -15,6 +15,7 @@ export default function AlterarSenhaPage() {
   function setField(field: string, value: string) {
     setForm((p) => ({ ...p, [field]: value }));
     setErro(null);
+    setSucesso(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -78,13 +79,20 @@ export default function AlterarSenhaPage() {
             />
           </div>
 
+          {form.senha && form.senha.length < 6 && (
+            <p className="text-xs text-amber-600 px-1">Mínimo de 6 caracteres.</p>
+          )}
+          {form.confirmar && form.senha !== form.confirmar && (
+            <p className="text-xs text-rose-500 px-1">As senhas não coincidem.</p>
+          )}
+
           {erro && (
             <p className="text-sm text-rose-600 font-medium px-1">{erro}</p>
           )}
 
           <button
             type="submit"
-            disabled={salvando || !form.senha_antiga || !form.senha || !form.confirmar}
+            disabled={salvando || !form.senha_antiga || !form.senha || !form.confirmar || form.senha !== form.confirmar || form.senha.length < 6}
             className="w-full rounded-2xl bg-primary-600 py-4 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
           >
             {salvando ? "Salvando..." : "Salvar nova senha"}

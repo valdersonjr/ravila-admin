@@ -76,10 +76,14 @@ export default function ProficienciaPage() {
       <AppShell>
         <div className="px-5 py-8 space-y-6 text-center">
           <GraduationCap size={48} className="text-primary-600 mx-auto" />
-          <div className="space-y-2">
+          <div className="space-y-4">
             <p className="text-xl font-black text-foreground">Teste já realizado!</p>
+            <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4 space-y-1">
+              <p className="text-xs font-bold text-primary-600 uppercase tracking-widest">Seu nível</p>
+              <p className="text-4xl font-black text-primary-700">{fase.nivel}</p>
+            </div>
             <p className="text-sm text-muted leading-relaxed px-4">
-              Suas respostas já foram enviadas para análise do seu professor.
+              Continue praticando no banco de questões para evoluir.
             </p>
           </div>
           <button onClick={() => router.push("/praticar")}
@@ -107,7 +111,7 @@ export default function ProficienciaPage() {
           <div className="bg-surface border border-border rounded-2xl p-4 space-y-3">
             <p className="text-xs font-bold text-muted uppercase tracking-widest">Como funciona</p>
             <div className="space-y-2 text-sm text-foreground">
-              <div className="flex items-center gap-2"><Target size={14} className="text-primary-500 shrink-0" /><span>Algumas questões de diferentes temas</span></div>
+              <div className="flex items-center gap-2"><Target size={14} className="text-primary-500 shrink-0" /><span>Cerca de 20 questões de diferentes níveis e temas</span></div>
               <div className="flex items-center gap-2"><ArrowUpCircle size={14} className="text-green-500 shrink-0" /><span>Cada resposta nos ajuda a calibrar seu nível</span></div>
               <div className="flex items-center gap-2"><CircleOff size={14} className="text-red-400 shrink-0" /><span>Não tente adivinhar, seja honesto com você mesmo</span></div>
               <div className="flex items-center gap-2"><TrendingUp size={14} className="text-primary-500 shrink-0" /><span>Você poderá subir de nível praticando depois</span></div>
@@ -196,10 +200,14 @@ export default function ProficienciaPage() {
       <AppShell>
         <div className="px-5 py-10 space-y-6 text-center">
           <Trophy size={52} className="text-primary-600 mx-auto" />
-          <div className="space-y-2">
-            <p className="text-xl font-black text-foreground">Obrigado por realizar o teste!</p>
+          <div className="space-y-4">
+            <p className="text-xl font-black text-foreground">Teste concluído!</p>
+            <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4 space-y-1">
+              <p className="text-xs font-bold text-primary-600 uppercase tracking-widest">Seu nível inicial</p>
+              <p className="text-4xl font-black text-primary-700">{fase.nivel}</p>
+            </div>
             <p className="text-sm text-muted leading-relaxed px-4">
-              Suas respostas foram enviadas para análise do seu professor, que em breve entrará em contato com você.
+              Esse nível será confirmado pelo seu professor. Enquanto isso, você já pode praticar no banco de questões!
             </p>
           </div>
           <button onClick={() => router.push("/praticar")}

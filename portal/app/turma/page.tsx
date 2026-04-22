@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp, ChevronRight, FileText, Link, Video, Image, Download, ClipboardList, CircleCheck, CircleX, Clock } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronRight, FileText, Link, Video, Image, Download, ClipboardList, CircleCheck, CircleX, Clock, Paperclip } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { RaviCard } from "@/components/portal/RaviCard";
 import { portalService, type AulaPortal, type MaterialPortal, type AvaliacaoPortal } from "@/services/portal";
@@ -346,7 +346,12 @@ function AvaliacoesTab() {
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground truncate">{av.titulo}</p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="text-sm font-bold text-foreground truncate">{av.titulo}</p>
+                    {av.tem_documento && (
+                      <Paperclip size={13} strokeWidth={2} className="text-primary-500 shrink-0" />
+                    )}
+                  </div>
                   <p className="text-xs text-muted mt-0.5">
                     {(av.topicos ?? []).map((t) => TOPICO_LABELS[t] ?? t).join(", ")} · {av.total_questoes} {av.total_questoes !== 1 ? "questões" : "questão"}
                   </p>
@@ -362,6 +367,9 @@ function AvaliacoesTab() {
                   )}
                   {aguardando && (
                     <p className="text-xs font-semibold text-amber-600 mt-1">Aguardando correção do professor</p>
+                  )}
+                  {bloqueada && (
+                    <p className="text-xs font-medium text-muted mt-1">Indisponível no momento</p>
                   )}
                 </div>
                 {!aguardando && !bloqueada && <ChevronRight size={16} className="text-muted shrink-0" />}
@@ -434,18 +442,42 @@ export default function TurmaPage() {
         ) : aulas.length === 0 ? (
           <RaviCard message="Nenhuma aula ainda!" sub="Suas aulas aparecerão aqui quando forem agendadas." />
         ) : (
-          <div className="space-y-3">
-            {aulas.map((a) => (
-              <AulaItem
-                key={a.id}
-                aula={a}
-                presente={a.status === "realizada" ? (presencaMap.get(a.id) ?? false) : null}
-              />
-            ))}
-          </div>
+          <AulasLista aulas={aulas} presencaMap={presencaMap} />
         )}
       </div>
     </AppShell>
+  );
+}
+
+function AulasLista({ aulas, presencaMap }: { aulas: AulaPortal[]; presencaMap: Map<number, boolean> }) {
+  const proximas = aulas.filter((a) => a.status === "agendada");
+  const passadas = aulas.filter((a) => a.status !== "agendada");
+
+  return (
+    <div className="space-y-4">
+      {proximas.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-muted uppercase tracking-widest">Próximas aulas</p>
+          {proximas.map((a) => (
+            <AulaItem key={a.id} aula={a} presente={null} />
+          ))}
+        </div>
+      )}
+      {passadas.length > 0 && (
+        <div className="space-y-3">
+          <p className={`text-xs font-bold text-muted uppercase tracking-widest ${proximas.length > 0 ? "mt-2" : ""}`}>
+            Aulas anteriores
+          </p>
+          {passadas.map((a) => (
+            <AulaItem
+              key={a.id}
+              aula={a}
+              presente={a.status === "realizada" ? (presencaMap.get(a.id) ?? false) : null}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

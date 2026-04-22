@@ -86,6 +86,13 @@ export default function MeuContratoPage() {
               ? c.valor_mensalidade * (1 - c.desconto_percentual / 100)
               : c.valor_mensalidade;
 
+          const diasRestantes = (() => {
+            if (c.status !== "ativo") return null;
+            const fim = new Date(c.data_fim + "T00:00:00");
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            return Math.ceil((fim.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+          })();
+
           return (
             <div key={c.id} className="bg-surface border border-border rounded-2xl overflow-hidden">
               {/* Header */}
@@ -129,6 +136,20 @@ export default function MeuContratoPage() {
                   Vencimento todo dia <strong className="text-foreground">{c.dia_vencimento}</strong>
                 </p>
               </div>
+
+              {/* Alerta de expiração */}
+              {diasRestantes !== null && diasRestantes <= 30 && (
+                <div className="px-5 pb-2">
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-2">
+                    <span className="text-amber-500 text-sm leading-none">⚠</span>
+                    <p className="text-xs text-amber-800 font-medium">
+                      {diasRestantes <= 0
+                        ? "Contrato expirado."
+                        : `Contrato expira em ${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""}.`}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Download */}
               {c.tem_assinado && (

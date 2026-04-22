@@ -200,6 +200,7 @@ class AvaliacaoPortalOut(BaseModel):
     status_aluno: Optional[str]   # aguardando_correcao | concluida | None (não iniciada)
     nota_final: Optional[float]
     total_questoes: int
+    tem_documento: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -212,6 +213,7 @@ class AvaliacaoDetalhePortalOut(BaseModel):
     descricao: Optional[str]
     data_aplicacao: Optional[date]
     hora_fim: Optional[time] = None
+    tem_documento: bool = False
 
     questoes: list[AvaliacaoQuestaoOut]
 

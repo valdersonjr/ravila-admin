@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Download } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { portalService, type AvaliacaoDetalhePortal, type AvaliacaoQuestaoPortal } from "@/services/portal";
 
@@ -38,6 +38,8 @@ export default function ResponderAvaliacaoPage() {
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
   const [horaFim, setHoraFim] = useState<string | null>(null);
   const [dataAplicacao, setDataAplicacao] = useState<string | null>(null);
+  const [missingId, setMissingId] = useState<number | null>(null);
+  const [downloadingDoc, setDownloadingDoc] = useState(false);
   const submitRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
@@ -88,10 +90,25 @@ export default function ResponderAvaliacaoPage() {
     return () => clearInterval(poll);
   }, [fase, horaFim, id]);
 
+  async function handleDownloadDoc() {
+    setDownloadingDoc(true);
+    try {
+      const { url } = await portalService.documentoAvaliacao(id);
+      window.open(url, "_blank");
+    } finally {
+      setDownloadingDoc(false);
+    }
+  }
+
   async function handleSubmit() {
     if (!av) return;
-    const faltando = av.questoes.some((q) => !respostas[q.questao_id]?.trim());
-    if (faltando && secsLeft !== 0) { alert("Responda todas as questões antes de enviar."); return; }
+    const primeira = av.questoes.find((q) => !respostas[q.questao_id]?.trim());
+    if (primeira && secsLeft !== 0) {
+      setMissingId(primeira.questao_id);
+      document.getElementById(`q-${primeira.questao_id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setMissingId(null);
     setFase("enviando");
     try {
       await portalService.responderAvaliacao(id, av.questoes.map((q) => ({
@@ -132,10 +149,10 @@ export default function ResponderAvaliacaoPage() {
     <AppShell>
       <div className="px-5 py-10 text-center space-y-4">
         <p className="text-lg font-black text-foreground">Avaliação fora do horário</p>
-        <p className="text-sm text-muted">Esta avaliação só pode ser respondida durante o horário previsto pelo professor.</p>
+        <p className="text-sm text-muted">Esta avaliação só pode ser respondida no horário definido pelo professor. Verifique a aba Avaliações para conferir o horário previsto.</p>
         <button onClick={() => router.push("/turma")}
           className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-bold">
-          Voltar
+          Ver minhas avaliações
         </button>
       </div>
     </AppShell>
@@ -178,7 +195,32 @@ export default function ResponderAvaliacaoPage() {
           <h1 className="text-base font-black text-foreground truncate">{av.titulo}</h1>
           {av.modulo && <p className="text-xs text-muted">{av.modulo}</p>}
         </div>
+        {av.tem_documento && (
+          <button
+            onClick={handleDownloadDoc}
+            disabled={downloadingDoc}
+            className="shrink-0 flex items-center gap-1.5 rounded-xl border border-primary-300 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-100 disabled:opacity-50"
+          >
+            <Download size={14} strokeWidth={2} />
+            {downloadingDoc ? "..." : "Prova"}
+          </button>
+        )}
       </div>
+
+      {/* Documento banner */}
+      {av.tem_documento && (
+        <div className="mx-5 mb-2 rounded-xl bg-primary-50 border border-primary-200 px-4 py-3 flex items-center justify-between gap-3">
+          <p className="text-xs text-primary-800 font-medium">A prova possui um documento com o enunciado.</p>
+          <button
+            onClick={handleDownloadDoc}
+            disabled={downloadingDoc}
+            className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-primary-700 disabled:opacity-50"
+          >
+            <Download size={13} strokeWidth={2.5} />
+            {downloadingDoc ? "Abrindo..." : "Baixar"}
+          </button>
+        </div>
+      )}
 
       {/* Timer */}
       {secsLeft !== null && (
@@ -222,7 +264,8 @@ export default function ResponderAvaliacaoPage() {
             numero={i + 1}
             aq={aq}
             resposta={respostas[aq.questao_id] ?? ""}
-            onChange={(v) => setRespostas((p) => ({ ...p, [aq.questao_id]: v }))}
+            onChange={(v) => { setRespostas((p) => ({ ...p, [aq.questao_id]: v })); setMissingId(null); }}
+            highlight={missingId === aq.questao_id}
           />
         ))}
 
@@ -239,18 +282,25 @@ export default function ResponderAvaliacaoPage() {
 }
 
 function QuestaoCard({
-  numero, aq, resposta, onChange,
+  numero, aq, resposta, onChange, highlight,
 }: {
   numero: number;
   aq: AvaliacaoQuestaoPortal;
   resposta: string;
   onChange: (v: string) => void;
+  highlight?: boolean;
 }) {
   const { questao } = aq;
   const IMAGE_EXTS = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i;
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
+    <div
+      id={`q-${aq.questao_id}`}
+      className={`bg-surface rounded-2xl p-5 space-y-4 border transition-colors ${highlight ? "border-rose-400 ring-1 ring-rose-300" : "border-border"}`}
+    >
+      {highlight && (
+        <p className="text-xs font-semibold text-rose-500">Responda esta questão antes de enviar.</p>
+      )}
       <div className="flex items-center gap-2">
         <span className="text-xs font-bold text-muted">{numero}.</span>
         <span className="px-2 py-0.5 rounded-md bg-primary-100 text-primary-700 text-[11px] font-bold">{questao.nivel}</span>

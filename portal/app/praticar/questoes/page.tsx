@@ -249,10 +249,25 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
     <div className="px-5 space-y-4">
       <div className="space-y-3">
         <div>
-          <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">Nível</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-muted uppercase tracking-widest">Nível</p>
+            {nivelAluno && <p className="text-xs text-primary-600 font-semibold">Seu nível: {nivelAluno}</p>}
+          </div>
           <div className="flex gap-2 flex-wrap">
             {NIVEIS.map((n) => (
-              <PillFilter key={n} active={nivel === n} onClick={() => handleNivel(n)}>{n}</PillFilter>
+              <button
+                key={n}
+                onClick={() => handleNivel(n)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  nivel === n
+                    ? "bg-primary-600 text-white border-primary-600"
+                    : n === nivelAluno
+                    ? "bg-primary-50 text-primary-600 border-primary-300"
+                    : "bg-surface text-muted border-border"
+                }`}
+              >
+                {n}
+              </button>
             ))}
           </div>
         </div>
@@ -292,8 +307,9 @@ function BancoLivreTab({ temNivel, nivelAluno }: { temNivel: boolean; nivelAluno
       ) : loading ? (
         <LoadingCard />
       ) : !questaoAtual ? (
-        <div className="bg-surface border border-border rounded-2xl p-5 text-center">
-          <p className="text-sm text-muted">Nenhuma questão encontrada para esses filtros.</p>
+        <div className="bg-surface border border-border rounded-2xl p-5 text-center space-y-1">
+          <p className="text-sm font-semibold text-foreground">Nenhuma questão disponível</p>
+          <p className="text-xs text-muted">Tente outros filtros ou volte mais tarde.</p>
         </div>
       ) : resultado ? (
         <div className="space-y-3">

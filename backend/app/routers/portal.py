@@ -653,6 +653,7 @@ def listar_avaliacoes(
             status_aluno=i["status_aluno"],
             nota_final=i["nota_final"],
             total_questoes=i["total_questoes"],
+            tem_documento=bool(i["av"].documento_key),
         )
         for i in items
     ]
@@ -683,6 +684,7 @@ def detalhe_avaliacao(
         descricao=av.descricao,
         data_aplicacao=av.data_aplicacao,
         hora_fim=av.hora_fim,
+        tem_documento=bool(av.documento_key),
         questoes=av.questoes,
     )
 
@@ -704,6 +706,25 @@ def horario_avaliacao(
         "hora_fim": av.hora_fim.strftime("%H:%M:%S") if av.hora_fim else None,
         "data_aplicacao": av.data_aplicacao.isoformat() if av.data_aplicacao else None,
     }
+
+
+@router.get("/avaliacoes/{avaliacao_id}/documento")
+def documento_avaliacao(
+    avaliacao_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_aluno),
+):
+    from fastapi import HTTPException
+    av = avaliacao_repo.buscar(db, avaliacao_id)
+    if not av or av.status not in ("publicada", "encerrada"):
+        raise HTTPException(status_code=404, detail="Avaliação não encontrada")
+    turma_id = _turma_do_aluno(db, current_user.pessoa_id)
+    if av.turma_id != turma_id:
+        raise HTTPException(status_code=403)
+    if not av.documento_key:
+        raise HTTPException(status_code=404, detail="Nenhum documento anexado")
+    url = s3_service.gerar_url_temporaria(av.documento_key, expires_in=3600)
+    return {"url": url}
 
 
 @router.post("/avaliacoes/{avaliacao_id}/responder")

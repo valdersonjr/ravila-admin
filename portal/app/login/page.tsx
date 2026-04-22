@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth";
 import { Logo } from "@/components/ui/Logo";
-import { PwaInstallGuide } from "@/components/ui/PwaInstallGuide";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,7 +49,7 @@ export default function LoginPage() {
               onChange={(e) => { setUsername(e.target.value); setError(""); }}
               autoFocus
               autoComplete="username"
-              placeholder="Seu usuário"
+              placeholder="ex: joao.silva"
               className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
           </div>
@@ -59,7 +58,7 @@ export default function LoginPage() {
             <input
               type="password"
               value={senha}
-              onChange={(e) => setSenha(e.target.value)}
+              onChange={(e) => { setSenha(e.target.value); setError(""); }}
               required
               autoComplete="current-password"
               className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400"
@@ -78,7 +77,6 @@ export default function LoginPage() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
-        <PwaInstallGuide />
       </div>
     </div>
   );

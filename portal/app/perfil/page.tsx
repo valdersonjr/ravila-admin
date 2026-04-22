@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, UserRound, FileText, Bell, KeyRound } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
+import { PwaInstallGuide } from "@/components/ui/PwaInstallGuide";
 import { authService } from "@/services/auth";
 
 export default function PerfilPage() {
@@ -57,6 +58,11 @@ export default function PerfilPage() {
           <MenuItem label="Meu contrato" Icon={FileText} onClick={() => router.push("/meu-contrato")} />
           <MenuItem label="Alterar senha" Icon={KeyRound} onClick={() => router.push("/alterar-senha")} />
           <MenuItem label="Notificações" Icon={Bell} onClick={() => {}} comingSoon />
+        </div>
+
+        {/* Instalar app */}
+        <div className="flex justify-center">
+          <PwaInstallGuide />
         </div>
 
         {/* Sair */}
