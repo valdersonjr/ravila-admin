@@ -251,8 +251,12 @@ export default function AulasPage() {
               header: "",
               render: (a: Aula) => {
                 const podeExcluir = isAdmin || (isProfessor && a.professor_id === pessoaId);
-                const isFutura = a.data >= new Date().toISOString().split("T")[0];
-                if (!podeExcluir || a.status !== "agendada" || !isFutura) return null;
+                const hoje = new Date().toISOString().split("T")[0];
+                const isFutura = a.data >= hoje;
+                const isHoje = a.data === hoje;
+                // Para aulas de hoje, _aplicar_status_efetivo pode ter sobrescrito AGENDADA→REALIZADA
+                // após o horário da aula; o backend valida pelo status real do banco
+                if (!podeExcluir || (a.status !== "agendada" && !isHoje) || !isFutura) return null;
                 return (
                   <button
                     onClick={() => handleDeletar(a)}

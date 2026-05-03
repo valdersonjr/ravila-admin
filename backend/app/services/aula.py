@@ -166,7 +166,14 @@ def atualizar_conteudo(db: Session, aula_id: int, conteudo_dado: str | None) -> 
 
 
 def deletar(db: Session, aula_id: int) -> None:
-    aula = buscar(db, aula_id)
+    # Usa buscar_por_id direto para evitar que _aplicar_status_efetivo
+    # sobrescreva AGENDADA→REALIZADA em aulas do dia cujo horário já passou
+    aula = aula_repo.buscar_por_id(db, aula_id)
+    if not aula:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aula não encontrada",
+        )
     if aula.data < date.today():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
