@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -16,8 +17,16 @@ def listar(
     entity: Optional[str] = Query(None),
     entity_id: Optional[int] = Query(None),
     user_id: Optional[int] = Query(None),
-    limit: int = Query(100, ge=1, le=500),
+    action: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    return audit_log_repo.listar(db, entity, entity_id, user_id, limit)
+    items, total = audit_log_repo.listar(
+        db, entity, entity_id, user_id, action, search, date_from, date_to, limit, offset
+    )
+    return {"items": items, "total": total}

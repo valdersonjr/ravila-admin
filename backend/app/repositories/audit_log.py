@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from typing import Any
 
 from fastapi import Request
@@ -42,8 +43,13 @@ def listar(
     entity: str | None = None,
     entity_id: int | None = None,
     user_id: int | None = None,
-    limit: int = 100,
-) -> list[AuditLog]:
+    action: str | None = None,
+    search: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> tuple[list[AuditLog], int]:
     q = db.query(AuditLog)
     if entity:
         q = q.filter(AuditLog.entity == entity)
@@ -51,4 +57,14 @@ def listar(
         q = q.filter(AuditLog.entity_id == entity_id)
     if user_id is not None:
         q = q.filter(AuditLog.user_id == user_id)
-    return q.order_by(AuditLog.created_at.desc()).limit(limit).all()
+    if action:
+        q = q.filter(AuditLog.action == action)
+    if search:
+        q = q.filter(AuditLog.user_username.ilike(f"%{search}%"))
+    if date_from is not None:
+        q = q.filter(AuditLog.created_at >= date_from)
+    if date_to is not None:
+        q = q.filter(AuditLog.created_at <= date_to)
+    total = q.count()
+    items = q.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+    return items, total
