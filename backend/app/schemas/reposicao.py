@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 
 class AulaSimples(BaseModel):
     id: int
-    data: str
+    data: date
     hora_inicio: str
     hora_fim: str
     turma_id: int
