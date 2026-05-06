@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_staff_or_professor
 from app.models.user import User
+from app.repositories import audit_log as audit_log_repo
 from app.schemas.presenca import PresencaBatchRequest, PresencaItem, PresencaOut
 from app.services import presenca as presenca_service
 
@@ -33,7 +34,11 @@ def adicionar_presenca(
 def registrar_batch(
     aula_id: int,
     body: PresencaBatchRequest,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
-    return presenca_service.registrar_batch(db, aula_id, body.presencas)
+    result = presenca_service.registrar_batch(db, aula_id, body.presencas)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "presenca", aula_id, {"aula_id": aula_id, "total": len(body.presencas)})
+    db.commit()
+    return result

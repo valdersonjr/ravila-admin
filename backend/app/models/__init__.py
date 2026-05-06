@@ -1,4 +1,5 @@
 from app.models.base import Base
+from app.models.audit_log import AuditLog
 from app.models.pessoa import Pessoa
 from app.models.user import User
 from app.models.nivel import Nivel
@@ -15,6 +16,7 @@ from app.models.avaliacao import Avaliacao, AvaliacaoQuestao, AvaliacaoResposta,
 
 __all__ = [
     "Base",
+    "AuditLog",
     "Pessoa",
     "User",
     "Nivel",

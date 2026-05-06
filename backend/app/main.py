@@ -32,6 +32,7 @@ from app.routers import (
     questoes,
     avaliacoes,
     portal,
+    audit_log,
 )
 
 @asynccontextmanager
@@ -78,6 +79,7 @@ app.include_router(materiais.router)
 app.include_router(questoes.router)
 app.include_router(avaliacoes.router)
 app.include_router(portal.router)
+app.include_router(audit_log.router)
 
 
 @app.get("/", tags=["health"])

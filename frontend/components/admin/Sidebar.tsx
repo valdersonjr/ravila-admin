@@ -23,6 +23,7 @@ const links: NavLink[] = [
   { href: "/admin/professores",            label: "Professores",            exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/pessoas",                label: "Pessoas",                exact: false, roles: ["admin", "secretario"] },
   { href: "/admin/users",                  label: "Usuários",               exact: false, roles: ["admin", "professor"] },
+  { href: "/admin/auditoria",              label: "Auditoria",              exact: false, roles: ["admin"] },
 ];
 
 interface SidebarProps {

@@ -1,12 +1,13 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_staff, require_staff_or_professor
 from app.models.user import User
+from app.repositories import audit_log as audit_log_repo
 from app.schemas.aula import (
     AulaAvulsaCreate,
     AulaConteudoUpdate,
@@ -91,11 +92,16 @@ def buscar(
 @router.post("/", response_model=AulaOut, status_code=status.HTTP_201_CREATED)
 def criar(
     body: AulaCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
     professor_pessoa_id = current_user.pessoa_id if current_user.role == "professor" else None
-    return aula_service.criar(db, body, professor_pessoa_id=professor_pessoa_id)
+    aula = aula_service.criar(db, body, professor_pessoa_id=professor_pessoa_id)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "aula", aula.id)
+    db.commit()
+    db.refresh(aula)
+    return aula
 
 
 @router.post("/avulsa", response_model=AulaOut, status_code=status.HTTP_201_CREATED)
@@ -110,12 +116,14 @@ def criar_avulsa(
 @router.delete("/{aula_id}", status_code=status.HTTP_204_NO_CONTENT)
 def deletar(
     aula_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
     aula = aula_service.buscar(db, aula_id)
     if current_user.role == "professor" and aula.professor_id != current_user.pessoa_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
+    audit_log_repo.registrar(db, current_user, request, "DELETE", "aula", aula_id)
     aula_service.deletar(db, aula_id)
 
 
@@ -123,10 +131,15 @@ def deletar(
 def atualizar_status(
     aula_id: int,
     body: AulaStatusUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
-    return aula_service.atualizar_status(db, aula_id, body.status)
+    aula = aula_service.atualizar_status(db, aula_id, body.status)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "aula", aula_id, {"status": body.status})
+    db.commit()
+    db.refresh(aula)
+    return aula
 
 
 @router.patch("/{aula_id}/aprovar", response_model=AulaOut)
