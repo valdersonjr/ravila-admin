@@ -67,7 +67,7 @@ def _turmas_com_contagem(db: Session, professor_id: int) -> list[dict]:
 
 
 def _contagem_aulas(db: Session, professor_id: int) -> dict:
-    base = db.query(Aula).filter(Aula.professor_id == professor_id)
+    base = db.query(Aula).filter(Aula.professor_id == professor_id, Aula.deletado == False)
     return {
         "total": base.count(),
         "realizadas": base.filter(Aula.status == AulaStatus.REALIZADA).count(),
@@ -80,6 +80,7 @@ def _contagem_aulas_mes(db: Session, professor_id: int, primeiro_dia: date) -> d
     base_mes = db.query(Aula).filter(
         Aula.professor_id == professor_id,
         Aula.data >= primeiro_dia,
+        Aula.deletado == False,
     )
     return {
         "realizadas": base_mes.filter(Aula.status == AulaStatus.REALIZADA).count(),
@@ -97,6 +98,7 @@ def _presenca_media(
     filtros = [
         Aula.professor_id == professor_id,
         Aula.status == AulaStatus.REALIZADA,
+        Aula.deletado == False,
     ]
     if data_inicio:
         filtros.append(Aula.data >= data_inicio)
@@ -127,6 +129,7 @@ def _historico_mensal(db: Session, professor_id: int, hoje: date) -> list[MesHis
             Aula.status == AulaStatus.REALIZADA,
             Aula.data >= primeiro,
             Aula.data <= ultimo,
+            Aula.deletado == False,
         ).count()
 
         canceladas = db.query(Aula).filter(
@@ -134,6 +137,7 @@ def _historico_mensal(db: Session, professor_id: int, hoje: date) -> list[MesHis
             Aula.status == AulaStatus.CANCELADA,
             Aula.data >= primeiro,
             Aula.data <= ultimo,
+            Aula.deletado == False,
         ).count()
 
         historico.append(MesHistorico(

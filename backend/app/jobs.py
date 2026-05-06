@@ -18,7 +18,7 @@ def realizar_aulas_passadas() -> None:
     db: Session = SessionLocal()
     try:
         agora = datetime.now(ZoneInfo("America/Sao_Paulo")).replace(tzinfo=None)
-        aulas = db.query(Aula).filter(Aula.status == AulaStatus.AGENDADA).all()
+        aulas = db.query(Aula).filter(Aula.status == AulaStatus.AGENDADA, Aula.deletado == False).all()
         atualizadas = 0
         for aula in aulas:
             hora_fim_dt = datetime.strptime(f"{aula.data} {aula.hora_fim}", "%Y-%m-%d %H:%M")

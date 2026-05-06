@@ -117,6 +117,7 @@ def _query_aulas_do_aluno(db: Session, aluno_id: int):
         db.query(Aula)
         .options(joinedload(Aula.turma), joinedload(Aula.professor))
         .filter(
+            Aula.deletado == False,
             or_(
                 Aula.turma_id.in_(turma_ids) if turma_ids else False,
                 Aula.aluno_id == aluno_id,
@@ -184,6 +185,7 @@ def listar_presencas(
         .options(joinedload(Presenca.aula).joinedload(Aula.turma))
         .filter(Presenca.aluno_id == current_user.pessoa_id)
         .join(Presenca.aula)
+        .filter(Aula.deletado == False)
         .order_by(Aula.data.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
@@ -274,6 +276,7 @@ def materiais_da_aula(
                 Material.turma_id.in_(turma_ids) if turma_ids else False,
                 Material.aula_id.in_(
                     db.query(Aula.id).filter(
+                        Aula.deletado == False,
                         or_(
                             Aula.turma_id.in_(turma_ids) if turma_ids else False,
                             Aula.aluno_id == current_user.pessoa_id,
@@ -348,6 +351,7 @@ def download_material(
                 Material.turma_id.in_(turma_ids) if turma_ids else False,
                 Material.aula_id.in_(
                     db.query(Aula.id).filter(
+                        Aula.deletado == False,
                         or_(
                             Aula.turma_id.in_(turma_ids) if turma_ids else False,
                             Aula.aluno_id == current_user.pessoa_id,

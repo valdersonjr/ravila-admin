@@ -63,7 +63,7 @@ def _enrich(av, db: Session) -> dict:
     turma_nome = av.turma.nome if av.turma else None
     aula_data = aula_hora_inicio = aula_hora_fim = None
     if av.aula_id:
-        aula = db.query(AulaModel).filter(AulaModel.id == av.aula_id).first()
+        aula = db.query(AulaModel).filter(AulaModel.id == av.aula_id, AulaModel.deletado == False).first()
         if aula:
             aula_data = aula.data
             aula_hora_inicio = str(aula.hora_inicio)

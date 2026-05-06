@@ -31,7 +31,7 @@ def listar(
     page: int = 1,
     page_size: int = 10,
 ) -> tuple[list[Aula], int]:
-    query = db.query(Aula)
+    query = db.query(Aula).filter(Aula.deletado == False)
     if turma_id:
         query = query.filter(Aula.turma_id == turma_id)
     if professor_id:
@@ -72,7 +72,7 @@ def listar(
 
 
 def buscar_por_id(db: Session, id: int) -> Aula | None:
-    return db.query(Aula).filter(Aula.id == id).first()
+    return db.query(Aula).filter(Aula.id == id, Aula.deletado == False).first()
 
 
 def professor_tem_aula_no_dia(db: Session, professor_id: int, data: date, exclude_id: int | None = None) -> bool:
@@ -82,6 +82,7 @@ def professor_tem_aula_no_dia(db: Session, professor_id: int, data: date, exclud
             Aula.professor_id == professor_id,
             Aula.data == data,
             Aula.status.in_(["agendada", "pendente_aprovacao"]),
+            Aula.deletado == False,
         )
     )
     if exclude_id:
@@ -110,6 +111,7 @@ def buscar_conflito_horario(
             Aula.status.in_(["agendada", "pendente_aprovacao"]),
             Aula.hora_inicio < hora_fim,
             Aula.hora_fim > hora_inicio,
+            Aula.deletado == False,
         )
     )
     if exclude_id:
@@ -120,7 +122,7 @@ def buscar_conflito_horario(
 def buscar_por_turma_e_data(db: Session, turma_id: int, data: date) -> Aula | None:
     return (
         db.query(Aula)
-        .filter(Aula.turma_id == turma_id, Aula.data == data)
+        .filter(Aula.turma_id == turma_id, Aula.data == data, Aula.deletado == False)
         .first()
     )
 
@@ -129,7 +131,7 @@ def buscar_datas_existentes(db: Session, turma_id: int, data_inicio: date, data_
     """Retorna o conjunto de datas que já possuem aula para a turma no período."""
     rows = (
         db.query(Aula.data)
-        .filter(Aula.turma_id == turma_id, Aula.data >= data_inicio, Aula.data <= data_fim)
+        .filter(Aula.turma_id == turma_id, Aula.data >= data_inicio, Aula.data <= data_fim, Aula.deletado == False)
         .all()
     )
     return {row.data for row in rows}
@@ -144,7 +146,7 @@ def criar(db: Session, dados: dict) -> Aula:
 
 
 def deletar(db: Session, aula: Aula) -> None:
-    db.delete(aula)
+    aula.deletado = True
     db.commit()
 
 

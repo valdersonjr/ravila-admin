@@ -22,7 +22,7 @@ def listar_por_aluno(db: Session, aluno_id: int, page: int = 1, page_size: int =
     query = (
         db.query(Presenca)
         .join(Aula, Aula.id == Presenca.aula_id)
-        .filter(Presenca.aluno_id == aluno_id)
+        .filter(Presenca.aluno_id == aluno_id, Aula.deletado == False)
         .options(joinedload(Presenca.aula).joinedload(Aula.turma))
         .order_by(Aula.data.desc())
     )

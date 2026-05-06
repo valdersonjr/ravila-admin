@@ -179,11 +179,6 @@ def deletar(db: Session, aula_id: int) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Não é possível excluir aulas de datas passadas",
         )
-    if aula.status != AulaStatus.AGENDADA:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Apenas aulas com status 'agendada' podem ser excluídas",
-        )
     # Se esta aula estava sendo usada como reposição, volta o crédito para pendente
     rep = db.query(ReposicaoPendente).filter(ReposicaoPendente.aula_reposicao_id == aula_id).first()
     if rep:
