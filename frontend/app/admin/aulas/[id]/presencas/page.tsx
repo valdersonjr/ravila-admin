@@ -59,7 +59,7 @@ export default function PresencasPage() {
         if (isAdmin) {
           promises.push(pessoasService.listar({ page_size: 500 }));
           promises.push(alunosService.listar());
-          promises.push(reposicoesService.listar());
+          promises.push(reposicoesService.listar().catch(() => [] as ReposicaoPendente[]));
         }
         const [aulaData, presencasData, pessoas, alunos, reposicoes] = await Promise.all(promises);
         const aula = aulaData as Aula;
