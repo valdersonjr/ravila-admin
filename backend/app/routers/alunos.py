@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -17,6 +17,7 @@ from app.models.user import User
 from app.schemas.aluno import AlunoCreate, AlunoUpdate, AlunoOut, AlunoListOut
 from app.schemas.presenca import PresencaDoAlunoOut
 from app.services import aluno as aluno_service
+from app.repositories import audit_log as audit_log_repo
 from app.repositories import presenca as presenca_repo
 
 router = APIRouter(prefix="/alunos", tags=["alunos"])
@@ -39,10 +40,15 @@ def listar(
 @router.post("/", response_model=AlunoOut, status_code=status.HTTP_201_CREATED)
 def criar(
     body: AlunoCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
 ):
-    return aluno_service.criar(db, body)
+    aluno = aluno_service.criar(db, body)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "aluno", aluno.pessoa_id)
+    db.commit()
+    db.refresh(aluno)
+    return aluno
 
 
 @router.get("/aniversarios", response_model=list[AlunoOut])
@@ -238,18 +244,24 @@ def presencas_do_aluno(
 def atualizar(
     pessoa_id: int,
     body: AlunoUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
 ):
-    return aluno_service.atualizar(db, pessoa_id, body)
+    aluno = aluno_service.atualizar(db, pessoa_id, body)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "aluno", pessoa_id)
+    db.commit()
+    db.refresh(aluno)
+    return aluno
 
 
 @router.patch("/{pessoa_id}/nivel-ingles", response_model=AlunoOut)
 def atualizar_nivel_ingles(
     pessoa_id: int,
     body: AtualizarNivelIn,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
     if body.nivel not in NIVEIS_CEFR:
         raise HTTPException(status_code=422, detail=f"Nível inválido. Use: {NIVEIS_CEFR}")
@@ -258,6 +270,7 @@ def atualizar_nivel_ingles(
         raise HTTPException(status_code=404)
     aluno.nivel_questao = body.nivel
     aluno.nivel_questao_avaliado_em = datetime.now(timezone.utc)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "aluno", pessoa_id, detalhes={"nivel": body.nivel})
     db.commit()
     db.refresh(aluno)
     return aluno_service.buscar(db, pessoa_id)

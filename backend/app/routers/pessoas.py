@@ -1,11 +1,12 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_staff, require_staff_or_professor
 from app.models.user import User
+from app.repositories import audit_log as audit_log_repo
 from app.schemas.pessoa import PessoaCreate, PessoaUpdate, PessoaOut, PessoaListOut
 from app.services import pessoa as pessoa_service
 
@@ -26,10 +27,15 @@ def listar(
 @router.post("/", response_model=PessoaOut, status_code=status.HTTP_201_CREATED)
 def criar(
     body: PessoaCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
 ):
-    return pessoa_service.criar(db, body)
+    pessoa = pessoa_service.criar(db, body)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "pessoa", pessoa.id)
+    db.commit()
+    db.refresh(pessoa)
+    return pessoa
 
 
 @router.get("/{pessoa_id}", response_model=PessoaOut)
@@ -45,7 +51,12 @@ def buscar(
 def atualizar(
     pessoa_id: int,
     body: PessoaUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
 ):
-    return pessoa_service.atualizar(db, pessoa_id, body)
+    pessoa = pessoa_service.atualizar(db, pessoa_id, body)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "pessoa", pessoa_id)
+    db.commit()
+    db.refresh(pessoa)
+    return pessoa

@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,7 @@ from app.database import get_db
 from app.dependencies import require_staff_or_professor
 from app.models.avaliacao import STATUS_AVALIACAO
 from app.models.user import User
+from app.repositories import audit_log as audit_log_repo
 from app.repositories import avaliacao as repo
 from app.schemas.avaliacao import (
     AvaliacaoAlunoOut,
@@ -135,6 +136,7 @@ def listar(
 @router.post("/", response_model=AvaliacaoOut, status_code=status.HTTP_201_CREATED)
 def criar(
     dados: AvaliacaoCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
@@ -143,6 +145,9 @@ def criar(
         if dados.turma_id not in ids:
             raise HTTPException(status_code=403, detail="Acesso negado")
     av = repo.criar(db, dados, criado_por_id=current_user.id)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "avaliacao", av.id)
+    db.commit()
+    db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
 
 
@@ -188,29 +193,36 @@ def buscar(
 def atualizar(
     avaliacao_id: int,
     dados: AvaliacaoUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
     _check_professor_acesso(av, current_user, db)
     av = repo.atualizar(db, av, dados)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "avaliacao", avaliacao_id)
+    db.commit()
+    db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
 
 
 @router.delete("/{avaliacao_id}", status_code=status.HTTP_204_NO_CONTENT)
 def deletar(
     avaliacao_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
     av = _get_or_404(db, avaliacao_id)
     _check_professor_acesso(av, current_user, db)
+    audit_log_repo.registrar(db, current_user, request, "DELETE", "avaliacao", avaliacao_id)
     repo.deletar(db, av)
 
 
 @router.post("/{avaliacao_id}/publicar", response_model=AvaliacaoOut)
 def publicar(
     avaliacao_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
@@ -221,12 +233,16 @@ def publicar(
     if av.tipo == "online" and not av.questoes:
         raise HTTPException(status_code=422, detail="Adicione ao menos uma questão antes de publicar")
     av = repo.mudar_status(db, av, "publicada")
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "avaliacao", avaliacao_id, detalhes={"status": "publicada"})
+    db.commit()
+    db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
 
 
 @router.post("/{avaliacao_id}/encerrar", response_model=AvaliacaoOut)
 def encerrar(
     avaliacao_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
@@ -235,6 +251,9 @@ def encerrar(
     if av.status != "publicada":
         raise HTTPException(status_code=409, detail="Só é possível encerrar avaliações publicadas")
     av = repo.mudar_status(db, av, "encerrada")
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "avaliacao", avaliacao_id, detalhes={"status": "encerrada"})
+    db.commit()
+    db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
 
 
@@ -242,6 +261,7 @@ def encerrar(
 def adicionar_questao(
     avaliacao_id: int,
     item: AvaliacaoQuestaoIn,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
@@ -250,6 +270,8 @@ def adicionar_questao(
     if av.status != "rascunho":
         raise HTTPException(status_code=409, detail="Só é possível editar questões em rascunho")
     repo.adicionar_questao(db, avaliacao_id, item)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "avaliacao", avaliacao_id, detalhes={"acao": "adicionar_questao", "questao_id": item.questao_id})
+    db.commit()
     db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
 
@@ -258,6 +280,7 @@ def adicionar_questao(
 def remover_questao(
     avaliacao_id: int,
     questao_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
@@ -265,6 +288,7 @@ def remover_questao(
     _check_professor_acesso(av, current_user, db)
     if av.status != "rascunho":
         raise HTTPException(status_code=409, detail="Só é possível editar questões em rascunho")
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "avaliacao", avaliacao_id, detalhes={"acao": "remover_questao", "questao_id": questao_id})
     repo.remover_questao(db, avaliacao_id, questao_id)
     db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
@@ -274,6 +298,7 @@ def remover_questao(
 def lancar_notas(
     avaliacao_id: int,
     dados: LancarNotasIn,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
@@ -284,6 +309,8 @@ def lancar_notas(
     repo.lancar_notas_offline(db, avaliacao_id, [n.model_dump() for n in dados.notas])
     if av.status == "publicada":
         repo.mudar_status(db, av, "encerrada")
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "avaliacao", avaliacao_id, detalhes={"acao": "lancar_notas"})
+    db.commit()
 
 
 @router.get("/{avaliacao_id}/alunos", response_model=list[AvaliacaoAlunoOut])
@@ -347,6 +374,7 @@ def respostas_aluno(
 @router.post("/{avaliacao_id}/upload-documento", response_model=AvaliacaoOut)
 def upload_documento(
     avaliacao_id: int,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
@@ -365,6 +393,7 @@ def upload_documento(
         s3_service.deletar_arquivo(av.documento_key)
     key = s3_service.upload_avaliacao_documento(file_bytes, avaliacao_id, file.filename or f"documento.{ext}")
     av.documento_key = key
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "avaliacao", avaliacao_id, detalhes={"acao": "upload_documento"})
     db.commit()
     db.refresh(av)
     return AvaliacaoOut(**_enrich(av, db))
@@ -390,6 +419,7 @@ def corrigir(
     aluno_id: int,
     questao_id: int,
     dados: CorrecaoIn,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
@@ -400,6 +430,9 @@ def corrigir(
         resp = repo.corrigir_resposta(db, avaliacao_id, aluno_id, questao_id, dados.nota_manual, dados.comentario_professor)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "avaliacao", avaliacao_id, detalhes={"acao": "corrigir", "aluno_id": aluno_id, "questao_id": questao_id})
+    db.commit()
+    db.refresh(resp)
     return RespostaAlunoOut(
         questao_id=resp.questao_id,
         codigo=resp.questao.codigo,

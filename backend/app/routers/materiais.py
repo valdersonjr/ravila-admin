@@ -1,11 +1,12 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_staff_or_professor
 from app.models.user import User
+from app.repositories import audit_log as audit_log_repo
 from app.schemas.material import MaterialCreate, MaterialOut, MaterialUpdate
 from app.services import material as svc
 
@@ -29,10 +30,14 @@ def listar(
 @router.post("/", response_model=MaterialOut, status_code=status.HTTP_201_CREATED)
 def criar(
     dados: MaterialCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
-    return svc.criar(db, dados, current_user)
+    material = svc.criar(db, dados, current_user)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "material", material["id"])
+    db.commit()
+    return material
 
 
 @router.get("/{material_id}", response_model=MaterialOut)
@@ -48,29 +53,39 @@ def buscar(
 def atualizar(
     material_id: int,
     dados: MaterialUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
-    return svc.atualizar(db, material_id, dados, current_user)
+    material = svc.atualizar(db, material_id, dados, current_user)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "material", material_id)
+    db.commit()
+    return material
 
 
 @router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
 def deletar(
     material_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
+    audit_log_repo.registrar(db, current_user, request, "DELETE", "material", material_id)
     svc.deletar(db, material_id, current_user)
 
 
 @router.post("/{material_id}/upload", response_model=MaterialOut)
 def upload_arquivo(
     material_id: int,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
-    return svc.fazer_upload(db, material_id, file, current_user)
+    material = svc.fazer_upload(db, material_id, file, current_user)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "material", material_id, detalhes={"acao": "upload_arquivo"})
+    db.commit()
+    return material
 
 
 @router.get("/{material_id}/download")

@@ -17,6 +17,7 @@ from app.database import get_db
 from app.dependencies import require_staff
 from app.models.contrato import Contrato
 from app.models.user import User
+from app.repositories import audit_log as audit_log_repo
 from app.repositories import contrato as contrato_repo
 from app.schemas.contrato import ContratoCreate, ContratoUpdate, ContratoStatusUpdate, ContratoOut, ContratoListOut
 from app.services import contrato as contrato_service
@@ -329,10 +330,15 @@ def listar(
 @router.post("/", response_model=ContratoOut, status_code=status.HTTP_201_CREATED)
 def criar(
     body: ContratoCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
 ):
-    return contrato_service.criar(db, body)
+    contrato = contrato_service.criar(db, body)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "contrato", contrato.id)
+    db.commit()
+    db.refresh(contrato)
+    return contrato
 
 
 @router.get("/{contrato_id}", response_model=ContratoOut)
@@ -348,35 +354,50 @@ def buscar(
 def atualizar(
     contrato_id: int,
     body: ContratoUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
 ):
-    return contrato_service.atualizar(db, contrato_id, body)
+    contrato = contrato_service.atualizar(db, contrato_id, body)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "contrato", contrato_id)
+    db.commit()
+    db.refresh(contrato)
+    return contrato
 
 
 @router.patch("/{contrato_id}/status", response_model=ContratoOut)
 def atualizar_status(
     contrato_id: int,
     body: ContratoStatusUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
 ):
-    return contrato_service.atualizar_status(db, contrato_id, body)
+    contrato = contrato_service.atualizar_status(db, contrato_id, body)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "contrato", contrato_id, detalhes={"status": body.status})
+    db.commit()
+    db.refresh(contrato)
+    return contrato
 
 
 @router.post("/{contrato_id}/upload-assinado", response_model=ContratoOut)
 def upload_assinado(
     contrato_id: int,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff),
+    current_user: User = Depends(require_staff),
 ):
     contrato = contrato_service.buscar(db, contrato_id)
     file_bytes = file.file.read(_MAX_UPLOAD_BYTES + 1)
     if len(file_bytes) > _MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Arquivo muito grande (máximo 200 MB)")
     key = s3_service.upload_contrato(file_bytes, contrato_id, file.filename or "assinado.pdf")
-    return contrato_repo.atualizar(db, contrato, {"contrato_assinado_key": key})
+    contrato = contrato_repo.atualizar(db, contrato, {"contrato_assinado_key": key})
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "contrato", contrato_id, detalhes={"acao": "upload_assinado"})
+    db.commit()
+    db.refresh(contrato)
+    return contrato
 
 
 @router.get("/{contrato_id}/download-assinado")

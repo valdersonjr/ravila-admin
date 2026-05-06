@@ -1,12 +1,13 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_staff_or_professor
 from app.models.user import User
+from app.repositories import audit_log as audit_log_repo
 from app.schemas.questao import QuestaoCreate, QuestaoOut, QuestaoUpdate
 from app.services import questao as svc
 
@@ -52,10 +53,15 @@ def listar(
 @router.post("/", response_model=QuestaoOut, status_code=status.HTTP_201_CREATED)
 def criar(
     dados: QuestaoCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staff_or_professor),
 ):
-    return svc.criar(db, dados, criado_por_id=current_user.id)
+    questao = svc.criar(db, dados, criado_por_id=current_user.id)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "questao", questao.id)
+    db.commit()
+    db.refresh(questao)
+    return questao
 
 
 @router.get("/{questao_id}", response_model=QuestaoOut)
@@ -76,16 +82,23 @@ def buscar(
 def atualizar(
     questao_id: int,
     dados: QuestaoUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
-    return svc.atualizar(db, questao_id, dados)
+    questao = svc.atualizar(db, questao_id, dados)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "questao", questao_id)
+    db.commit()
+    db.refresh(questao)
+    return questao
 
 
 @router.delete("/{questao_id}", status_code=status.HTTP_204_NO_CONTENT)
 def deletar(
     questao_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_staff_or_professor),
+    current_user: User = Depends(require_staff_or_professor),
 ):
+    audit_log_repo.registrar(db, current_user, request, "DELETE", "questao", questao_id)
     svc.deletar(db, questao_id)

@@ -14,6 +14,7 @@ from app.core.limiter import limiter
 from app.database import get_db
 from app.dependencies import require_admin, require_staff, get_current_user
 from app.models.user import User
+from app.repositories import audit_log as audit_log_repo
 from app.schemas.professor import ProfessorCreate, ProfessorUpdate, ProfessorOut, ProfessorDashboardOut
 from app.schemas.turma import GerarSemanaRelatorio, GerarSemanaRequest
 from app.services import professor as professor_service
@@ -34,10 +35,15 @@ def listar(
 @router.post("/", response_model=ProfessorOut, status_code=status.HTTP_201_CREATED)
 def criar(
     body: ProfessorCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
-    return professor_service.criar(db, body)
+    professor = professor_service.criar(db, body)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "professor", professor.pessoa_id)
+    db.commit()
+    db.refresh(professor)
+    return professor
 
 
 @router.get("/{pessoa_id}", response_model=ProfessorOut)
@@ -55,10 +61,15 @@ def buscar(
 def atualizar(
     pessoa_id: int,
     body: ProfessorUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
-    return professor_service.atualizar(db, pessoa_id, body)
+    professor = professor_service.atualizar(db, pessoa_id, body)
+    audit_log_repo.registrar(db, current_user, request, "UPDATE", "professor", pessoa_id)
+    db.commit()
+    db.refresh(professor)
+    return professor
 
 
 @router.get("/{pessoa_id}/dashboard", response_model=ProfessorDashboardOut)
