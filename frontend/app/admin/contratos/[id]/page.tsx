@@ -45,7 +45,7 @@ export default function ContratoPage() {
   const router = useRouter();
   const { showToast } = useToast();
 
-  const isAdmin = authService.getRole() === "admin";
+  const isAdmin = ["admin", "secretario"].includes(authService.getRole() ?? "");
   const [contrato, setContrato] = useState<Contrato | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState<{ status: Contrato["status"]; label: string } | null>(null);

@@ -23,7 +23,7 @@ function formatBRL(valor: string | number) {
 }
 
 export default function ContratosPage() {
-  const isAdmin = authService.getRole() === "admin";
+  const isAdmin = ["admin", "secretario"].includes(authService.getRole() ?? "");
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
