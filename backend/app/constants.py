@@ -15,6 +15,7 @@ class AulaTipo:
     REGULAR = "regular"
     SUBSTITUTIVA = "substitutiva"
     EXPERIMENTAL = "experimental"
+    REPOSICAO = "reposicao"
 
 
 class MatriculaStatus:

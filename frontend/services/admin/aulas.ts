@@ -10,7 +10,7 @@ export interface Aula {
   hora_fim: string;
   professor_id: number;
   professor_nome_snapshot: string;
-  tipo: "regular" | "substitutiva" | "experimental";
+  tipo: "regular" | "substitutiva" | "experimental" | "reposicao";
   status: "agendada" | "realizada" | "cancelada" | "pendente_aprovacao";
   aula_origem_id: number | null;
   descricao: string | null;
@@ -54,6 +54,8 @@ export const aulasService = {
     apiAuth.post<Aula>("/aulas/", data),
   criarAvulsa: (data: { aluno_id: number; professor_id: number; data: string; hora_inicio: string; hora_fim: string; descricao?: string }) =>
     apiAuth.post<Aula>("/aulas/avulsa", data),
+  criarReposicao: (data: { reposicao_ids: number[]; professor_id: number; data: string; hora_inicio: string; hora_fim: string }) =>
+    apiAuth.post<Aula>("/aulas/reposicao", data),
   atualizarStatus: (id: number, status: string) => apiAuth.patch<Aula>(`/aulas/${id}/status`, { status }),
   remarcar: (id: number, data: { data: string; hora_inicio: string; hora_fim: string }) =>
     apiAuth.post<Aula>(`/aulas/${id}/remarcar`, data),

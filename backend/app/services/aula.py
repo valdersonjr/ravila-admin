@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import set_committed_value
 
-from app.constants import AulaStatus, AulaTipo
+from app.constants import AulaStatus, AulaTipo, PresencaTipo, ReposicaoStatus
 
 _BR = ZoneInfo("America/Sao_Paulo")
 
@@ -21,11 +21,12 @@ def _aplicar_status_efetivo(aula: "Aula") -> "Aula":
     return aula
 from app.models.aula import Aula
 from app.models.pessoa import Pessoa
+from app.models.presenca import Presenca
 from app.models.reposicao import ReposicaoPendente
 from app.repositories import aula as aula_repo
 from app.repositories import professor as professor_repo
 from app.repositories import turma as turma_repo
-from app.schemas.aula import AulaCreate, AulaAvulsaCreate, AulaListOut
+from app.schemas.aula import AulaCreate, AulaAvulsaCreate, AulaListOut, AulaReposicaoCreate
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,61 @@ def criar_avulsa(db: Session, dados: AulaAvulsaCreate) -> Aula:
         "status": AulaStatus.AGENDADA,
         "descricao": dados.descricao,
     })
+
+
+def criar_reposicao(db: Session, dados: AulaReposicaoCreate) -> Aula:
+    professor = professor_repo.buscar_por_pessoa_id(db, dados.professor_id)
+    if not professor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professor não encontrado")
+
+    if aula_repo.buscar_conflito_horario(db, dados.professor_id, dados.data, dados.hora_inicio, dados.hora_fim):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Professor já possui uma aula agendada neste horário.",
+        )
+
+    reposicoes = (
+        db.query(ReposicaoPendente)
+        .filter(
+            ReposicaoPendente.id.in_(dados.reposicao_ids),
+            ReposicaoPendente.status == ReposicaoStatus.PENDENTE,
+        )
+        .all()
+    )
+    if len(reposicoes) != len(dados.reposicao_ids):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uma ou mais reposições não encontradas ou já utilizadas",
+        )
+
+    aula = Aula(
+        professor_id=dados.professor_id,
+        professor_nome_snapshot=professor.pessoa.nome if professor.pessoa else "",
+        data=dados.data,
+        hora_inicio=dados.hora_inicio,
+        hora_fim=dados.hora_fim,
+        tipo=AulaTipo.REPOSICAO,
+        status=AulaStatus.AGENDADA,
+    )
+    db.add(aula)
+    db.flush()
+
+    aluno_ids_adicionados: set[int] = set()
+    for rep in reposicoes:
+        if rep.aluno_id not in aluno_ids_adicionados:
+            db.add(Presenca(
+                aula_id=aula.id,
+                aluno_id=rep.aluno_id,
+                tipo=PresencaTipo.SUBSTITUTO,
+                presente=False,
+            ))
+            aluno_ids_adicionados.add(rep.aluno_id)
+        rep.status = ReposicaoStatus.USADA
+        rep.aula_reposicao_id = aula.id
+
+    db.commit()
+    db.refresh(aula)
+    return aula
 
 
 def atualizar_status(db: Session, aula_id: int, novo_status: str) -> Aula:

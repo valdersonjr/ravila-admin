@@ -16,6 +16,7 @@ from app.schemas.aula import (
     AulaListOut,
     AulaOut,
     AulaRemarcarRequest,
+    AulaReposicaoCreate,
     AulaStatusUpdate,
     AulaSubstituirProfessorRequest,
 )
@@ -111,6 +112,19 @@ def criar_avulsa(
     _: User = Depends(require_staff_or_professor),
 ):
     return aula_service.criar_avulsa(db, body)
+
+
+@router.post("/reposicao", response_model=AulaOut, status_code=status.HTTP_201_CREATED)
+def criar_reposicao(
+    body: AulaReposicaoCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff),
+):
+    aula = aula_service.criar_reposicao(db, body)
+    audit_log_repo.registrar(db, current_user, request, "CREATE", "aula", aula.id)
+    db.commit()
+    return aula
 
 
 @router.delete("/{aula_id}", status_code=status.HTTP_204_NO_CONTENT)

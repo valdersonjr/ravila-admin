@@ -12,6 +12,26 @@ def _validate_time(v: str) -> str:
     return v
 
 
+class AulaReposicaoCreate(BaseModel):
+    reposicao_ids: list[int]
+    professor_id: int
+    data: date
+    hora_inicio: str
+    hora_fim: str
+
+    @field_validator("hora_inicio", "hora_fim")
+    @classmethod
+    def validate_time(cls, v: str) -> str:
+        return _validate_time(v)
+
+    @field_validator("reposicao_ids")
+    @classmethod
+    def validate_reposicao_ids(cls, v: list[int]) -> list[int]:
+        if not v:
+            raise ValueError("Selecione ao menos uma reposição")
+        return v
+
+
 class AulaCreate(BaseModel):
     turma_id: int
     data: date

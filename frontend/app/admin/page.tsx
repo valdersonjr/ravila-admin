@@ -175,10 +175,17 @@ export default function DashboardPage() {
 
       {isAdmin && (
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">
-            Reposições pendentes
-            {reposicoes.length === 0 && <span className="text-sm font-normal text-muted ml-2">Nenhuma</span>}
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-foreground">
+              Reposições pendentes
+              {reposicoes.length === 0 && <span className="text-sm font-normal text-muted ml-2">Nenhuma</span>}
+            </h2>
+            {reposicoes.length > 0 && (
+              <Link href="/admin/reposicoes/nova" className="text-sm text-primary-600 hover:underline">
+                Agendar reposição →
+              </Link>
+            )}
+          </div>
           {reposicoes.length > 0 && (
             <Table<ReposicaoPendente>
               keyExtractor={(r) => r.id}

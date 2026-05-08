@@ -159,8 +159,9 @@ export default function AulasPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Aulas</h1>
         <div className="flex gap-2">
-          <Link href="/admin/aulas/nova"><Button variant="outline">+ Aula de turma</Button></Link>
-          {(isAdmin || isProfessor) && <Link href="/admin/aulas/avulsa/nova"><Button>+ Aula experimental</Button></Link>}
+          <Link href="/admin/aulas/nova"><Button>+ Aula de turma</Button></Link>
+          {(isAdmin || isProfessor) && <Link href="/admin/aulas/avulsa/nova"><Button variant="outline">+ Aula experimental</Button></Link>}
+          {isAdmin && <Link href="/admin/reposicoes/nova"><Button variant="outline">+ Aula de reposição</Button></Link>}
         </div>
       </div>
 
