@@ -453,11 +453,10 @@ def status_teste_proficiencia(
     current_user: User = Depends(require_aluno),
 ):
     aluno = db.query(AlunoModel).filter(AlunoModel.pessoa_id == current_user.pessoa_id).first()
-    concluido = aluno is not None and aluno.nivel_questao_avaliado_em is not None
+    concluido = aluno is not None and aluno.nivel_questao is not None
     return {
         "concluido": concluido,
         "nivel": aluno.nivel_questao if concluido else None,
-        "avaliado_em": aluno.nivel_questao_avaliado_em,
     }
 
 
@@ -487,7 +486,7 @@ def avaliar_completo_proficiencia(
     aluno = db.query(AlunoModel).filter(AlunoModel.pessoa_id == current_user.pessoa_id).first()
     if not aluno:
         raise HTTPException(status_code=404)
-    if aluno.nivel_questao_avaliado_em is not None:
+    if aluno.nivel_questao is not None:
         raise HTTPException(status_code=409, detail="Teste já realizado")
 
     # Registrar respostas e agrupar acertos por nível
@@ -516,7 +515,6 @@ def avaliar_completo_proficiencia(
             break
 
     aluno.nivel_questao = nivel_final
-    aluno.nivel_questao_avaliado_em = datetime.now(timezone.utc)
     db.commit()
 
     return {"nivel": nivel_final}

@@ -164,6 +164,7 @@ export default function AlunoPage() {
           <InfoRow label="E-mail" value={aluno.pessoa.email ?? "Não informado"} />
           <InfoRow label="Telefone" value={aluno.pessoa.telefone ?? "Não informado"} />
           <InfoRow label="Data de nascimento" value={aluno.data_nascimento ? formatDate(aluno.data_nascimento) : "Não informado"} />
+          <InfoRow label="Nível de Inglês" value={aluno.nivel_questao ?? "Não informado"} />
           <InfoRow label="Aniversário" value={aluno.aniversario ?? "Não informado"} />
           {aluno.responsavel && (
             <InfoRow label="Responsável" value={aluno.responsavel.nome} />

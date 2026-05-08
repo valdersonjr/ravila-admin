@@ -8,10 +8,13 @@ import { pessoasService, type Pessoa } from "@/services/admin/pessoas";
 import { contratosService, type Contrato } from "@/services/admin/contratos";
 import { Combobox } from "@/components/ui/Combobox";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/context/ToastContext";
 import { Field } from "@/components/ui/Field";
+
+const NIVEIS_CEFR = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 import Link from "next/link";
 
 export default function EditarAlunoPage() {
@@ -27,6 +30,7 @@ export default function EditarAlunoPage() {
   const [eMenor, setEMenor] = useState(false);
   const [aniversario, setAniversario] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
+  const [nivelQuestao, setNivelQuestao] = useState("");
   const [nomeAluno, setNomeAluno] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -43,6 +47,7 @@ export default function EditarAlunoPage() {
       setEMenor(aluno.pessoa?.menor_de_idade ?? false);
       setAniversario(aluno.aniversario ?? "");
       setDataNascimento(aluno.data_nascimento ?? "");
+      setNivelQuestao(aluno.nivel_questao ?? "");
       setNomeAluno(aluno.pessoa.nome);
       setNiveis(ns);
       setPessoas(ps.items);
@@ -59,6 +64,7 @@ export default function EditarAlunoPage() {
         responsavel_id: responsavelId ? Number(responsavelId) : undefined,
         aniversario: aniversario || undefined,
         data_nascimento: dataNascimento || undefined,
+        nivel_questao: nivelQuestao || null,
       });
       showToast("Aluno atualizado!");
       router.push("/admin/alunos");
@@ -108,6 +114,16 @@ export default function EditarAlunoPage() {
             <Combobox options={pessoaOptions} value={responsavelId} onChange={setResponsavelId} placeholder="Buscar responsável por nome ou CPF..." />
           </Field>
         )}
+        <Field label="Nível de Inglês">
+          <Select
+            value={nivelQuestao}
+            onChange={(e) => setNivelQuestao(e.target.value)}
+            options={[
+              { value: "", label: "Sem nível" },
+              ...NIVEIS_CEFR.map((n) => ({ value: n, label: n })),
+            ]}
+          />
+        </Field>
         <Field label="Aniversário">
           <Input value={aniversario} onChange={(e) => setAniversario(e.target.value)} placeholder="DD/MM" maxLength={5} />
         </Field>

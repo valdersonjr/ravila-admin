@@ -7,6 +7,7 @@ export interface Aluno {
   tem_contrato_ativo: boolean;
   aniversario: string | null;
   data_nascimento: string | null;
+  nivel_questao: string | null;
   nivel: { id: number; nome: string } | null;
   responsavel: { id: number; nome: string; cpf: string | null } | null;
   pessoa: { id: number; nome: string; cpf: string | null; email: string | null; telefone: string | null; menor_de_idade: boolean; };
@@ -26,6 +27,7 @@ export interface AlunoCreate {
   responsavel_id?: number;
   aniversario?: string;
   data_nascimento?: string;
+  nivel_questao?: string | null;
 }
 
 // status é calculado no backend com base em matrículas ativas em turmas ativas

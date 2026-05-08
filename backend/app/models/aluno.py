@@ -1,7 +1,7 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import String, Date, DateTime, Boolean, ForeignKey
+from sqlalchemy import String, Date, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -22,7 +22,6 @@ class Aluno(Base):
     responsavel_id: Mapped[Optional[int]] = mapped_column(ForeignKey("pessoas.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(10), nullable=False, default="ativo")  # ativo|inativo
     nivel_questao: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)  # A1..C2
-    nivel_questao_avaliado_em: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     aniversario: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     data_nascimento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
 
