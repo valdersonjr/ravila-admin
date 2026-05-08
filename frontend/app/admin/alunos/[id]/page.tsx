@@ -14,7 +14,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex flex-col sm:flex-row sm:gap-4">
       <span className="text-xs text-muted font-medium w-44 shrink-0">{label}</span>
-      <span className="text-sm text-foreground">{value ?? "—"}</span>
+      <span className="text-sm text-foreground">{value ?? "Não informado"}</span>
     </div>
   );
 }
@@ -120,7 +120,7 @@ export default function AlunoPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-surface border border-border rounded-xl p-4">
           <p className="text-xs text-muted font-medium">Nível</p>
-          <p className="text-lg font-bold text-foreground mt-1">{aluno.nivel?.nome ?? "—"}</p>
+          <p className="text-lg font-bold text-foreground mt-1">{aluno.nivel?.nome ?? "Não informado"}</p>
         </div>
         <div className="bg-surface border border-border rounded-xl p-4">
           <p className="text-xs text-muted font-medium">Turma{matriculasAtivas.length !== 1 ? "s" : ""} ativa{matriculasAtivas.length !== 1 ? "s" : ""}</p>
@@ -131,7 +131,7 @@ export default function AlunoPage() {
               ))}
             </div>
           ) : (
-            <p className="text-lg font-bold text-muted mt-1">—</p>
+            <p className="text-lg font-bold text-muted mt-1">Não informado</p>
           )}
         </div>
         <div className="bg-surface border border-border rounded-xl p-4">
@@ -148,7 +148,7 @@ export default function AlunoPage() {
               {media.toFixed(1)}
             </p>
           ) : (
-            <p className="text-lg font-bold text-muted mt-1">—</p>
+            <p className="text-lg font-bold text-muted mt-1">Não informado</p>
           )}
           {avaliacoes.length > 0 && (
             <p className="text-xs text-muted mt-0.5">{avaliacoes.length} avaliação{avaliacoes.length !== 1 ? "ões" : ""}</p>
@@ -160,11 +160,11 @@ export default function AlunoPage() {
       <div className="bg-surface border border-border rounded-xl p-6 space-y-3">
         <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Dados pessoais</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-          <InfoRow label="CPF" value={aluno.pessoa.cpf ?? "—"} />
-          <InfoRow label="E-mail" value={aluno.pessoa.email ?? "—"} />
-          <InfoRow label="Telefone" value={aluno.pessoa.telefone ?? "—"} />
-          <InfoRow label="Data de nascimento" value={aluno.data_nascimento ? formatDate(aluno.data_nascimento) : "—"} />
-          <InfoRow label="Aniversário" value={aluno.aniversario ?? "—"} />
+          <InfoRow label="CPF" value={aluno.pessoa.cpf ?? "Não informado"} />
+          <InfoRow label="E-mail" value={aluno.pessoa.email ?? "Não informado"} />
+          <InfoRow label="Telefone" value={aluno.pessoa.telefone ?? "Não informado"} />
+          <InfoRow label="Data de nascimento" value={aluno.data_nascimento ? formatDate(aluno.data_nascimento) : "Não informado"} />
+          <InfoRow label="Aniversário" value={aluno.aniversario ?? "Não informado"} />
           {aluno.responsavel && (
             <InfoRow label="Responsável" value={aluno.responsavel.nome} />
           )}
@@ -314,11 +314,11 @@ export default function AlunoPage() {
                 {avaliacoes.map((av) => (
                   <tr key={av.id} className="hover:bg-border transition-colors">
                     <td className="px-4 py-2 text-foreground font-medium">{av.titulo}</td>
-                    <td className="px-4 py-2 text-muted">{av.turma_nome ?? "—"}</td>
+                    <td className="px-4 py-2 text-muted">{av.turma_nome ?? "Não informado"}</td>
                     <td className="px-4 py-2 text-muted">
                       {av.data_aplicacao
                         ? new Date(av.data_aplicacao + "T00:00:00").toLocaleDateString("pt-BR")
-                        : "—"}
+                        : "Não informado"}
                     </td>
                     <td className="px-4 py-2">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -333,7 +333,7 @@ export default function AlunoPage() {
                           {av.nota_final.toFixed(1)}
                         </span>
                       ) : (
-                        <span className="text-muted text-xs">—</span>
+                        <span className="text-muted text-xs">Não informado</span>
                       )}
                     </td>
                     <td className="px-4 py-2">

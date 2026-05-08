@@ -19,7 +19,7 @@ const PERCENTUAL_PRONTO_PARA_AVANCAR = 75;
 const PERCENTUAL_COM_DIFICULDADE = 40;
 
 function formatDate(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "Não informado";
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
@@ -151,7 +151,7 @@ export default function NivelInglesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-surface border border-border rounded-xl p-4">
           <p className="text-xs text-muted uppercase tracking-widest">Total</p>
-          <p className="text-2xl font-bold text-foreground mt-1">{stats?.total ?? "—"}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{stats?.total ?? "Não informado"}</p>
         </div>
         <button
           onClick={() => handleFiltroNivel(filtroNivel === "sem_nivel" ? "" : "sem_nivel")}
@@ -159,15 +159,15 @@ export default function NivelInglesPage() {
           title="Filtrar por sem avaliação"
         >
           <p className="text-xs text-muted uppercase tracking-widest">Sem avaliação</p>
-          <p className="text-2xl font-bold text-muted mt-1">{stats?.sem_nivel ?? "—"}</p>
+          <p className="text-2xl font-bold text-muted mt-1">{stats?.sem_nivel ?? "Não informado"}</p>
         </button>
         <div className="bg-surface border border-border rounded-xl p-4">
           <p className="text-xs text-muted uppercase tracking-widest">Prontos para avançar</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{stats?.pronto_para_avancar ?? "—"}</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">{stats?.pronto_para_avancar ?? "Não informado"}</p>
         </div>
         <div className="bg-surface border border-border rounded-xl p-4">
           <p className="text-xs text-muted uppercase tracking-widest">Com dificuldade</p>
-          <p className="text-2xl font-bold text-red-500 mt-1">{stats?.com_dificuldade ?? "—"}</p>
+          <p className="text-2xl font-bold text-red-500 mt-1">{stats?.com_dificuldade ?? "Não informado"}</p>
         </div>
       </div>
 

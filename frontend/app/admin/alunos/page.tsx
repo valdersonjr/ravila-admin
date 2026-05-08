@@ -115,8 +115,8 @@ export default function AlunosPage() {
             data={alunos}
             columns={[
               { header: "Nome", render: (a) => <Link href={`/admin/alunos/${a.pessoa_id}`} className="text-primary-600 hover:underline">{a.pessoa.nome}</Link> },
-              { header: "Nível", render: (a) => a.nivel?.nome ?? "—" },
-              { header: "Aniversário", render: (a) => a.aniversario ?? "—" },
+              { header: "Nível", render: (a) => a.nivel?.nome ?? "Não informado" },
+              { header: "Aniversário", render: (a) => a.aniversario ?? "Não informado" },
               { header: "Matrícula ativa", render: (a) => <Badge variant={a.status === "ativo" ? "success" : "neutral"}>{a.status === "ativo" ? "Sim" : "Não"}</Badge> },
               { header: "Contrato ativo", render: (a) => <Badge variant={a.tem_contrato_ativo ? "success" : "neutral"}>{a.tem_contrato_ativo ? "Sim" : "Não"}</Badge> },
             ]}
