@@ -328,10 +328,7 @@ export default function AvaliacoesPage() {
                     {av.tipo === "offline" ? (
                       <p>{av.total_alunos} nota{av.total_alunos !== 1 ? "s" : ""} lançada{av.total_alunos !== 1 ? "s" : ""}</p>
                     ) : (
-                      <>
-                        <p>{av.total_questoes} questão{av.total_questoes !== 1 ? "ões" : ""}</p>
-                        <p>{av.total_alunos} aluno{av.total_alunos !== 1 ? "s" : ""}</p>
-                      </>
+                      <p>{av.total_alunos} aluno{av.total_alunos !== 1 ? "s" : ""}</p>
                     )}
                   </div>
                   <button

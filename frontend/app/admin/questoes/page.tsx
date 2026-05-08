@@ -308,7 +308,7 @@ export default function QuestoesPage() {
           ]}
         />
         <div className="flex items-center justify-between text-sm text-muted">
-          <span>{total} questão{total !== 1 ? "es" : ""}</span>
+          <span>{total} {total !== 1 ? "questões" : "questão"}</span>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => { const p = page - 1; setPage(p); load(p); }} disabled={page <= 1}>
               ← Anterior
