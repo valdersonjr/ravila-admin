@@ -448,8 +448,11 @@ async def baixar_pdf(
     _: User = Depends(require_staff),
 ):
     pdf_bytes = await asyncio.to_thread(contrato_service.gerar_pdf, db, contrato_id)
+    contrato = contrato_repo.buscar_por_id(db, contrato_id)
+    nome = contrato.contratante.nome.replace(" ", "_") if contrato else "contrato"
+    filename = f"contrato_{nome}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="contrato_{contrato_id}.pdf"'},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
